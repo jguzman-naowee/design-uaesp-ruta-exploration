@@ -38,7 +38,7 @@ window.PANTALLAS.showroom = {
     }
 
     /* ---------- 0 · nav ---------- */
-    var nav = S.h('div', { class: 'nws-show__nav' },
+    var nav = S.h('div', { class: 'nws-show__nav nws-reveal' },
       S.h('div', { class: 'nws-row' },
         S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'small', variant: 'quiet', theme: 'neutral' }),
         S.h('span', { class: 'nwt-body-font-semibold' }, e(D.entidad.sigla) + ' · Rutas')),
@@ -61,7 +61,7 @@ window.PANTALLAS.showroom = {
         S.h('div', null, S.h('b', { class: 'nws-ink nws-tnum' }, e(vivo.ultima)), 'última marca'),
         S.h('div', null, S.h('b', { class: 'nws-ink nws-tnum' }, e(vivo.eta)), 'llegada estimada')));
 
-    var hero = S.h('div', { class: 'nws-show__hero' },
+    var hero = S.h('div', { class: 'nws-show__hero nws-reveal', style: '--nws-reveal-delay:80ms' },
       S.h('div', { class: 'nws-show__hero-copy' },
         S.h('span', { class: 'nws-live nws-live--chip nwt-smalltext-font-semibold' }, S.h('span', { class: 'nws-live__dot' }), 'Demo interactivo · datos de muestra'),
         S.h('h1', { class: 'nws-show__title' }, 'Planear, ejecutar y verificar cada ruta de recolección. En un solo módulo.'),
@@ -72,7 +72,7 @@ window.PANTALLAS.showroom = {
           S.button({ label: 'Ver una evidencia real', iconEnd: 'arrow-right', size: 'large', variant: 'mute', theme: 'neutral', attrs: { 'data-ir-ancla': 'evidencia' } }))),
       mapa);
 
-    var stats = S.h('div', { class: 'nws-stats nws-show__stats nws-show__stats--hype' },
+    var stats = S.h('div', { class: 'nws-stats nws-show__stats nws-show__stats--hype nws-reveal', style: '--nws-reveal-delay:200ms' },
       S.statCard({ label: 'Rutas activas hoy', value: AM.activas, hint: AM.zonas + ' zonas en simultáneo', icon: 'shipping', theme: 'primary' }),
       S.statCard({ label: 'Unidades marcadas hoy', value: AM.marcadasHoy.toLocaleString('es-CO'), hint: 'de ' + AM.metaHoy.toLocaleString('es-CO') + ' proyectadas', theme: 'primary',
         extra: S.progress({ value: AM.marcadasHoy / AM.metaHoy * 100, size: 'medium', cls: 'nws-stat-progress', theme: 'primary' }) }),
@@ -116,13 +116,13 @@ window.PANTALLAS.showroom = {
           }))
     });
 
-    var secEvidencia = S.h('div', { class: 'nws-show__sec', id: 'evidencia' },
+    var secEvidencia = S.h('div', { class: 'nws-show__sec nws-reveal', id: 'evidencia' },
       lead('Lo central', 'Cada punto de recolección queda con hora, coordenada y fotografía.',
         'No es un reporte de confianza: quien supervisa puede verificar, unidad por unidad, que la ruta se cumplió — con la evidencia que el sistema capturó, no la que alguien contó.'),
       evidencia);
 
     /* ---------- 3a · cámara del camión ---------- */
-    var secCamara = S.h('div', { class: 'nws-show__sec nws-show__sec--tight' },
+    var secCamara = S.h('div', { class: 'nws-show__sec nws-show__sec--tight nws-reveal' },
       S.h('div', { class: 'nws-show__split' },
         S.h('div', { class: 'nws-show__split-media nws-show__split-media--l' },
           ph('Foto: cámara instalada en el compactador', 'camera', S.cls('nws-show__ph--fill', camion && camion.foto && 'nws-show__ph--foto'), camion && camion.foto ? 'background-image:url(' + camion.foto + ')' : ''),
@@ -161,7 +161,7 @@ window.PANTALLAS.showroom = {
               S.h('span', { class: 'nwt-caption-font-regular nws-muted nws-right nws-tnum' }, c.fotos + ' ev.')) });
         })));
     }));
-    var secAuditoria = S.h('div', { class: 'nws-show__sec nws-show__sec--tight', id: 'auditoria' },
+    var secAuditoria = S.h('div', { class: 'nws-show__sec nws-show__sec--tight nws-reveal', id: 'auditoria' },
       S.h('div', { class: 'nws-show__split' },
         S.h('div', { class: 'nws-show__split-body' },
           S.h('div', null, S.badge({ label: 'Auditoría de la auditoría', size: 'medium', theme: 'informative' })),
@@ -203,7 +203,7 @@ window.PANTALLAS.showroom = {
               S.h('span', { class: 'nws-mob__sec nwt-caption-font-semibold' }, 'Causal'),
               S.h('div', { class: 'nws-row', style: 'flex-wrap:wrap' }, causales.map(function (c, i) { return S.tag({ label: c.txt, size: 'medium', active: i === 4, theme: 'primary' }); })),
               S.button({ label: 'Marcar como recolectada', size: 'large', variant: 'loud', theme: 'primary', disabled: true, cls: 'nws-mob__cta' }))))));
-    var secIntermedias = S.h('div', { class: 'nws-show__sec' },
+    var secIntermedias = S.h('div', { class: 'nws-show__sec nws-reveal' },
       lead(null, 'Lo que sostiene la operación diaria'),
       S.h('div', { class: 'nws-show__grid3' }, enVivo, multiOp, telefono));
 
@@ -218,7 +218,7 @@ window.PANTALLAS.showroom = {
         S.h('span', { class: 'nwt-caption-font-regular nws-muted' }, 'resultado'),
         S.badge({ label: D.estados.conforme.label, size: 'small', theme: D.estados.conforme.theme }),
         S.badge({ label: D.estados.hallazgos.label, size: 'small', theme: D.estados.hallazgos.theme })));
-    var secEstados = S.h('div', { class: 'nws-show__sec' },
+    var secEstados = S.h('div', { class: 'nws-show__sec nws-reveal' },
       S.h('div', { class: 'nws-show__lead', style: 'text-align:center;margin:0 auto var(--naotech-sizing-32)' },
         S.h('h2', { class: 'nws-show__h2' }, 'Cada ruta pasa por diez estados. Todos visibles, ninguno se salta.'),
         S.h('p', { class: 'nws-show__p nwt-body-font-regular' }, 'El mismo estado que ve la entidad es el que ve el operador contratado y el que ve el personal en campo.')),
@@ -281,7 +281,7 @@ window.PANTALLAS.showroom = {
         ];
       })
     });
-    var secTabla = S.h('div', { class: 'nws-show__sec', id: 'funcionalidades' },
+    var secTabla = S.h('div', { class: 'nws-show__sec nws-reveal', id: 'funcionalidades' },
       S.h('div', { class: 'nws-show__sec-head' },
         lead(null, 'Todo lo que incluye el módulo', 'Para quien evalúa técnicamente: cada fila abre la pantalla del demo donde se ve.'),
         S.badge({ label: FILAS.length + ' funcionalidades', size: 'medium', theme: 'neutral' })),
@@ -302,7 +302,7 @@ window.PANTALLAS.showroom = {
         footer: S.h('div', { style: 'width:100%' }, S.button({ label: 'Entrar', size: 'medium', variant: 'quiet', theme: r.theme, cls: 'nws-mob__cta', attrs: { 'data-rol': r.id, style: 'width:100%' } }))
       });
     }));
-    var secRoles = S.h('div', { class: 'nws-show__sec', id: 'roles' },
+    var secRoles = S.h('div', { class: 'nws-show__sec nws-reveal', id: 'roles' },
       lead(null, 'Elija un perfil para recorrer el flujo completo.', 'Es el mismo demo del módulo; cada perfil entra directo a su pantalla de inicio.'),
       roles);
 
@@ -344,6 +344,24 @@ window.PANTALLAS.showroom = {
     avance();
     programar(1400);
 
+    /* Entrada: lo de arriba (nav/hero/stats) al montar, con doble rAF para
+       que el navegador no funda el frame en opacity:0 con el de --in; las
+       secciones de abajo, la primera vez que entran en pantalla al hacer
+       scroll — es una página larga, no todo debería animar de una. */
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      root.querySelectorAll('.nws-show__nav.nws-reveal, .nws-show__hero.nws-reveal, .nws-show__stats.nws-reveal')
+        .forEach(function (el) { el.classList.add('nws-reveal--in'); });
+    }); });
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) { return; }
+        en.target.classList.add('nws-reveal--in');
+        observer.unobserve(en.target);
+      });
+    }, { threshold: 0.15 });
+    root.querySelectorAll('.nws-show__sec.nws-reveal').forEach(function (el) { observer.observe(el); });
+
     function onClick(ev) {
       var a = ev.target.closest('[data-ir-ancla]');
       if (a) { ev.preventDefault(); var t = root.querySelector('#' + a.getAttribute('data-ir-ancla')); if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
@@ -351,6 +369,6 @@ window.PANTALLAS.showroom = {
       if (rol) { ev.preventDefault(); ctx.entrar(rol.getAttribute('data-rol')); return; }
     }
     root.addEventListener('click', onClick);
-    return function () { st.vivo = false; clearTimeout(timer); mapa.destruir(); root.removeEventListener('click', onClick); };
+    return function () { st.vivo = false; clearTimeout(timer); mapa.destruir(); observer.disconnect(); root.removeEventListener('click', onClick); };
   }
 };

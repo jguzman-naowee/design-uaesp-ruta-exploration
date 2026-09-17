@@ -11359,6 +11359,21 @@ body {
 }
 
 /* -------------------------------------------------------------------
+   nws-reveal — entrada de elementos al montar/entrar en viewport.
+   Mismo keyframe de entrada que usa el mapa (naotech-motion-slide-up-enter):
+   no es una animación propia, es el motion del SDK aplicado a bloques de
+   página. Arranca invisible (opacity:0 en el elemento, no en la animación,
+   para que no haya flash antes de que el mount agregue --in) y el JS de
+   cada pantalla agrega --in una vez montado o al entrar en pantalla.
+   --naotech-motion-distance ya es 0 bajo prefers-reduced-motion (ver
+   foundations), así que no hace falta un media query propio acá. */
+.nws-reveal { opacity: 0; }
+.nws-reveal--in {
+  animation: naotech-motion-slide-up-enter var(--naotech-duration-slow) var(--naotech-animation-deceleration) both;
+  animation-delay: var(--nws-reveal-delay, 0ms);
+}
+
+/* -------------------------------------------------------------------
    nws-stops — lista de paradas. NwtDatatable no sirve (flex disfrazado
    de tabla); NwtTimeline no acepta contador ni estado por fila.
    ------------------------------------------------------------------- */
@@ -13498,9 +13513,10 @@ window.PANTALLAS.login = {
        (DC-085/DC-086). El nombre de la persona sigue apareciendo una vez
        adentro del portal, donde sí representa a alguien puntual en sesión. */
     var INICIALES_ROL = { admin: 'AD', operador: 'OD', operario: 'OP', supervisor: 'SU' };
-    var perfiles = D.roles.map(function (r) {
+    var perfiles = D.roles.map(function (r, i) {
       return S.card({
         onClick: true, size: 'large', variant: 'quiet',
+        cls: 'nws-reveal', style: '--nws-reveal-delay:' + (160 + i * 70) + 'ms',
         attrs: { 'data-rol': r.id, role: 'button', 'aria-label': 'Entrar como ' + r.rol },
         header: ultimo === r.id
           ? S.h('div', { class: 'nws-row', style: 'justify-content:center;width:100%' },
@@ -13518,15 +13534,15 @@ window.PANTALLAS.login = {
     });
 
     return S.h('div', { class: 'nws-login' },
-      S.h('a', { class: 'nws-sticker nws-sticker--salmon nws-login__showroom', href: '#/showroom', 'data-ir': '#/showroom', 'aria-label': 'Ver el showroom del demo' },
+      S.h('a', { class: 'nws-sticker nws-sticker--salmon nws-login__showroom nws-reveal', style: '--nws-reveal-delay:520ms', href: '#/showroom', 'data-ir': '#/showroom', 'aria-label': 'Ver el showroom del demo' },
         S.icon('thunder'), S.h('span', null, 'Showroom')),
-      S.h('div', { class: 'nws-login__head' },
+      S.h('div', { class: 'nws-login__head nws-reveal' },
         S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'medium', variant: 'quiet', theme: 'neutral' }),
         S.h('h1', { class: 'nwt-subtitle-font-bold nws-login__title', style: 'margin:var(--naotech-sizing-8) 0 0;max-width:11ch;text-align:center;font-size:var(--naotech-sizing-56);line-height:1.05;font-weight:var(--naotech-font-weight-black)' }, '¿Quién está operando hoy?'),
         S.h('p', { class: 'nwt-body-font-regular nws-muted', style: 'margin:0' },
           'Exploración demo integral Módulo SAAS sobre Rutas Aseo y Recolección')),
       S.h('div', { class: 'nws-login__grid' }, perfiles),
-      S.h('div', { class: 'nws-login__foot' },
+      S.h('div', { class: 'nws-login__foot nws-reveal', style: '--nws-reveal-delay:460ms' },
         S.h('span', { class: 'nwt-smalltext-font-semibold' }, e(D.entidad.nombre)),
         S.h('span', { class: 'nwt-smalltext-font-regular' }, e(D.entidad.gobierno) + ' · ' + e(D.entidad.plataforma)),
         S.h('span', { class: 'nwt-smalltext-font-regular nws-soft', style: 'margin-top:var(--naotech-sizing-8)' },
@@ -13534,6 +13550,13 @@ window.PANTALLAS.login = {
   },
 
   mount: function (root, ctx) {
+    /* Doble rAF: el primer frame pinta con opacity:0 (nws-reveal), el
+       segundo agrega --in y ahí sí arranca la animación — sin esto el
+       navegador a veces funde ambos frames y no se ve la entrada. */
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      root.querySelectorAll('.nws-reveal').forEach(function (el) { el.classList.add('nws-reveal--in'); });
+    }); });
+
     function onClick(ev) {
       var el = ev.target.closest('[data-rol]');
       if (!el) { return; }
@@ -13598,7 +13621,7 @@ window.PANTALLAS.showroom = {
     }
 
     /* ---------- 0 · nav ---------- */
-    var nav = S.h('div', { class: 'nws-show__nav' },
+    var nav = S.h('div', { class: 'nws-show__nav nws-reveal' },
       S.h('div', { class: 'nws-row' },
         S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'small', variant: 'quiet', theme: 'neutral' }),
         S.h('span', { class: 'nwt-body-font-semibold' }, e(D.entidad.sigla) + ' · Rutas')),
@@ -13621,7 +13644,7 @@ window.PANTALLAS.showroom = {
         S.h('div', null, S.h('b', { class: 'nws-ink nws-tnum' }, e(vivo.ultima)), 'última marca'),
         S.h('div', null, S.h('b', { class: 'nws-ink nws-tnum' }, e(vivo.eta)), 'llegada estimada')));
 
-    var hero = S.h('div', { class: 'nws-show__hero' },
+    var hero = S.h('div', { class: 'nws-show__hero nws-reveal', style: '--nws-reveal-delay:80ms' },
       S.h('div', { class: 'nws-show__hero-copy' },
         S.h('span', { class: 'nws-live nws-live--chip nwt-smalltext-font-semibold' }, S.h('span', { class: 'nws-live__dot' }), 'Demo interactivo · datos de muestra'),
         S.h('h1', { class: 'nws-show__title' }, 'Planear, ejecutar y verificar cada ruta de recolección. En un solo módulo.'),
@@ -13632,7 +13655,7 @@ window.PANTALLAS.showroom = {
           S.button({ label: 'Ver una evidencia real', iconEnd: 'arrow-right', size: 'large', variant: 'mute', theme: 'neutral', attrs: { 'data-ir-ancla': 'evidencia' } }))),
       mapa);
 
-    var stats = S.h('div', { class: 'nws-stats nws-show__stats nws-show__stats--hype' },
+    var stats = S.h('div', { class: 'nws-stats nws-show__stats nws-show__stats--hype nws-reveal', style: '--nws-reveal-delay:200ms' },
       S.statCard({ label: 'Rutas activas hoy', value: AM.activas, hint: AM.zonas + ' zonas en simultáneo', icon: 'shipping', theme: 'primary' }),
       S.statCard({ label: 'Unidades marcadas hoy', value: AM.marcadasHoy.toLocaleString('es-CO'), hint: 'de ' + AM.metaHoy.toLocaleString('es-CO') + ' proyectadas', theme: 'primary',
         extra: S.progress({ value: AM.marcadasHoy / AM.metaHoy * 100, size: 'medium', cls: 'nws-stat-progress', theme: 'primary' }) }),
@@ -13676,13 +13699,13 @@ window.PANTALLAS.showroom = {
           }))
     });
 
-    var secEvidencia = S.h('div', { class: 'nws-show__sec', id: 'evidencia' },
+    var secEvidencia = S.h('div', { class: 'nws-show__sec nws-reveal', id: 'evidencia' },
       lead('Lo central', 'Cada punto de recolección queda con hora, coordenada y fotografía.',
         'No es un reporte de confianza: quien supervisa puede verificar, unidad por unidad, que la ruta se cumplió — con la evidencia que el sistema capturó, no la que alguien contó.'),
       evidencia);
 
     /* ---------- 3a · cámara del camión ---------- */
-    var secCamara = S.h('div', { class: 'nws-show__sec nws-show__sec--tight' },
+    var secCamara = S.h('div', { class: 'nws-show__sec nws-show__sec--tight nws-reveal' },
       S.h('div', { class: 'nws-show__split' },
         S.h('div', { class: 'nws-show__split-media nws-show__split-media--l' },
           ph('Foto: cámara instalada en el compactador', 'camera', S.cls('nws-show__ph--fill', camion && camion.foto && 'nws-show__ph--foto'), camion && camion.foto ? 'background-image:url(' + camion.foto + ')' : ''),
@@ -13721,7 +13744,7 @@ window.PANTALLAS.showroom = {
               S.h('span', { class: 'nwt-caption-font-regular nws-muted nws-right nws-tnum' }, c.fotos + ' ev.')) });
         })));
     }));
-    var secAuditoria = S.h('div', { class: 'nws-show__sec nws-show__sec--tight', id: 'auditoria' },
+    var secAuditoria = S.h('div', { class: 'nws-show__sec nws-show__sec--tight nws-reveal', id: 'auditoria' },
       S.h('div', { class: 'nws-show__split' },
         S.h('div', { class: 'nws-show__split-body' },
           S.h('div', null, S.badge({ label: 'Auditoría de la auditoría', size: 'medium', theme: 'informative' })),
@@ -13763,7 +13786,7 @@ window.PANTALLAS.showroom = {
               S.h('span', { class: 'nws-mob__sec nwt-caption-font-semibold' }, 'Causal'),
               S.h('div', { class: 'nws-row', style: 'flex-wrap:wrap' }, causales.map(function (c, i) { return S.tag({ label: c.txt, size: 'medium', active: i === 4, theme: 'primary' }); })),
               S.button({ label: 'Marcar como recolectada', size: 'large', variant: 'loud', theme: 'primary', disabled: true, cls: 'nws-mob__cta' }))))));
-    var secIntermedias = S.h('div', { class: 'nws-show__sec' },
+    var secIntermedias = S.h('div', { class: 'nws-show__sec nws-reveal' },
       lead(null, 'Lo que sostiene la operación diaria'),
       S.h('div', { class: 'nws-show__grid3' }, enVivo, multiOp, telefono));
 
@@ -13778,7 +13801,7 @@ window.PANTALLAS.showroom = {
         S.h('span', { class: 'nwt-caption-font-regular nws-muted' }, 'resultado'),
         S.badge({ label: D.estados.conforme.label, size: 'small', theme: D.estados.conforme.theme }),
         S.badge({ label: D.estados.hallazgos.label, size: 'small', theme: D.estados.hallazgos.theme })));
-    var secEstados = S.h('div', { class: 'nws-show__sec' },
+    var secEstados = S.h('div', { class: 'nws-show__sec nws-reveal' },
       S.h('div', { class: 'nws-show__lead', style: 'text-align:center;margin:0 auto var(--naotech-sizing-32)' },
         S.h('h2', { class: 'nws-show__h2' }, 'Cada ruta pasa por diez estados. Todos visibles, ninguno se salta.'),
         S.h('p', { class: 'nws-show__p nwt-body-font-regular' }, 'El mismo estado que ve la entidad es el que ve el operador contratado y el que ve el personal en campo.')),
@@ -13841,7 +13864,7 @@ window.PANTALLAS.showroom = {
         ];
       })
     });
-    var secTabla = S.h('div', { class: 'nws-show__sec', id: 'funcionalidades' },
+    var secTabla = S.h('div', { class: 'nws-show__sec nws-reveal', id: 'funcionalidades' },
       S.h('div', { class: 'nws-show__sec-head' },
         lead(null, 'Todo lo que incluye el módulo', 'Para quien evalúa técnicamente: cada fila abre la pantalla del demo donde se ve.'),
         S.badge({ label: FILAS.length + ' funcionalidades', size: 'medium', theme: 'neutral' })),
@@ -13862,7 +13885,7 @@ window.PANTALLAS.showroom = {
         footer: S.h('div', { style: 'width:100%' }, S.button({ label: 'Entrar', size: 'medium', variant: 'quiet', theme: r.theme, cls: 'nws-mob__cta', attrs: { 'data-rol': r.id, style: 'width:100%' } }))
       });
     }));
-    var secRoles = S.h('div', { class: 'nws-show__sec', id: 'roles' },
+    var secRoles = S.h('div', { class: 'nws-show__sec nws-reveal', id: 'roles' },
       lead(null, 'Elija un perfil para recorrer el flujo completo.', 'Es el mismo demo del módulo; cada perfil entra directo a su pantalla de inicio.'),
       roles);
 
@@ -13904,6 +13927,24 @@ window.PANTALLAS.showroom = {
     avance();
     programar(1400);
 
+    /* Entrada: lo de arriba (nav/hero/stats) al montar, con doble rAF para
+       que el navegador no funda el frame en opacity:0 con el de --in; las
+       secciones de abajo, la primera vez que entran en pantalla al hacer
+       scroll — es una página larga, no todo debería animar de una. */
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      root.querySelectorAll('.nws-show__nav.nws-reveal, .nws-show__hero.nws-reveal, .nws-show__stats.nws-reveal')
+        .forEach(function (el) { el.classList.add('nws-reveal--in'); });
+    }); });
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) { return; }
+        en.target.classList.add('nws-reveal--in');
+        observer.unobserve(en.target);
+      });
+    }, { threshold: 0.15 });
+    root.querySelectorAll('.nws-show__sec.nws-reveal').forEach(function (el) { observer.observe(el); });
+
     function onClick(ev) {
       var a = ev.target.closest('[data-ir-ancla]');
       if (a) { ev.preventDefault(); var t = root.querySelector('#' + a.getAttribute('data-ir-ancla')); if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
@@ -13911,7 +13952,7 @@ window.PANTALLAS.showroom = {
       if (rol) { ev.preventDefault(); ctx.entrar(rol.getAttribute('data-rol')); return; }
     }
     root.addEventListener('click', onClick);
-    return function () { st.vivo = false; clearTimeout(timer); mapa.destruir(); root.removeEventListener('click', onClick); };
+    return function () { st.vivo = false; clearTimeout(timer); mapa.destruir(); observer.disconnect(); root.removeEventListener('click', onClick); };
   }
 };
 

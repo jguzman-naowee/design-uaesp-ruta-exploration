@@ -526,6 +526,21 @@ body {
 }
 
 /* -------------------------------------------------------------------
+   nws-reveal — entrada de elementos al montar/entrar en viewport.
+   Mismo keyframe de entrada que usa el mapa (naotech-motion-slide-up-enter):
+   no es una animación propia, es el motion del SDK aplicado a bloques de
+   página. Arranca invisible (opacity:0 en el elemento, no en la animación,
+   para que no haya flash antes de que el mount agregue --in) y el JS de
+   cada pantalla agrega --in una vez montado o al entrar en pantalla.
+   --naotech-motion-distance ya es 0 bajo prefers-reduced-motion (ver
+   foundations), así que no hace falta un media query propio acá. */
+.nws-reveal { opacity: 0; }
+.nws-reveal--in {
+  animation: naotech-motion-slide-up-enter var(--naotech-duration-slow) var(--naotech-animation-deceleration) both;
+  animation-delay: var(--nws-reveal-delay, 0ms);
+}
+
+/* -------------------------------------------------------------------
    nws-stops — lista de paradas. NwtDatatable no sirve (flex disfrazado
    de tabla); NwtTimeline no acepta contador ni estado por fila.
    ------------------------------------------------------------------- */
