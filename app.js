@@ -180,11 +180,18 @@
           logoutLabel: 'Cambiar de perfil',
           logo: S.h('div', { class: 'nws-brand' },
             S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'small', variant: 'quiet', theme: 'neutral' }),
-            S.h('div', { class: 'nws-col nws-brand__text' }, S.h('span', { class: 'nwt-body-font-semibold' }, S.esc(D.entidad.sigla)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, S.esc(rol.portal)))),
+            S.h('div', { class: 'nws-col nws-brand__text' }, S.h('span', { class: 'nwt-body-font-semibold' }, S.esc(D.entidad.sigla)),
+              /* DC-349: "Portal del X" cambia por rol — badge con el color del
+                 rol en vez de texto muted, mismo tratamiento en los 4 portales. */
+              S.badge({ label: rol.portal, size: 'medium', theme: rol.theme }))),
+          /* DC-345/346: mismo avatar que el selector de rol (iniciales del ROL,
+             loud, color del rol — no las de la persona/organización, que no
+             coincidían con el nombre de al lado) y el rol como primera línea,
+             debajo quién lo ocupa y dónde. */
           footer: S.h('div', { class: 'nws-owner' },
             S.h('div', { class: 'nws-row' },
-              S.avatar({ text: rol.iniciales, size: 'tiny', variant: 'loud', theme: rol.theme }),
-              S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-smalltext-font-semibold nws-ink' }, S.esc(rol.nombre)), S.h('span', { class: 'nwt-smalltext-font-regular' }, S.esc(rol.rol + ' · ' + rol.organizacion)))))
+              S.avatar({ text: { admin: 'AD', operador: 'OD', operario: 'OP', supervisor: 'SU' }[rol.id] || rol.iniciales, size: 'small', variant: 'loud', color: rol.color }),
+              S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-smalltext-font-semibold nws-ink' }, S.esc(rol.rol)), S.h('span', { class: 'nwt-smalltext-font-regular nws-clip' }, S.esc(rol.nombre + ' · ' + rol.organizacion)))))
         }),
         S.h('div', { class: 'nwt-app__main' },
           S.toolbar({ body: tb.body, actions: tb.actions }),

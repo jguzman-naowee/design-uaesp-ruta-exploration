@@ -206,8 +206,9 @@ window.PANTALLAS['operario-app'] = (function () {
             ? S.h('div', { class: 'nwt-stat-card nws-stat-hero', 'nwt-theme': T, style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-8)' },
                 S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-stat-card__label' }, 'Tu jornada'), S.h('div', { class: 'nws-grow' }),
                   S.h('span', { class: 'nwt-smalltext-font-regular', style: 'color:inherit;opacity:.85' }, A.jornada.desde + ' — ' + A.jornada.hasta)),
-                S.h('div', { class: 'nws-row', style: 'justify-content:space-between;align-items:center' },
-                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'max-width:14ch' }, 'unidades por recolectar'),
+                /* DC-341: divider arriba también, simétrico al de abajo. */
+                S.h('div', { class: 'nws-row', style: 'justify-content:space-between;align-items:center;padding-top:var(--naotech-sizing-6);border-top:1px solid rgba(255,255,255,.22)' },
+                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'max-width:14ch' }, 'Unidades por recolectar'),
                   S.h('span', { class: 'nwt-stat-card__value', style: 'font-size:var(--naotech-sizing-40);line-height:var(--naotech-sizing-40)' }, total)),
                 S.h('div', { class: 'nws-row nws-row--md', style: 'justify-content:space-between;padding-top:var(--naotech-sizing-6);border-top:1px solid rgba(255,255,255,.22)' },
                   S.h('span', { class: 'nwt-smalltext-font-bold', style: 'color:inherit' }, A.ruta.camion),
@@ -367,12 +368,17 @@ window.PANTALLAS['operario-app'] = (function () {
         if (st.v === 'hist') {
           var hoy = HIST.filter(function (r) { return r.dia === 'hoy'; }), antes = HIST.filter(function (r) { return r.dia !== 'hoy'; });
           var unidades = HIST.reduce(function (t, r) { return t + r.unidades; }, 0), novedades = HIST.reduce(function (t, r) { return t + r.novedades; }, 0);
+          /* DC-343: cada ruta del historial con la misma anatomía que las cards
+             de "Completadas hoy": card small, avatar-icon de estado, código en
+             bold y horario · unidades debajo, badge de novedades a la derecha. */
           var fila = function (r) {
-            var d = r.dia.split(' ');
-            return S.h('div', { class: 'nws-hist' },
-              S.h('div', { class: 'nws-hist__d nwt-caption-font-semibold' }, d.length > 1 ? S.h('b', null, d[1]) + e(d[0]) : S.h('b', { style: 'font-size:var(--naotech-sizing-14)' }, e(d[0]))),
-              S.h('div', { class: 'nws-grow nws-col', style: 'min-width:0' }, S.h('span', { class: 'nwt-body-font-bold nws-clip' }, e(r.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, r.horario + ' · ' + r.unidades + ' unidades')),
-              r.novedades ? S.badge({ label: r.novedades + (r.novedades === 1 ? ' novedad' : ' novedades'), size: 'small', theme: 'warning' }) : S.badge({ label: 'Sin novedades', size: 'small', theme: 'positive' }));
+            return S.card({ size: 'small', cls: 'nws-card--none', content:
+              S.h('div', { class: 'nws-row' },
+                S.h('div', { class: 'nws-mob__avatar-icon' }, S.avatarIcon({ icon: r.novedades ? 'attention' : 'positive', theme: r.novedades ? 'warning' : 'positive' })),
+                S.h('div', { class: 'nws-grow nws-col', style: 'min-width:0' },
+                  S.h('span', { class: 'nwt-body-font-bold nws-clip' }, e(r.codigo)),
+                  S.h('span', { class: 'nwt-smalltext-font-regular nws-muted nws-clip' }, e(r.dia + ' · ' + r.horario + ' · ' + r.unidades + ' unidades'))),
+                r.novedades ? S.badge({ label: r.novedades + (r.novedades === 1 ? ' novedad' : ' novedades'), size: 'small', theme: 'warning' }) : S.badge({ label: 'Sin novedades', size: 'small', theme: 'positive' })) });
           };
           body =
             S.card({ size: 'small', cls: 'nws-card--none nws-card--flush', content: S.h('div', { class: 'nws-row', style: 'gap:0' },
@@ -380,9 +386,9 @@ window.PANTALLAS['operario-app'] = (function () {
                 return S.h('div', { class: 'nws-col nws-grow', style: 'padding:var(--naotech-sizing-12) var(--naotech-sizing-14);' + (i < 2 ? 'border-right:1px solid var(--naotech-app-color-200)' : '') },
                   S.h('span', { class: 'nwt-stat-card__label' }, kv[0]), S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, kv[1]));
               })) }) +
-            (hoy.length ? S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold' }, 'Hoy') + S.h('div', { class: 'nws-col', style: 'gap:0' }, hoy.map(fila)) : '') +
+            (hoy.length ? S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold' }, 'Hoy') + S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-8)' }, hoy.map(fila)) : '') +
             S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold' }, 'Esta semana') +
-            S.h('div', { class: 'nws-col', style: 'gap:0' }, antes.map(fila)) +
+            S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-8)' }, antes.map(fila)) +
             S.h('div', { class: 'nws-mob__lock nwt-smalltext-font-regular' }, S.icon('history'), 'El detalle de cada ruta cerrada lo revisa el supervisor; acá queda el resumen.');
         }
         return body;
@@ -462,6 +468,10 @@ window.PANTALLAS['operario-app'] = (function () {
         transicionar(st.cargando ? esqueleto(S, st.v, T) : cuerpo(), trans || 'none');
         if (st.v === 'ruta' && !st.cargando) { pintarMapa(); }
         tabsActivas();
+        /* DC-342: la barra de tabs solo en las vistas de primer nivel (Hoy,
+           Mi ruta, Historial); marcar parada y ruta cerrada son internas y
+           tienen su propio "atrás" en la barra. */
+        root.querySelector('#mob-nav').classList.toggle('nws-hidden', st.v === 'marcar' || st.v === 'fin');
         ctx.posicionarIndicadores(root);
         requestAnimationFrame(function () { ctx.posicionarIndicadores(root); });
       }

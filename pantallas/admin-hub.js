@@ -27,9 +27,23 @@ window.PANTALLAS['admin-hub'] = {
      dos lados: el esqueleto (render, antes de que haya datos) y la tabla real
      (mount). Se llegan por `this` — render y mount se invocan como métodos de
      esta pantalla. */
+  /* DC-357: la tabla vive en ~815px (comparte fila con el panel de cerradas),
+     y los nwt-width-xs-* del SDK son porcentajes ciegos al contenido: a ese
+     ancho Progreso quedaba en 61px para "17 de 41 - 41%" y Estado se llevaba
+     204px para un badge de 105. Cada <tr> es su propio flex, así que las
+     columnas NO pueden medirse solas por contenido (no alinearían entre
+     filas): se fijan en px a partir del contenido más ancho que llevan
+     (header en caption 12px uppercase vs. celda) y solo Ruta y Operador
+     absorben lo que sobra. */
   columnas: [
-    { label: 'Ruta', cls: 'nwt-width-xs-20' }, { label: 'Operador', cls: 'nwt-width-xs-20' }, { label: 'Zona', cls: 'nwt-width-xs-10' },
-    { label: 'Unidades', cls: 'nwt-width-xs-7-5 nws-col-center' }, { label: 'Estado', cls: 'nwt-width-xs-25 nws-col-center' }, { label: 'Progreso', cls: 'nwt-width-xs-7-5' }, { label: '', actions: true, cls: 'nwt-width-xs-5' }
+    { label: 'Ruta',     style: 'flex:1 1 0;min-width:128px' },
+    { label: 'Operador', style: 'flex:1.6 1 0;min-width:168px' },
+    { label: 'Zona',     style: 'flex:0 0 88px' },
+    { label: 'Unidades', style: 'flex:0 0 72px', cls: 'nws-col-center' },
+    { label: 'Estado',   style: 'flex:0 0 116px', cls: 'nws-col-center' },
+    /* DC-271 sube los captions de celda a 14px: "17 de 41 - 41%" mide ~104px ahí. */
+    { label: 'Progreso', style: 'flex:0 0 120px' },
+    { label: '', actions: true, style: 'flex:0 0 32px' }
   ],
 
   toolbar: function (ctx) {
@@ -60,10 +74,11 @@ window.PANTALLAS['admin-hub'] = {
 
     /* Tabs sueltos arriba de la tabla, sin header ni borde de tarjeta:
        pedido en DC-030, "en el aire", separados del contenedor. */
-    var tabla = S.h('div', { class: 'nws-col', style: 'flex:1;min-width:0;gap:var(--naotech-sizing-8)' },
-      S.tagGroup({ id: 'tabs-rutas', size: 'large', theme: T, value: 'todas', items: A.tabs.map(function (t) { return { id: t.id, label: t.label + ' (' + t.count + ')', value: t.id }; }) }),
+    var tabla = S.h('div', { class: 'nws-tabla', style: 'flex:1' },
+      S.h('div', { class: 'nws-tabla__head' },
+        S.tagGroup({ id: 'tabs-rutas', size: 'large', theme: T, value: 'todas', items: A.tabs.map(function (t) { return { id: t.id, label: t.label + ' (' + t.count + ')', value: t.id }; }) })),
       S.card({
-        cls: 'nws-card--fill nws-card--flush', style: 'flex:1;min-width:0', attrs: { 'nwt-theme': T },
+        cls: 'nws-card--fill nws-card--flush', style: 'min-width:0', attrs: { 'nwt-theme': T },
         /* La tabla la llena mount() (pintarTabla), que en carga no corre. El
            encabezado sí se conoce de entrada —las columnas son del contrato, no
            de los datos— así que el esqueleto de NwtDatatable las conserva y
@@ -73,7 +88,8 @@ window.PANTALLAS['admin-hub'] = {
       }));
 
     var cerradas = S.card({
-      cls: 'nws-card--fill nws-card--flush', style: 'flex:0 0 332px', attrs: { 'nwt-theme': T },
+      /* DC-357: 32px menos al panel para que la tabla no recorte Operador. */
+      cls: 'nws-card--fill nws-card--flush', style: 'flex:0 0 300px', attrs: { 'nwt-theme': T },
       header: S.h('div', { class: 'nws-card-head' },
         S.icon('positive', 'nws-soft'),
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Cerradas esta semana'),
@@ -121,10 +137,10 @@ window.PANTALLAS['admin-hub'] = {
         /* DC-332: el contador (marcadas de unidades) vivía en Estado; ahora
            Progreso trae el porcentaje y el contador juntos, y Estado queda
            solo con el badge. */
+        /* DC-352: "17 de 41 - 41%" en una sola línea, no apiladas en dos. */
         var progresoCell = r.estado === 'curso'
-          ? S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-4);width:100%' },
-              S.h('span', { class: 'nwt-caption-font-semibold nws-tnum' }, Math.round(r.marcadas / r.unidades * 100) + '%'),
-              S.h('span', { class: 'nwt-caption-font-regular nws-muted nws-tnum' }, r.marcadas + ' de ' + r.unidades))
+          ? S.h('span', { class: 'nwt-caption-font-regular nws-tnum' },
+              r.marcadas + ' de ' + r.unidades + ' - ' + Math.round(r.marcadas / r.unidades * 100) + '%')
           : S.h('span', { class: 'nwt-caption-font-regular nws-soft' }, '—');
         return { cls: S.cls('nws-list__row--click', r.codigo === st.destacada && 'nws-list__row--nueva'), attrs: { 'data-ir': r.estado === 'curso' ? '#/operador/ruta' : '#/admin/entrega' }, cells: [
           S.h('span', null, S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-caption-font-semibold' }, e(r.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, e(r.modo)))),
@@ -140,7 +156,10 @@ window.PANTALLAS['admin-hub'] = {
         style: 'min-height:0',
         columns: COLS,
         rows: rows,
-        footer: S.h('div', { class: 'nws-row nws-row--md', style: 'padding:var(--naotech-sizing-8) var(--naotech-sizing-16);width:100%' },
+        /* DC-355: nwt-datatable__footer (SDK) ya trae padding:16px propio;
+           este margin negativo lo cancela abajo/izquierda para que quede
+           pegado al borde real de la card, no al padding del padre. */
+        footer: S.h('div', { class: 'nws-row nws-row--md', style: 'margin:0 0 calc(var(--naotech-sizing-16) * -1) calc(var(--naotech-sizing-16) * -1);padding:var(--naotech-sizing-8) var(--naotech-sizing-16) var(--naotech-sizing-16);width:calc(100% + var(--naotech-sizing-16))' },
           S.h('span', { class: 'nwt-smalltext-font-regular nws-muted nws-grow' }, 'Mostrando ' + filas.length + ' de ' + tab.count),
           S.pagination({ page: 1, total: Math.max(1, Math.ceil(tab.count / 6)), size: 'small' }))
       });

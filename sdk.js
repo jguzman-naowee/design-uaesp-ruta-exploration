@@ -527,7 +527,11 @@ window.SDK = (function () {
                   Object.assign(a, row.attrs || {});
                   return h('tr', a, row.cells.map(function (cell, i) {
                     var c = cols[i] || {};
-                    if (c.actions) { return h('td', { class: cls('nwt-datatable__actions', 'nwt-datatable__actions--actions', c.cls) }, cell); }
+                    /* El style de la columna va a th Y td: si la celda de acciones
+                       no lo lleva, el th queda en los 10rem de fábrica y la td en
+                       su contenido, y las columnas flexibles absorben la diferencia
+                       — los encabezados dejan de caer sobre sus celdas (DC-357). */
+                    if (c.actions) { return h('td', { class: cls('nwt-datatable__actions', 'nwt-datatable__actions--actions', c.cls), style: c.style }, cell); }
                     return h('td', { class: cls('nwt-datatable__cell', c.cls), style: c.style }, cell);
                   }));
                 })))),
@@ -584,11 +588,14 @@ window.SDK = (function () {
                 o.collapsed && h('span', { 'aria-hidden': 'true', class: 'nwt-sidebar__tooltip' }, esc(m.label)));
               return sec + item;
             }))),
+        /* DC-350: el pie institucional (o.footer) va DENTRO del footer del
+           sidebar y antes del logout, así "Cambiar de perfil" es el último
+           item y los dos quedan juntos, no en dos bloques separados. */
         h('div', { class: 'nwt-sidebar__footer' },
+          o.footer || '',
           h('button', { class: 'nwt-sidebar__footer__logout', type: 'button', 'data-logout': true },
             icon('logout', 'nwt-sidebar__menu__icon'),
-            h('span', { class: 'nwt-sidebar__footer__logout__label' }, esc(o.logoutLabel || 'Cerrar sesión'))))),
-      o.footer || '');
+            h('span', { class: 'nwt-sidebar__footer__logout__label' }, esc(o.logoutLabel || 'Cerrar sesión'))))));
   }
 
   /* NwtProfileCard = CardInformation + BannerInformation */

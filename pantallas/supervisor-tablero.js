@@ -40,7 +40,7 @@ window.PANTALLAS['supervisor-tablero'] = {
     })) : '';
 
     return stats +
-      S.h('div', { class: 'nws-row', style: 'margin-top:var(--naotech-sizing-16)' },
+      S.h('div', { class: 'nws-tabla__head', style: 'margin-top:var(--naotech-sizing-8)' },
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Todas las rutas ejecutadas'),
         S.badge({ label: '—', size: 'small', theme: 'neutral', cls: 'bind-nTotalVis' }),
         S.h('div', { class: 'nws-grow' }),
@@ -96,7 +96,17 @@ window.PANTALLAS['supervisor-tablero'] = {
         html = S.h('div', { class: 'nws-col', style: 'flex:1;min-width:0;gap:var(--naotech-sizing-8)' },
           S.card({ cls: 'nws-card--fill nws-card--flush', style: 'flex:1;min-width:0', attrs: { 'nwt-theme': T },
             content: S.datatable({
-              columns: [{ label: 'Ruta', cls: 'nwt-width-xs-17-5' }, { label: 'Operario', cls: 'nwt-width-xs-15' }, { label: 'Ejecutada', cls: 'nwt-width-xs-10', style: 'justify-content:center' }, { label: 'Marcadas', cls: 'nwt-width-xs-15' }, { label: 'Evidencias', cls: 'nwt-width-xs-7-5', style: 'justify-content:center' }, { label: 'Estado', cls: 'nwt-width-xs-12-5' }, { label: 'Plazo', cls: 'nwt-width-xs-10' }, { label: 'Acción', actions: true, cls: 'nwt-width-xs-12-5', style: 'justify-content:flex-end' }],
+              /* DC-357: anchos por contenido (px) para las cortas, flex para las
+                 dos de texto largo — mismo criterio que la tabla del admin. */
+              columns: [
+                { label: 'Ruta', style: 'flex:1.2 1 0;min-width:150px' },
+                { label: 'Operario', style: 'flex:1 1 0;min-width:160px' },
+                { label: 'Ejecutada', style: 'flex:0 0 88px', cls: 'nws-col-center' },
+                { label: 'Marcadas', style: 'flex:0 0 120px' },
+                { label: 'Evidencias', style: 'flex:0 0 96px', cls: 'nws-col-center' },
+                { label: 'Estado', style: 'flex:0 0 120px' },
+                { label: 'Plazo', style: 'flex:0 0 112px' },
+                { label: 'Acción', actions: true, style: 'flex:0 0 104px;justify-content:flex-end' }],
               rows: vis.map(function (c) {
                 var d = deco(c);
                 return { cls: 'nws-list__row--click', attrs: { 'data-card': c.id }, cells: [

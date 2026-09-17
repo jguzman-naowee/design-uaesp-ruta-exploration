@@ -105,12 +105,24 @@ window.PANTALLAS['supervisor-revision'] = {
         k ? S.timeline({ skeleton: true }) : '')
     });
 
-    return hero + S.h('div', { class: 'nws-split', style: 'min-height:80vh;max-height:80vh' }, evidencia, S.h('div', { class: 'nws-col', style: 'flex:0 0 400px;gap:var(--naotech-sizing-16);min-height:80vh;max-height:80vh' }, observacion, linea));
+    /* DC-337: debajo de evidencia + observación va la bitácora de la ruta —
+       las observaciones ya registradas, una por fila con fecha/hora, quién,
+       juicio y hallazgos. Arranca vacía y se llena al "Registrar observación"
+       (pintarObservaciones en mount). */
+    var observaciones = S.card({
+      cls: 'nws-card--none', style: 'flex:none', attrs: { 'nwt-theme': T, id: 'card-observaciones' },
+      header: S.h('div', { class: 'nws-card-head' },
+        S.h('span', { class: 'nwt-body-font-semibold' }, 'Observaciones registradas'),
+        S.h('span', { id: 'obs-n' }, S.badge({ label: 0, size: 'small', theme: 'neutral' }))),
+      content: S.h('div', { id: 'obs-lista', class: 'nws-list' })
+    });
+
+    return hero + S.h('div', { class: 'nws-split', style: 'min-height:80vh;max-height:80vh' }, evidencia, S.h('div', { class: 'nws-col', style: 'flex:0 0 400px;gap:var(--naotech-sizing-16);min-height:80vh;max-height:80vh' }, observacion, linea)) + observaciones;
   },
 
   mount: function (root, ctx) {
     var S = ctx.S, D = ctx.D, R = D.revision, T = ctx.rol.theme, e = S.esc;
-    var st = { ev: 2, juicio: null, obs: '', hall: [], registrado: false };
+    var st = { ev: 2, juicio: null, obs: '', hall: [], registrado: false, registradas: [] };
     function bind(k, v) { root.querySelectorAll('[data-bind="' + k + '"]').forEach(function (n) { n.textContent = v; }); }
 
     /* R.evidencias solo trae 7 de muestra; el resto (hasta metricas.total)
@@ -197,6 +209,22 @@ window.PANTALLAS['supervisor-revision'] = {
       S.repintar(root.querySelector('#tl-cuerpo'), S.timeline({ items: items }));
     }
 
+    function pintarObservaciones() {
+      root.querySelector('#obs-n').innerHTML = S.badge({ label: st.registradas.length, size: 'small', theme: 'neutral' });
+      root.querySelector('#obs-lista').innerHTML = st.registradas.length
+        ? st.registradas.map(function (o) {
+            return S.h('div', { class: 'nws-list__row', style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-6)' },
+              S.h('div', { class: 'nws-row' },
+                S.h('span', { class: 'nwt-smalltext-font-semibold nws-tnum' }, e(o.fecha)),
+                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted nws-grow' }, e(o.quien)),
+                S.badge({ label: D.estados[o.juicio].label, size: 'medium', theme: D.estados[o.juicio].theme })),
+              o.hallazgos.length ? S.h('div', { class: 'nws-row', style: 'flex-wrap:wrap' }, o.hallazgos.map(function (hz) { return S.tag({ label: hz, size: 'small' }); })) : '',
+              S.h('div', { class: 'nws-note nwt-smalltext-font-regular' }, e(o.texto)));
+          }).join('')
+        : S.h('div', { class: 'nwt-smalltext-font-regular nws-muted', style: 'padding:var(--naotech-sizing-12) var(--naotech-sizing-16)' }, 'Todavía no hay observaciones registradas para esta ruta.');
+    }
+    pintarObservaciones();
+
     function botonDe(nombre) { return root.querySelector('[data-toggle-card2="' + nombre + '"]'); }
     function expandirCard(nombre, card) {
       card.classList.remove('nws-card--collapsed');
@@ -235,7 +263,7 @@ window.PANTALLAS['supervisor-revision'] = {
       var a = ob.getAttribute('data-obs');
       if (a === 'ok') { st.juicio = 'ok'; st.hall = []; pintarObs(); }
       if (a === 'no') { st.juicio = 'no'; pintarObs(); }
-      if (a === 'registrar' && st.juicio && st.obs) { st.registrado = true; pintarObs(); pintarLinea(); ctx.toast({ title: 'Observación registrada', message: R.ruta.codigo + ' pasa a Observada. El cierre se hace desde el tablero.', theme: 'positive', icon: 'positive' }); }
+      if (a === 'registrar' && st.juicio && st.obs) { st.registrado = true; var ahora = new Date(); st.registradas.unshift({ fecha: D.entidad.fecha.replace('martes ', '') + ' · ' + ('0' + ahora.getHours()).slice(-2) + ':' + ('0' + ahora.getMinutes()).slice(-2), quien: ctx.rol.nombre + ' · ' + ctx.rol.rol, juicio: st.juicio === 'ok' ? 'conforme' : 'hallazgos', hallazgos: st.hall.map(function (i) { return R.hallazgos[i]; }), texto: st.obs }); pintarObservaciones(); pintarObs(); pintarLinea(); ctx.toast({ title: 'Observación registrada', message: R.ruta.codigo + ' pasa a Observada. El cierre se hace desde el tablero.', theme: 'positive', icon: 'positive' }); }
     }
     function onInput(ev) { if (ev.target.matches('[data-field="obs"]')) { st.obs = ev.target.value; var listo = !!st.juicio && st.obs.length > 0 && !st.registrado; root.querySelector('[data-obs="registrar"]').disabled = !listo; } }
     root.addEventListener('click', onClick); root.addEventListener('input', onInput);

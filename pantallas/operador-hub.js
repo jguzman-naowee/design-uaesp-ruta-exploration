@@ -3,6 +3,15 @@
  * En calle ahora / próximos a salir, rutas recibidas por asignar (con el
  * asistente Operario → Equipo → Confirmar) y completadas de hoy.
  */
+/* Fila de "Completadas hoy": la usa render y también mount cuando una ruta
+   en calle termina y baja a esta lista (DC-348). */
+function filaCompletada(S, D, c) {
+        return S.h('div', { class: 'nws-list__row', style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-6)' },
+          S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-smalltext-font-bold nws-grow' }, S.esc(c.codigo)), S.badge({ label: D.estados.ejecutada.label, size: 'medium', theme: D.estados.ejecutada.theme })),
+          S.h('div', { class: 'nws-row nws-row--sm nwt-smalltext-font-regular nws-muted' }, S.icon('user'), S.esc(c.operario + ' · ' + c.horario)),
+          S.h('div', { class: 'nws-note nwt-smalltext-font-regular' }, S.esc(c.resumen)));
+}
+
 window.PANTALLAS = window.PANTALLAS || {};
 window.PANTALLAS['operador-hub'] = {
   menu: 'hoy',
@@ -11,10 +20,13 @@ window.PANTALLAS['operador-hub'] = {
   /* Las columnas las necesitan los dos lados —el esqueleto en render, antes de
      que haya datos, y la tabla real en pintarRecibidas— así que viven acá y se
      llegan por `this`: render y mount se invocan como métodos de la pantalla. */
+  /* DC-357: anchos por contenido para las cortas, flex para las de texto. */
   columnas: [
-    { label: 'Ruta', cls: 'nwt-width-xs-30' }, { label: 'Unidades', cls: 'nwt-width-xs-12-5' },
-    { label: 'Operario sugerido', cls: 'nwt-width-xs-27-5' }, { label: 'Recibida', cls: 'nwt-width-xs-15' },
-    { label: 'Acción', actions: true, cls: 'nwt-width-xs-15' }
+    { label: 'Ruta', style: 'flex:1 1 0;min-width:160px' },
+    { label: 'Unidades', style: 'flex:0 0 80px', cls: 'nws-col-center' },
+    { label: 'Operario sugerido', style: 'flex:1 1 0;min-width:180px' },
+    { label: 'Recibida', style: 'flex:0 0 104px' },
+    { label: 'Acción', actions: true, style: 'flex:0 0 96px' }
   ],
 
   toolbar: function (ctx) {
@@ -43,46 +55,47 @@ window.PANTALLAS['operador-hub'] = {
       S.statCard({ skeleton: k, label: 'Completadas hoy', valueHtml: S.h('span', { class: 'nws-delta' }, O.completadasHoy.length, S.badge({ label: O.metricas.variacionHoy, size: 'small', theme: 'positive' })), hint: '67 unidades · 0 pendientes de evidencia', theme: T,
         extra: S.h('div', { class: 'nws-spark' }, O.metricas.sparkline.map(function (v) { return '<i style="height:' + v + '%"></i>'; })) }));
 
-    var calle = S.card({
-      cls: 'nws-card--flush', style: 'flex:none', attrs: { 'nwt-theme': T },
-      header: S.h('div', { class: 'nws-card-head' },
+    /* DC-347: el segmentor flota arriba, desacoplado de la card (patrón
+       nws-tabla, el mismo de la tabla del admin); la card queda solo con la
+       lista. El chip "en vivo" de la derecha se elimina: el toolbar ya dice
+       "actualizado hace N s", era redundante. */
+    var calle = S.h('div', { class: 'nws-tabla', style: 'flex:none' },
+      S.h('div', { class: 'nws-tabla__head' },
         S.tagGroup({ id: 'seg-calle', size: 'large', theme: T, value: 'calle', items: [
           { id: 'c', label: 'En calle ahora (' + O.enCalle.length + ')', value: 'calle' },
-          { id: 'p', label: 'Próximos a salir (' + O.proximos.length + ')', value: 'prox' }] }),
-        S.h('div', { class: 'nws-grow' }),
-        S.h('span', { class: 'nws-live nwt-smalltext-font-regular', id: 'live-calle' }, S.h('span', { class: 'nws-live__dot' }), 'en vivo')),
-      /* La lista la llena pintarCalle desde mount, que en carga no corre. Tres
-         siluetas y no las 3 filas exactas de O.enCalle: cuántos hay en calle es
-         justamente lo que todavía no se sabe. */
-      content: S.h('div', { class: k ? 'nws-stack--sm' : 'nws-list', id: 'lista-calle', style: k ? 'padding:var(--naotech-sizing-16)' : undefined },
-        k ? [0, 1, 2].map(function () { return S.card({ skeleton: true, size: 'small' }); }) : '')
-    });
+          { id: 'p', label: 'Próximos a salir (' + O.proximos.length + ')', value: 'prox' }] })),
+      S.card({
+        cls: 'nws-card--flush', attrs: { 'nwt-theme': T },
+        /* La lista la llena pintarCalle desde mount, que en carga no corre. Tres
+           siluetas y no las 3 filas exactas de O.enCalle: cuántos hay en calle es
+           justamente lo que todavía no se sabe. */
+        content: S.h('div', { class: k ? 'nws-stack--sm' : 'nws-list', id: 'lista-calle', style: k ? 'padding:var(--naotech-sizing-16)' : undefined },
+          k ? [0, 1, 2].map(function () { return S.card({ skeleton: true, size: 'small' }); }) : '')
+      }));
 
-    var recibidas = S.card({
-      cls: 'nws-card--fill nws-card--flush', style: 'flex:1.45;min-width:0;min-height:0', attrs: { 'nwt-theme': T, id: 'card-recibidas' },
-      header: S.h('div', { class: 'nws-card-head' },
+    /* Tabla desacoplada (DC-357, regla general): título, contador y acción
+       flotan arriba; la card contiene solo el NwtDatatable. */
+    var recibidas = S.h('div', { class: 'nws-tabla', style: 'flex:1.45', id: 'card-recibidas' },
+      S.h('div', { class: 'nws-tabla__head' },
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Nuevas rutas recibidas'),
         S.badge({ label: O.porAsignar.length, size: 'small', theme: 'neutral', cls: 'bind-nPorAsignar' }),
         S.h('div', { class: 'nws-grow' }),
         S.iconButton({ icon: 'refresh', size: 'small', variant: 'mute', theme: 'neutral', label: 'Actualizar', attrs: { 'data-toast': 'lote' } })),
-      content: S.h('div', { id: 'tabla-recibidas', class: 'nws-grow', style: 'display:flex;flex-direction:column;min-height:0' },
-        k ? S.datatable({ skeleton: true, columns: this.columnas }) : '')
-    });
+      S.card({
+        cls: 'nws-card--fill nws-card--flush', style: 'min-width:0', attrs: { 'nwt-theme': T },
+        content: S.h('div', { id: 'tabla-recibidas', class: 'nws-grow', style: 'display:flex;flex-direction:column;min-height:0' },
+          k ? S.datatable({ skeleton: true, columns: this.columnas }) : '')
+      }));
 
     var completadas = S.card({
       cls: 'nws-card--fill nws-card--flush', style: 'flex:0 0 340px', attrs: { 'nwt-theme': T },
       header: S.h('div', { class: 'nws-card-head' },
         S.icon('positive', 'nws-soft'),
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Completadas hoy'),
-        S.badge({ label: O.completadasHoy.length, size: 'small', theme: 'neutral' })),
+        S.badge({ label: O.completadasHoy.length, size: 'small', theme: 'neutral', cls: 'bind-nCompletadas' })),
       content: k ? S.h('div', { class: 'nws-stack', style: 'padding:var(--naotech-sizing-16)' },
           [0, 1, 2].map(function () { return S.card({ skeleton: true, header: 1, size: 'small' }); }))
-        : S.h('div', { class: 'nws-list nws-list--zebra' }, O.completadasHoy.map(function (c) {
-        return S.h('div', { class: 'nws-list__row', style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-6)' },
-          S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-smalltext-font-bold nws-grow' }, S.esc(c.codigo)), S.badge({ label: D.estados.ejecutada.label, size: 'medium', theme: D.estados.ejecutada.theme })),
-          S.h('div', { class: 'nws-row nws-row--sm nwt-smalltext-font-regular nws-muted' }, S.icon('user'), S.esc(c.operario + ' · ' + c.horario)),
-          S.h('div', { class: 'nws-note nwt-smalltext-font-regular' }, S.esc(c.resumen)));
-      })),
+        : S.h('div', { class: 'nws-list nws-list--zebra', id: 'lista-completadas' }, O.completadasHoy.map(function (c) { return filaCompletada(S, D, c); })),
       footer: S.button({ label: 'Ver histórico completo', size: 'small', variant: 'quiet', theme: T, attrs: { style: 'width:100%', 'data-toast': 'historico' } })
     });
 
@@ -122,7 +135,6 @@ window.PANTALLAS['operador-hub'] = {
     }
 
     function pintarCalle() {
-      root.querySelector('#live-calle').classList.toggle('nws-hidden', st.vista !== 'calle');
       var html = st.vista === 'calle'
         ? st.enCalle.map(function (o) {
             var p = Math.round(o.hechas / o.total * 100);
@@ -313,8 +325,23 @@ window.PANTALLAS['operador-hub'] = {
 
     pintarStats(); pintarCalle(); pintarRecibidas();
     var timer = setInterval(function () {
-      st.enCalle.forEach(function (o) { if (Math.random() < 0.55) { o.hechas = Math.min(o.total, o.hechas + 1); } });
+      /* DC-348: las rutas avanzan y, al llegar al total, se quedan 3 ticks en
+         "Terminó" y bajan a "Completadas hoy" — la lista de calle se vacía sola. */
+      var terminadas = [];
+      st.enCalle.forEach(function (o) {
+        if (o.hechas < o.total) { if (Math.random() < 0.7) { o.hechas = Math.min(o.total, o.hechas + 1); } }
+        else { o.done = (o.done || 0) + 1; if (o.done >= 3) { terminadas.push(o); } }
+      });
       st.hace = (st.hace % 9) + 1;
+      if (terminadas.length) {
+        terminadas.forEach(function (o) {
+          st.enCalle.splice(st.enCalle.indexOf(o), 1);
+          O.completadasHoy.unshift({ codigo: o.ruta.split(' · ')[0], operario: o.nombre, horario: o.inicio + ' — ' + o.eta, resumen: o.total + ' unidades · ' + o.camion + ' · sin novedades' });
+        });
+        var lc = root.querySelector('#lista-completadas'); if (lc) { lc.innerHTML = O.completadasHoy.map(function (c) { return filaCompletada(S, D, c); }).join(''); }
+        var nb = root.querySelector('.bind-nCompletadas .nwt-badge__label'); if (nb) { nb.textContent = O.completadasHoy.length; }
+        if (st.vista === 'calle') { pintarCalle(); }
+      }
       pintarStats(); if (st.vista === 'calle') { actualizarProgresoCalle(); }
     }, 2200);
     return function () { clearInterval(timer); root.removeEventListener('click', onClick); root.removeEventListener('input', onInput); document.removeEventListener('keydown', onKey); };

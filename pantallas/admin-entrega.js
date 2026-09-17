@@ -54,7 +54,8 @@ window.PANTALLAS['admin-entrega'] = {
       header: S.h('div', { class: 'nws-card-head' },
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Trazado'),
         S.h('div', { class: 'nws-grow' }),
-        S.tagGroup({ id: 'seg-rutas', size: 'medium', theme: T, value: 0, items: E.rutas.map(function (r, i) { return { id: 'r' + i, label: r.codigo, value: i }; }) })),
+        /* DC-354: todos los segmentores del demo en 'large' (deshace el medium de DC-312). */
+        S.tagGroup({ id: 'seg-rutas', size: 'large', theme: T, value: 0, items: E.rutas.map(function (r, i) { return { id: 'r' + i, label: r.codigo, value: i }; }) })),
       content: S.h('div', { class: 'nws-map', id: 'mapa-entrega' }) +
                S.h('div', { id: 'resumen-ruta', class: 'nws-row', style: 'gap:0;justify-content:center;margin-top:var(--naotech-sizing-12);border-top:1px solid var(--naotech-app-color-200);padding-top:var(--naotech-sizing-12)' })
     });

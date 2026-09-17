@@ -41,6 +41,47 @@ body {
    así que basta con esta clase en la definición de la columna (aplica a
    ambos, ver datatable() en sdk.js). */
 .nws-col-center { --naotech-datatable-justify-content: center; }
+/* DC-353: columna sin ancho fijo — absorbe el espacio que dejan las demás
+   (nwt-width-xs-* son porcentajes fijos con !important; no hay una utilidad
+   del SDK para "el resto"). width:auto le gana al !important porque va
+   después en cascada dentro de la misma especificidad de clase. */
+.nws-col-grow { flex: 1 1 0; width: auto !important; }
+
+/* -------------------------------------------------------------------
+   nws-tabla — toda tabla del demo va igual (DC-357 + pedido general):
+   la card contiene SOLO el NwtDatatable (o la lista), sin header propio;
+   lo que antes iba en el header —segmentor, título, contador, acciones—
+   flota arriba en .nws-tabla__head, desacoplado de la card, como los
+   tabs "en el aire" del admin (DC-030). Un solo patrón para admin,
+   operador y supervisor.
+   ------------------------------------------------------------------- */
+.nws-tabla { display: flex; flex-direction: column; gap: var(--naotech-sizing-8); min-width: 0; min-height: 0; }
+.nws-tabla__head { display: flex; align-items: center; gap: var(--naotech-sizing-12); min-height: var(--naotech-sizing-40); padding: 0 var(--naotech-sizing-4); min-width: 0; }
+.nws-tabla > .nwt-card { flex: 1; min-height: 0; }
+
+/* OVERRIDE (DC-351): la toolbar del sidebar del SDK mide 88px con padding
+   24 y el toggle a la IZQUIERDA del logo. Pedido: logo a la izquierda a la
+   misma distancia que los items del menú (20px, el padding de
+   nwt-sidebar__menu__link), chevron a la derecha a 8px del borde, y menos
+   alto. El orden se resuelve con `order`, sin tocar la anatomía. */
+.nwt-sidebar__toolbar { height: var(--naotech-sizing-64); padding: 0 var(--naotech-sizing-8) 0 var(--naotech-sizing-20); }
+.nwt-sidebar__toolbar__logo { order: 1; flex: 1; min-width: 0; }
+.nwt-sidebar__toolbar__button { order: 2; margin-left: auto; }
+.nwt-sidebar--collapsed .nwt-sidebar__toolbar { padding: 0 var(--naotech-sizing-8); justify-content: center; }
+.nwt-sidebar--collapsed .nwt-sidebar__toolbar__button { margin-left: 0; }
+/* DC-350: el pie institucional ahora vive dentro de nwt-sidebar__footer,
+   pegado al logout: sin borde superior propio ni padding lateral extra. */
+.nwt-sidebar__footer > .nws-owner { border-top: none; padding: var(--naotech-sizing-8) var(--naotech-sizing-12) 0; }
+/* OVERRIDE (DC-357): NwtDatatable separa columnas con column-gap 16px. En
+   tablas de 7-8 columnas dentro de un split eso son ~100px que no muestran
+   nada mientras Operador se recorta; se baja a 12px en todo el demo. */
+.nwt-datatable__header, .nwt-datatable__record { column-gap: var(--naotech-sizing-12); }
+/* DC-357 (bis): el header del datatable trae radius xl (12px) y fondo gris;
+   dentro de una card flush de radius xxl (20px) las esquinas del header
+   asomaban sobre el borde de la card. La card recorta (overflow hidden sigue
+   la curva del borde, el borde queda visible) y el header va sin radio. */
+.nws-card--flush > .nwt-card__body { overflow: hidden; }
+.nws-card--flush .nwt-datatable__header { border-radius: 0; }
 /* DC-333: nwt-detail-item__label (SDK) viene a 16px semibold — acá el
    resumen de recorrido/km/duración pide 14px, sin tocar el componente. */
 #resumen-ruta .nwt-detail-item__label { font-size: var(--naotech-smalltext-font-size); }
@@ -290,6 +331,12 @@ body {
 .nws-list__row--click .nwt-badge,
 .nwt-card--clickable .nwt-badge,
 .nws-kanban .nwt-card--clickable .nwt-badge { --naotech-badge-cursor: inherit; }
+/* DC-356: los <button> reales (NwtIconButton al final de la fila) tienen
+   cursor:auto de fábrica en la mayoría de navegadores — no heredan el
+   pointer de la fila aunque toda la fila sea clickable. Mismo patrón que
+   el badge de arriba. */
+.nws-list__row--click .nwt-icon-button__content,
+.nws-list__row--click button { cursor: pointer; }
 .nws-list__row--on { background: var(--naotech-theme-color-050); }
 /* DC-306: feedback de "ruta creada" — el modal se cierra y la fila nueva se
    resalta unos segundos en la lista en vez de dejar el modal abierto. */
@@ -539,6 +586,39 @@ body {
   animation: naotech-motion-slide-up-enter var(--naotech-duration-slow) var(--naotech-animation-deceleration) both;
   animation-delay: var(--nws-reveal-delay, 0ms);
 }
+
+/* -------------------------------------------------------------------
+   nws-zoom — transición "a la Netflix" al elegir un rol: la card clickeada
+   (clonada, fixed sobre la real) crece hasta tapar la pantalla acelerando
+   —animation-acceleration, arranca lenta y se dispara, no lineal—, recién
+   ahí se dispara la navegación real detrás, y el clon se desvanece encima
+   para revelarla. El login.js orquesta los tiempos; acá solo las
+   transiciones de left/top/width/height/radius y las dos fases de fade.
+   ------------------------------------------------------------------- */
+.nws-zoom {
+  position: fixed; z-index: 80; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--naotech-theme-color-700);
+  transition:
+    left var(--naotech-duration-slow) var(--naotech-animation-acceleration),
+    top var(--naotech-duration-slow) var(--naotech-animation-acceleration),
+    width var(--naotech-duration-slow) var(--naotech-animation-acceleration),
+    height var(--naotech-duration-slow) var(--naotech-animation-acceleration),
+    border-radius var(--naotech-duration-slow) var(--naotech-animation-acceleration);
+}
+.nws-zoom__content {
+  display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-16);
+  transition: opacity var(--naotech-duration-fast) var(--naotech-animation-standard); pointer-events: none;
+}
+/* DC-359: el nombre del rol grande y centrado durante el zoom. */
+.nws-zoom__label {
+  color: var(--naotech-theme-font-color); font-size: var(--naotech-sizing-48); font-weight: var(--naotech-font-weight-black); line-height: 1.1; text-align: center; letter-spacing: -0.02em;
+  opacity: 0; transition: opacity var(--naotech-duration-slow) var(--naotech-animation-standard);
+  transition-delay: var(--naotech-duration-fast);
+}
+.nws-zoom--tapa .nws-zoom__content { opacity: 0; }
+.nws-zoom--fuera { opacity: 0; transition: opacity var(--naotech-duration-base) var(--naotech-animation-standard); }
+@media (prefers-reduced-motion: reduce) { .nws-zoom { display: none; } }
 
 /* -------------------------------------------------------------------
    nws-stops — lista de paradas. NwtDatatable no sirve (flex disfrazado
@@ -818,12 +898,20 @@ body {
 
 /* Título del login: sin equivalente en el SDK, brillo propio con el color
    del tema neutral (no hay rol elegido todavía en esta pantalla). */
+/* DC-340: título oscuro (app-900) con un brillo naranja que recorre las
+   letras como una máscara en movimiento — no un degradé estático. El
+   naranja es una franja estrecha (8%) que viaja de derecha a izquierda. */
 .nws-login__title {
-  background: linear-gradient(90deg, var(--naotech-app-color-900), var(--naotech-primary-color-700));
+  background: linear-gradient(100deg, var(--naotech-app-color-900) 44%, var(--naotech-primary-color-600) 50%, var(--naotech-app-color-900) 56%);
+  background-size: 300% 100%; background-position: 120% 0;
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  text-shadow: 0 0 32px var(--naotech-primary-color-200);
   letter-spacing: -0.01em;
+  /* DC-358: más frecuente pero lento — el barrido ocupa todo el ciclo (sin
+     pausa en los extremos) y es lineal: pasa cada 3.4s y tarda 3.4s en cruzar. */
+  animation: nws-brillo 3.4s linear infinite;
 }
+@keyframes nws-brillo { 0% { background-position: 120% 0; } 100% { background-position: -20% 0; } }
+@media (prefers-reduced-motion: reduce) { .nws-login__title { animation: none; background: none; color: var(--naotech-app-color-900); } }
 
 /* -------------------------------------------------------------------
    nws-phone — marco de teléfono para la app del operario (390×800).

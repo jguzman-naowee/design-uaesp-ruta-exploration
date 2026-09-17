@@ -10874,6 +10874,47 @@ body {
    así que basta con esta clase en la definición de la columna (aplica a
    ambos, ver datatable() en sdk.js). */
 .nws-col-center { --naotech-datatable-justify-content: center; }
+/* DC-353: columna sin ancho fijo — absorbe el espacio que dejan las demás
+   (nwt-width-xs-* son porcentajes fijos con !important; no hay una utilidad
+   del SDK para "el resto"). width:auto le gana al !important porque va
+   después en cascada dentro de la misma especificidad de clase. */
+.nws-col-grow { flex: 1 1 0; width: auto !important; }
+
+/* -------------------------------------------------------------------
+   nws-tabla — toda tabla del demo va igual (DC-357 + pedido general):
+   la card contiene SOLO el NwtDatatable (o la lista), sin header propio;
+   lo que antes iba en el header —segmentor, título, contador, acciones—
+   flota arriba en .nws-tabla__head, desacoplado de la card, como los
+   tabs "en el aire" del admin (DC-030). Un solo patrón para admin,
+   operador y supervisor.
+   ------------------------------------------------------------------- */
+.nws-tabla { display: flex; flex-direction: column; gap: var(--naotech-sizing-8); min-width: 0; min-height: 0; }
+.nws-tabla__head { display: flex; align-items: center; gap: var(--naotech-sizing-12); min-height: var(--naotech-sizing-40); padding: 0 var(--naotech-sizing-4); min-width: 0; }
+.nws-tabla > .nwt-card { flex: 1; min-height: 0; }
+
+/* OVERRIDE (DC-351): la toolbar del sidebar del SDK mide 88px con padding
+   24 y el toggle a la IZQUIERDA del logo. Pedido: logo a la izquierda a la
+   misma distancia que los items del menú (20px, el padding de
+   nwt-sidebar__menu__link), chevron a la derecha a 8px del borde, y menos
+   alto. El orden se resuelve con `order`, sin tocar la anatomía. */
+.nwt-sidebar__toolbar { height: var(--naotech-sizing-64); padding: 0 var(--naotech-sizing-8) 0 var(--naotech-sizing-20); }
+.nwt-sidebar__toolbar__logo { order: 1; flex: 1; min-width: 0; }
+.nwt-sidebar__toolbar__button { order: 2; margin-left: auto; }
+.nwt-sidebar--collapsed .nwt-sidebar__toolbar { padding: 0 var(--naotech-sizing-8); justify-content: center; }
+.nwt-sidebar--collapsed .nwt-sidebar__toolbar__button { margin-left: 0; }
+/* DC-350: el pie institucional ahora vive dentro de nwt-sidebar__footer,
+   pegado al logout: sin borde superior propio ni padding lateral extra. */
+.nwt-sidebar__footer > .nws-owner { border-top: none; padding: var(--naotech-sizing-8) var(--naotech-sizing-12) 0; }
+/* OVERRIDE (DC-357): NwtDatatable separa columnas con column-gap 16px. En
+   tablas de 7-8 columnas dentro de un split eso son ~100px que no muestran
+   nada mientras Operador se recorta; se baja a 12px en todo el demo. */
+.nwt-datatable__header, .nwt-datatable__record { column-gap: var(--naotech-sizing-12); }
+/* DC-357 (bis): el header del datatable trae radius xl (12px) y fondo gris;
+   dentro de una card flush de radius xxl (20px) las esquinas del header
+   asomaban sobre el borde de la card. La card recorta (overflow hidden sigue
+   la curva del borde, el borde queda visible) y el header va sin radio. */
+.nws-card--flush > .nwt-card__body { overflow: hidden; }
+.nws-card--flush .nwt-datatable__header { border-radius: 0; }
 /* DC-333: nwt-detail-item__label (SDK) viene a 16px semibold — acá el
    resumen de recorrido/km/duración pide 14px, sin tocar el componente. */
 #resumen-ruta .nwt-detail-item__label { font-size: var(--naotech-smalltext-font-size); }
@@ -11123,6 +11164,12 @@ body {
 .nws-list__row--click .nwt-badge,
 .nwt-card--clickable .nwt-badge,
 .nws-kanban .nwt-card--clickable .nwt-badge { --naotech-badge-cursor: inherit; }
+/* DC-356: los <button> reales (NwtIconButton al final de la fila) tienen
+   cursor:auto de fábrica en la mayoría de navegadores — no heredan el
+   pointer de la fila aunque toda la fila sea clickable. Mismo patrón que
+   el badge de arriba. */
+.nws-list__row--click .nwt-icon-button__content,
+.nws-list__row--click button { cursor: pointer; }
 .nws-list__row--on { background: var(--naotech-theme-color-050); }
 /* DC-306: feedback de "ruta creada" — el modal se cierra y la fila nueva se
    resalta unos segundos en la lista en vez de dejar el modal abierto. */
@@ -11372,6 +11419,39 @@ body {
   animation: naotech-motion-slide-up-enter var(--naotech-duration-slow) var(--naotech-animation-deceleration) both;
   animation-delay: var(--nws-reveal-delay, 0ms);
 }
+
+/* -------------------------------------------------------------------
+   nws-zoom — transición "a la Netflix" al elegir un rol: la card clickeada
+   (clonada, fixed sobre la real) crece hasta tapar la pantalla acelerando
+   —animation-acceleration, arranca lenta y se dispara, no lineal—, recién
+   ahí se dispara la navegación real detrás, y el clon se desvanece encima
+   para revelarla. El login.js orquesta los tiempos; acá solo las
+   transiciones de left/top/width/height/radius y las dos fases de fade.
+   ------------------------------------------------------------------- */
+.nws-zoom {
+  position: fixed; z-index: 80; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--naotech-theme-color-700);
+  transition:
+    left var(--naotech-duration-slow) var(--naotech-animation-acceleration),
+    top var(--naotech-duration-slow) var(--naotech-animation-acceleration),
+    width var(--naotech-duration-slow) var(--naotech-animation-acceleration),
+    height var(--naotech-duration-slow) var(--naotech-animation-acceleration),
+    border-radius var(--naotech-duration-slow) var(--naotech-animation-acceleration);
+}
+.nws-zoom__content {
+  display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-16);
+  transition: opacity var(--naotech-duration-fast) var(--naotech-animation-standard); pointer-events: none;
+}
+/* DC-359: el nombre del rol grande y centrado durante el zoom. */
+.nws-zoom__label {
+  color: var(--naotech-theme-font-color); font-size: var(--naotech-sizing-48); font-weight: var(--naotech-font-weight-black); line-height: 1.1; text-align: center; letter-spacing: -0.02em;
+  opacity: 0; transition: opacity var(--naotech-duration-slow) var(--naotech-animation-standard);
+  transition-delay: var(--naotech-duration-fast);
+}
+.nws-zoom--tapa .nws-zoom__content { opacity: 0; }
+.nws-zoom--fuera { opacity: 0; transition: opacity var(--naotech-duration-base) var(--naotech-animation-standard); }
+@media (prefers-reduced-motion: reduce) { .nws-zoom { display: none; } }
 
 /* -------------------------------------------------------------------
    nws-stops — lista de paradas. NwtDatatable no sirve (flex disfrazado
@@ -11651,12 +11731,20 @@ body {
 
 /* Título del login: sin equivalente en el SDK, brillo propio con el color
    del tema neutral (no hay rol elegido todavía en esta pantalla). */
+/* DC-340: título oscuro (app-900) con un brillo naranja que recorre las
+   letras como una máscara en movimiento — no un degradé estático. El
+   naranja es una franja estrecha (8%) que viaja de derecha a izquierda. */
 .nws-login__title {
-  background: linear-gradient(90deg, var(--naotech-app-color-900), var(--naotech-primary-color-700));
+  background: linear-gradient(100deg, var(--naotech-app-color-900) 44%, var(--naotech-primary-color-600) 50%, var(--naotech-app-color-900) 56%);
+  background-size: 300% 100%; background-position: 120% 0;
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  text-shadow: 0 0 32px var(--naotech-primary-color-200);
   letter-spacing: -0.01em;
+  /* DC-358: más frecuente pero lento — el barrido ocupa todo el ciclo (sin
+     pausa en los extremos) y es lineal: pasa cada 3.4s y tarda 3.4s en cruzar. */
+  animation: nws-brillo 3.4s linear infinite;
 }
+@keyframes nws-brillo { 0% { background-position: 120% 0; } 100% { background-position: -20% 0; } }
+@media (prefers-reduced-motion: reduce) { .nws-login__title { animation: none; background: none; color: var(--naotech-app-color-900); } }
 
 /* -------------------------------------------------------------------
    nws-phone — marco de teléfono para la app del operario (390×800).
@@ -12533,7 +12621,11 @@ window.SDK = (function () {
                   Object.assign(a, row.attrs || {});
                   return h('tr', a, row.cells.map(function (cell, i) {
                     var c = cols[i] || {};
-                    if (c.actions) { return h('td', { class: cls('nwt-datatable__actions', 'nwt-datatable__actions--actions', c.cls) }, cell); }
+                    /* El style de la columna va a th Y td: si la celda de acciones
+                       no lo lleva, el th queda en los 10rem de fábrica y la td en
+                       su contenido, y las columnas flexibles absorben la diferencia
+                       — los encabezados dejan de caer sobre sus celdas (DC-357). */
+                    if (c.actions) { return h('td', { class: cls('nwt-datatable__actions', 'nwt-datatable__actions--actions', c.cls), style: c.style }, cell); }
                     return h('td', { class: cls('nwt-datatable__cell', c.cls), style: c.style }, cell);
                   }));
                 })))),
@@ -12590,11 +12682,14 @@ window.SDK = (function () {
                 o.collapsed && h('span', { 'aria-hidden': 'true', class: 'nwt-sidebar__tooltip' }, esc(m.label)));
               return sec + item;
             }))),
+        /* DC-350: el pie institucional (o.footer) va DENTRO del footer del
+           sidebar y antes del logout, así "Cambiar de perfil" es el último
+           item y los dos quedan juntos, no en dos bloques separados. */
         h('div', { class: 'nwt-sidebar__footer' },
+          o.footer || '',
           h('button', { class: 'nwt-sidebar__footer__logout', type: 'button', 'data-logout': true },
             icon('logout', 'nwt-sidebar__menu__icon'),
-            h('span', { class: 'nwt-sidebar__footer__logout__label' }, esc(o.logoutLabel || 'Cerrar sesión'))))),
-      o.footer || '');
+            h('span', { class: 'nwt-sidebar__footer__logout__label' }, esc(o.logoutLabel || 'Cerrar sesión'))))));
   }
 
   /* NwtProfileCard = CardInformation + BannerInformation */
@@ -13515,12 +13610,14 @@ window.PANTALLAS.login = {
     var INICIALES_ROL = { admin: 'AD', operador: 'OD', operario: 'OP', supervisor: 'SU' };
     var perfiles = D.roles.map(function (r, i) {
       return S.card({
-        onClick: true, size: 'large', variant: 'quiet',
+        onClick: true, size: 'large', variant: 'quiet', theme: r.theme,
         cls: 'nws-reveal', style: '--nws-reveal-delay:' + (160 + i * 70) + 'ms',
         attrs: { 'data-rol': r.id, role: 'button', 'aria-label': 'Entrar como ' + r.rol },
+        /* DC-338/339: flotante sobre la card (nws-login__last, ya existía en
+           app.css sin usar) en vez de una fila propia en el header — así no
+           reserva alto cuando hay badge y no deja un div vacío cuando no. */
         header: ultimo === r.id
-          ? S.h('div', { class: 'nws-row', style: 'justify-content:center;width:100%' },
-              S.badge({ label: 'Última visitada', size: 'medium', theme: r.theme }))
+          ? S.h('div', { class: 'nws-login__last' }, S.badge({ label: 'Última visitada', size: 'medium', theme: r.theme }))
           : '',
         content:
           S.avatar({ text: INICIALES_ROL[r.id] || r.iniciales, size: 'large', variant: 'loud', color: r.color }) +
@@ -13557,18 +13654,67 @@ window.PANTALLAS.login = {
       root.querySelectorAll('.nws-reveal').forEach(function (el) { el.classList.add('nws-reveal--in'); });
     }); });
 
+    var reducido = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var enZoom = false;
+
+    /* Transición "zoom a la Netflix": la card elegida crece hasta cubrir la
+       pantalla (acelerando, no lineal — arranca lenta y se dispara) y recién
+       ahí se dispara la navegación real; cuando ya está montada la pantalla
+       de destino detrás, el clon se desvanece encima y la revela. Es un
+       clon con la MISMA anatomía nwt-card (mismo radio, mismo color de
+       tema) puesto fixed sobre la card real — la real nunca se mueve. */
+    var CRECE = 380;   /* crecimiento hasta cubrir pantalla, acelerando */
+    var LEE = 650;     /* pausa quieta con el nombre del rol, para que dé tiempo a leerlo */
+    var SALE = 260;    /* fundido final que revela la pantalla ya montada detrás */
+
+    function zoom(card, rolId, rol) {
+      if (reducido) { ctx.entrar(rolId); return; }
+      enZoom = true;
+      var r = card.getBoundingClientRect();
+      var tema = card.getAttribute('nwt-theme') || 'neutral';
+      var clon = document.createElement('div');
+      clon.className = 'nws-zoom';
+      clon.setAttribute('nwt-theme', tema);
+      clon.style.left = r.left + 'px'; clon.style.top = r.top + 'px';
+      clon.style.width = r.width + 'px'; clon.style.height = r.height + 'px';
+      clon.style.borderRadius = getComputedStyle(card).borderRadius;
+      var contenido = document.createElement('div');
+      contenido.className = 'nws-zoom__content';
+      var nombre = document.createElement('span');
+      nombre.className = 'nws-zoom__label nwt-title-font-bold';
+      nombre.textContent = rol;
+      contenido.appendChild(nombre);
+      clon.appendChild(contenido);
+      document.body.appendChild(clon);
+      requestAnimationFrame(function () {
+        clon.style.left = '0px'; clon.style.top = '0px';
+        clon.style.width = window.innerWidth + 'px'; clon.style.height = window.innerHeight + 'px';
+        clon.style.borderRadius = '0px';
+        nombre.style.opacity = '1'; /* el nombre entra con su propio delay, mientras la caja todavía crece */
+      });
+      setTimeout(function () {
+        clon.classList.add('nws-zoom--tapa');   /* oculta avatar + nombre justo antes del corte */
+        ctx.entrar(rolId);                      /* swap real de pantalla, ya detrás del clon */
+        requestAnimationFrame(function () { clon.classList.add('nws-zoom--fuera'); });
+        setTimeout(function () { clon.remove(); }, SALE);
+      }, CRECE + LEE);
+    }
+
+    function nombreDe(id) { var r = ctx.D.roles.filter(function (x) { return x.id === id; })[0]; return r ? r.rol : ''; }
     function onClick(ev) {
       var el = ev.target.closest('[data-rol]');
-      if (!el) { return; }
+      if (!el || enZoom) { return; }
       ev.preventDefault();
-      ctx.entrar(el.getAttribute('data-rol'));
+      var rolId = el.getAttribute('data-rol');
+      zoom(el.closest('.nwt-card') || el, rolId, nombreDe(rolId));
     }
     function onKey(ev) {
       if (ev.key !== 'Enter' && ev.key !== ' ') { return; }
       var el = ev.target.closest('.nwt-card[data-rol]');
-      if (!el) { return; }
+      if (!el || enZoom) { return; }
       ev.preventDefault();
-      ctx.entrar(el.getAttribute('data-rol'));
+      var rolId = el.getAttribute('data-rol');
+      zoom(el, rolId, nombreDe(rolId));
     }
     root.addEventListener('click', onClick);
     root.addEventListener('keydown', onKey);
@@ -13987,9 +14133,23 @@ window.PANTALLAS['admin-hub'] = {
      dos lados: el esqueleto (render, antes de que haya datos) y la tabla real
      (mount). Se llegan por `this` — render y mount se invocan como métodos de
      esta pantalla. */
+  /* DC-357: la tabla vive en ~815px (comparte fila con el panel de cerradas),
+     y los nwt-width-xs-* del SDK son porcentajes ciegos al contenido: a ese
+     ancho Progreso quedaba en 61px para "17 de 41 - 41%" y Estado se llevaba
+     204px para un badge de 105. Cada <tr> es su propio flex, así que las
+     columnas NO pueden medirse solas por contenido (no alinearían entre
+     filas): se fijan en px a partir del contenido más ancho que llevan
+     (header en caption 12px uppercase vs. celda) y solo Ruta y Operador
+     absorben lo que sobra. */
   columnas: [
-    { label: 'Ruta', cls: 'nwt-width-xs-20' }, { label: 'Operador', cls: 'nwt-width-xs-20' }, { label: 'Zona', cls: 'nwt-width-xs-10' },
-    { label: 'Unidades', cls: 'nwt-width-xs-7-5 nws-col-center' }, { label: 'Estado', cls: 'nwt-width-xs-25 nws-col-center' }, { label: 'Progreso', cls: 'nwt-width-xs-7-5' }, { label: '', actions: true, cls: 'nwt-width-xs-5' }
+    { label: 'Ruta',     style: 'flex:1 1 0;min-width:128px' },
+    { label: 'Operador', style: 'flex:1.6 1 0;min-width:168px' },
+    { label: 'Zona',     style: 'flex:0 0 88px' },
+    { label: 'Unidades', style: 'flex:0 0 72px', cls: 'nws-col-center' },
+    { label: 'Estado',   style: 'flex:0 0 116px', cls: 'nws-col-center' },
+    /* DC-271 sube los captions de celda a 14px: "17 de 41 - 41%" mide ~104px ahí. */
+    { label: 'Progreso', style: 'flex:0 0 120px' },
+    { label: '', actions: true, style: 'flex:0 0 32px' }
   ],
 
   toolbar: function (ctx) {
@@ -14020,10 +14180,11 @@ window.PANTALLAS['admin-hub'] = {
 
     /* Tabs sueltos arriba de la tabla, sin header ni borde de tarjeta:
        pedido en DC-030, "en el aire", separados del contenedor. */
-    var tabla = S.h('div', { class: 'nws-col', style: 'flex:1;min-width:0;gap:var(--naotech-sizing-8)' },
-      S.tagGroup({ id: 'tabs-rutas', size: 'large', theme: T, value: 'todas', items: A.tabs.map(function (t) { return { id: t.id, label: t.label + ' (' + t.count + ')', value: t.id }; }) }),
+    var tabla = S.h('div', { class: 'nws-tabla', style: 'flex:1' },
+      S.h('div', { class: 'nws-tabla__head' },
+        S.tagGroup({ id: 'tabs-rutas', size: 'large', theme: T, value: 'todas', items: A.tabs.map(function (t) { return { id: t.id, label: t.label + ' (' + t.count + ')', value: t.id }; }) })),
       S.card({
-        cls: 'nws-card--fill nws-card--flush', style: 'flex:1;min-width:0', attrs: { 'nwt-theme': T },
+        cls: 'nws-card--fill nws-card--flush', style: 'min-width:0', attrs: { 'nwt-theme': T },
         /* La tabla la llena mount() (pintarTabla), que en carga no corre. El
            encabezado sí se conoce de entrada —las columnas son del contrato, no
            de los datos— así que el esqueleto de NwtDatatable las conserva y
@@ -14033,7 +14194,8 @@ window.PANTALLAS['admin-hub'] = {
       }));
 
     var cerradas = S.card({
-      cls: 'nws-card--fill nws-card--flush', style: 'flex:0 0 332px', attrs: { 'nwt-theme': T },
+      /* DC-357: 32px menos al panel para que la tabla no recorte Operador. */
+      cls: 'nws-card--fill nws-card--flush', style: 'flex:0 0 300px', attrs: { 'nwt-theme': T },
       header: S.h('div', { class: 'nws-card-head' },
         S.icon('positive', 'nws-soft'),
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Cerradas esta semana'),
@@ -14081,10 +14243,10 @@ window.PANTALLAS['admin-hub'] = {
         /* DC-332: el contador (marcadas de unidades) vivía en Estado; ahora
            Progreso trae el porcentaje y el contador juntos, y Estado queda
            solo con el badge. */
+        /* DC-352: "17 de 41 - 41%" en una sola línea, no apiladas en dos. */
         var progresoCell = r.estado === 'curso'
-          ? S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-4);width:100%' },
-              S.h('span', { class: 'nwt-caption-font-semibold nws-tnum' }, Math.round(r.marcadas / r.unidades * 100) + '%'),
-              S.h('span', { class: 'nwt-caption-font-regular nws-muted nws-tnum' }, r.marcadas + ' de ' + r.unidades))
+          ? S.h('span', { class: 'nwt-caption-font-regular nws-tnum' },
+              r.marcadas + ' de ' + r.unidades + ' - ' + Math.round(r.marcadas / r.unidades * 100) + '%')
           : S.h('span', { class: 'nwt-caption-font-regular nws-soft' }, '—');
         return { cls: S.cls('nws-list__row--click', r.codigo === st.destacada && 'nws-list__row--nueva'), attrs: { 'data-ir': r.estado === 'curso' ? '#/operador/ruta' : '#/admin/entrega' }, cells: [
           S.h('span', null, S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-caption-font-semibold' }, e(r.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, e(r.modo)))),
@@ -14100,7 +14262,10 @@ window.PANTALLAS['admin-hub'] = {
         style: 'min-height:0',
         columns: COLS,
         rows: rows,
-        footer: S.h('div', { class: 'nws-row nws-row--md', style: 'padding:var(--naotech-sizing-8) var(--naotech-sizing-16);width:100%' },
+        /* DC-355: nwt-datatable__footer (SDK) ya trae padding:16px propio;
+           este margin negativo lo cancela abajo/izquierda para que quede
+           pegado al borde real de la card, no al padding del padre. */
+        footer: S.h('div', { class: 'nws-row nws-row--md', style: 'margin:0 0 calc(var(--naotech-sizing-16) * -1) calc(var(--naotech-sizing-16) * -1);padding:var(--naotech-sizing-8) var(--naotech-sizing-16) var(--naotech-sizing-16);width:calc(100% + var(--naotech-sizing-16))' },
           S.h('span', { class: 'nwt-smalltext-font-regular nws-muted nws-grow' }, 'Mostrando ' + filas.length + ' de ' + tab.count),
           S.pagination({ page: 1, total: Math.max(1, Math.ceil(tab.count / 6)), size: 'small' }))
       });
@@ -14306,7 +14471,8 @@ window.PANTALLAS['admin-entrega'] = {
       header: S.h('div', { class: 'nws-card-head' },
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Trazado'),
         S.h('div', { class: 'nws-grow' }),
-        S.tagGroup({ id: 'seg-rutas', size: 'medium', theme: T, value: 0, items: E.rutas.map(function (r, i) { return { id: 'r' + i, label: r.codigo, value: i }; }) })),
+        /* DC-354: todos los segmentores del demo en 'large' (deshace el medium de DC-312). */
+        S.tagGroup({ id: 'seg-rutas', size: 'large', theme: T, value: 0, items: E.rutas.map(function (r, i) { return { id: 'r' + i, label: r.codigo, value: i }; }) })),
       content: S.h('div', { class: 'nws-map', id: 'mapa-entrega' }) +
                S.h('div', { id: 'resumen-ruta', class: 'nws-row', style: 'gap:0;justify-content:center;margin-top:var(--naotech-sizing-12);border-top:1px solid var(--naotech-app-color-200);padding-top:var(--naotech-sizing-12)' })
     });
@@ -14400,6 +14566,15 @@ window.PANTALLAS['admin-entrega'] = {
  * En calle ahora / próximos a salir, rutas recibidas por asignar (con el
  * asistente Operario → Equipo → Confirmar) y completadas de hoy.
  */
+/* Fila de "Completadas hoy": la usa render y también mount cuando una ruta
+   en calle termina y baja a esta lista (DC-348). */
+function filaCompletada(S, D, c) {
+        return S.h('div', { class: 'nws-list__row', style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-6)' },
+          S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-smalltext-font-bold nws-grow' }, S.esc(c.codigo)), S.badge({ label: D.estados.ejecutada.label, size: 'medium', theme: D.estados.ejecutada.theme })),
+          S.h('div', { class: 'nws-row nws-row--sm nwt-smalltext-font-regular nws-muted' }, S.icon('user'), S.esc(c.operario + ' · ' + c.horario)),
+          S.h('div', { class: 'nws-note nwt-smalltext-font-regular' }, S.esc(c.resumen)));
+}
+
 window.PANTALLAS = window.PANTALLAS || {};
 window.PANTALLAS['operador-hub'] = {
   menu: 'hoy',
@@ -14408,10 +14583,13 @@ window.PANTALLAS['operador-hub'] = {
   /* Las columnas las necesitan los dos lados —el esqueleto en render, antes de
      que haya datos, y la tabla real en pintarRecibidas— así que viven acá y se
      llegan por `this`: render y mount se invocan como métodos de la pantalla. */
+  /* DC-357: anchos por contenido para las cortas, flex para las de texto. */
   columnas: [
-    { label: 'Ruta', cls: 'nwt-width-xs-30' }, { label: 'Unidades', cls: 'nwt-width-xs-12-5' },
-    { label: 'Operario sugerido', cls: 'nwt-width-xs-27-5' }, { label: 'Recibida', cls: 'nwt-width-xs-15' },
-    { label: 'Acción', actions: true, cls: 'nwt-width-xs-15' }
+    { label: 'Ruta', style: 'flex:1 1 0;min-width:160px' },
+    { label: 'Unidades', style: 'flex:0 0 80px', cls: 'nws-col-center' },
+    { label: 'Operario sugerido', style: 'flex:1 1 0;min-width:180px' },
+    { label: 'Recibida', style: 'flex:0 0 104px' },
+    { label: 'Acción', actions: true, style: 'flex:0 0 96px' }
   ],
 
   toolbar: function (ctx) {
@@ -14440,46 +14618,47 @@ window.PANTALLAS['operador-hub'] = {
       S.statCard({ skeleton: k, label: 'Completadas hoy', valueHtml: S.h('span', { class: 'nws-delta' }, O.completadasHoy.length, S.badge({ label: O.metricas.variacionHoy, size: 'small', theme: 'positive' })), hint: '67 unidades · 0 pendientes de evidencia', theme: T,
         extra: S.h('div', { class: 'nws-spark' }, O.metricas.sparkline.map(function (v) { return '<i style="height:' + v + '%"></i>'; })) }));
 
-    var calle = S.card({
-      cls: 'nws-card--flush', style: 'flex:none', attrs: { 'nwt-theme': T },
-      header: S.h('div', { class: 'nws-card-head' },
+    /* DC-347: el segmentor flota arriba, desacoplado de la card (patrón
+       nws-tabla, el mismo de la tabla del admin); la card queda solo con la
+       lista. El chip "en vivo" de la derecha se elimina: el toolbar ya dice
+       "actualizado hace N s", era redundante. */
+    var calle = S.h('div', { class: 'nws-tabla', style: 'flex:none' },
+      S.h('div', { class: 'nws-tabla__head' },
         S.tagGroup({ id: 'seg-calle', size: 'large', theme: T, value: 'calle', items: [
           { id: 'c', label: 'En calle ahora (' + O.enCalle.length + ')', value: 'calle' },
-          { id: 'p', label: 'Próximos a salir (' + O.proximos.length + ')', value: 'prox' }] }),
-        S.h('div', { class: 'nws-grow' }),
-        S.h('span', { class: 'nws-live nwt-smalltext-font-regular', id: 'live-calle' }, S.h('span', { class: 'nws-live__dot' }), 'en vivo')),
-      /* La lista la llena pintarCalle desde mount, que en carga no corre. Tres
-         siluetas y no las 3 filas exactas de O.enCalle: cuántos hay en calle es
-         justamente lo que todavía no se sabe. */
-      content: S.h('div', { class: k ? 'nws-stack--sm' : 'nws-list', id: 'lista-calle', style: k ? 'padding:var(--naotech-sizing-16)' : undefined },
-        k ? [0, 1, 2].map(function () { return S.card({ skeleton: true, size: 'small' }); }) : '')
-    });
+          { id: 'p', label: 'Próximos a salir (' + O.proximos.length + ')', value: 'prox' }] })),
+      S.card({
+        cls: 'nws-card--flush', attrs: { 'nwt-theme': T },
+        /* La lista la llena pintarCalle desde mount, que en carga no corre. Tres
+           siluetas y no las 3 filas exactas de O.enCalle: cuántos hay en calle es
+           justamente lo que todavía no se sabe. */
+        content: S.h('div', { class: k ? 'nws-stack--sm' : 'nws-list', id: 'lista-calle', style: k ? 'padding:var(--naotech-sizing-16)' : undefined },
+          k ? [0, 1, 2].map(function () { return S.card({ skeleton: true, size: 'small' }); }) : '')
+      }));
 
-    var recibidas = S.card({
-      cls: 'nws-card--fill nws-card--flush', style: 'flex:1.45;min-width:0;min-height:0', attrs: { 'nwt-theme': T, id: 'card-recibidas' },
-      header: S.h('div', { class: 'nws-card-head' },
+    /* Tabla desacoplada (DC-357, regla general): título, contador y acción
+       flotan arriba; la card contiene solo el NwtDatatable. */
+    var recibidas = S.h('div', { class: 'nws-tabla', style: 'flex:1.45', id: 'card-recibidas' },
+      S.h('div', { class: 'nws-tabla__head' },
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Nuevas rutas recibidas'),
         S.badge({ label: O.porAsignar.length, size: 'small', theme: 'neutral', cls: 'bind-nPorAsignar' }),
         S.h('div', { class: 'nws-grow' }),
         S.iconButton({ icon: 'refresh', size: 'small', variant: 'mute', theme: 'neutral', label: 'Actualizar', attrs: { 'data-toast': 'lote' } })),
-      content: S.h('div', { id: 'tabla-recibidas', class: 'nws-grow', style: 'display:flex;flex-direction:column;min-height:0' },
-        k ? S.datatable({ skeleton: true, columns: this.columnas }) : '')
-    });
+      S.card({
+        cls: 'nws-card--fill nws-card--flush', style: 'min-width:0', attrs: { 'nwt-theme': T },
+        content: S.h('div', { id: 'tabla-recibidas', class: 'nws-grow', style: 'display:flex;flex-direction:column;min-height:0' },
+          k ? S.datatable({ skeleton: true, columns: this.columnas }) : '')
+      }));
 
     var completadas = S.card({
       cls: 'nws-card--fill nws-card--flush', style: 'flex:0 0 340px', attrs: { 'nwt-theme': T },
       header: S.h('div', { class: 'nws-card-head' },
         S.icon('positive', 'nws-soft'),
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Completadas hoy'),
-        S.badge({ label: O.completadasHoy.length, size: 'small', theme: 'neutral' })),
+        S.badge({ label: O.completadasHoy.length, size: 'small', theme: 'neutral', cls: 'bind-nCompletadas' })),
       content: k ? S.h('div', { class: 'nws-stack', style: 'padding:var(--naotech-sizing-16)' },
           [0, 1, 2].map(function () { return S.card({ skeleton: true, header: 1, size: 'small' }); }))
-        : S.h('div', { class: 'nws-list nws-list--zebra' }, O.completadasHoy.map(function (c) {
-        return S.h('div', { class: 'nws-list__row', style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-6)' },
-          S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-smalltext-font-bold nws-grow' }, S.esc(c.codigo)), S.badge({ label: D.estados.ejecutada.label, size: 'medium', theme: D.estados.ejecutada.theme })),
-          S.h('div', { class: 'nws-row nws-row--sm nwt-smalltext-font-regular nws-muted' }, S.icon('user'), S.esc(c.operario + ' · ' + c.horario)),
-          S.h('div', { class: 'nws-note nwt-smalltext-font-regular' }, S.esc(c.resumen)));
-      })),
+        : S.h('div', { class: 'nws-list nws-list--zebra', id: 'lista-completadas' }, O.completadasHoy.map(function (c) { return filaCompletada(S, D, c); })),
       footer: S.button({ label: 'Ver histórico completo', size: 'small', variant: 'quiet', theme: T, attrs: { style: 'width:100%', 'data-toast': 'historico' } })
     });
 
@@ -14519,7 +14698,6 @@ window.PANTALLAS['operador-hub'] = {
     }
 
     function pintarCalle() {
-      root.querySelector('#live-calle').classList.toggle('nws-hidden', st.vista !== 'calle');
       var html = st.vista === 'calle'
         ? st.enCalle.map(function (o) {
             var p = Math.round(o.hechas / o.total * 100);
@@ -14710,8 +14888,23 @@ window.PANTALLAS['operador-hub'] = {
 
     pintarStats(); pintarCalle(); pintarRecibidas();
     var timer = setInterval(function () {
-      st.enCalle.forEach(function (o) { if (Math.random() < 0.55) { o.hechas = Math.min(o.total, o.hechas + 1); } });
+      /* DC-348: las rutas avanzan y, al llegar al total, se quedan 3 ticks en
+         "Terminó" y bajan a "Completadas hoy" — la lista de calle se vacía sola. */
+      var terminadas = [];
+      st.enCalle.forEach(function (o) {
+        if (o.hechas < o.total) { if (Math.random() < 0.7) { o.hechas = Math.min(o.total, o.hechas + 1); } }
+        else { o.done = (o.done || 0) + 1; if (o.done >= 3) { terminadas.push(o); } }
+      });
       st.hace = (st.hace % 9) + 1;
+      if (terminadas.length) {
+        terminadas.forEach(function (o) {
+          st.enCalle.splice(st.enCalle.indexOf(o), 1);
+          O.completadasHoy.unshift({ codigo: o.ruta.split(' · ')[0], operario: o.nombre, horario: o.inicio + ' — ' + o.eta, resumen: o.total + ' unidades · ' + o.camion + ' · sin novedades' });
+        });
+        var lc = root.querySelector('#lista-completadas'); if (lc) { lc.innerHTML = O.completadasHoy.map(function (c) { return filaCompletada(S, D, c); }).join(''); }
+        var nb = root.querySelector('.bind-nCompletadas .nwt-badge__label'); if (nb) { nb.textContent = O.completadasHoy.length; }
+        if (st.vista === 'calle') { pintarCalle(); }
+      }
       pintarStats(); if (st.vista === 'calle') { actualizarProgresoCalle(); }
     }, 2200);
     return function () { clearInterval(timer); root.removeEventListener('click', onClick); root.removeEventListener('input', onInput); document.removeEventListener('keydown', onKey); };
@@ -15184,8 +15377,9 @@ window.PANTALLAS['operario-app'] = (function () {
             ? S.h('div', { class: 'nwt-stat-card nws-stat-hero', 'nwt-theme': T, style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-8)' },
                 S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-stat-card__label' }, 'Tu jornada'), S.h('div', { class: 'nws-grow' }),
                   S.h('span', { class: 'nwt-smalltext-font-regular', style: 'color:inherit;opacity:.85' }, A.jornada.desde + ' — ' + A.jornada.hasta)),
-                S.h('div', { class: 'nws-row', style: 'justify-content:space-between;align-items:center' },
-                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'max-width:14ch' }, 'unidades por recolectar'),
+                /* DC-341: divider arriba también, simétrico al de abajo. */
+                S.h('div', { class: 'nws-row', style: 'justify-content:space-between;align-items:center;padding-top:var(--naotech-sizing-6);border-top:1px solid rgba(255,255,255,.22)' },
+                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'max-width:14ch' }, 'Unidades por recolectar'),
                   S.h('span', { class: 'nwt-stat-card__value', style: 'font-size:var(--naotech-sizing-40);line-height:var(--naotech-sizing-40)' }, total)),
                 S.h('div', { class: 'nws-row nws-row--md', style: 'justify-content:space-between;padding-top:var(--naotech-sizing-6);border-top:1px solid rgba(255,255,255,.22)' },
                   S.h('span', { class: 'nwt-smalltext-font-bold', style: 'color:inherit' }, A.ruta.camion),
@@ -15345,12 +15539,17 @@ window.PANTALLAS['operario-app'] = (function () {
         if (st.v === 'hist') {
           var hoy = HIST.filter(function (r) { return r.dia === 'hoy'; }), antes = HIST.filter(function (r) { return r.dia !== 'hoy'; });
           var unidades = HIST.reduce(function (t, r) { return t + r.unidades; }, 0), novedades = HIST.reduce(function (t, r) { return t + r.novedades; }, 0);
+          /* DC-343: cada ruta del historial con la misma anatomía que las cards
+             de "Completadas hoy": card small, avatar-icon de estado, código en
+             bold y horario · unidades debajo, badge de novedades a la derecha. */
           var fila = function (r) {
-            var d = r.dia.split(' ');
-            return S.h('div', { class: 'nws-hist' },
-              S.h('div', { class: 'nws-hist__d nwt-caption-font-semibold' }, d.length > 1 ? S.h('b', null, d[1]) + e(d[0]) : S.h('b', { style: 'font-size:var(--naotech-sizing-14)' }, e(d[0]))),
-              S.h('div', { class: 'nws-grow nws-col', style: 'min-width:0' }, S.h('span', { class: 'nwt-body-font-bold nws-clip' }, e(r.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, r.horario + ' · ' + r.unidades + ' unidades')),
-              r.novedades ? S.badge({ label: r.novedades + (r.novedades === 1 ? ' novedad' : ' novedades'), size: 'small', theme: 'warning' }) : S.badge({ label: 'Sin novedades', size: 'small', theme: 'positive' }));
+            return S.card({ size: 'small', cls: 'nws-card--none', content:
+              S.h('div', { class: 'nws-row' },
+                S.h('div', { class: 'nws-mob__avatar-icon' }, S.avatarIcon({ icon: r.novedades ? 'attention' : 'positive', theme: r.novedades ? 'warning' : 'positive' })),
+                S.h('div', { class: 'nws-grow nws-col', style: 'min-width:0' },
+                  S.h('span', { class: 'nwt-body-font-bold nws-clip' }, e(r.codigo)),
+                  S.h('span', { class: 'nwt-smalltext-font-regular nws-muted nws-clip' }, e(r.dia + ' · ' + r.horario + ' · ' + r.unidades + ' unidades'))),
+                r.novedades ? S.badge({ label: r.novedades + (r.novedades === 1 ? ' novedad' : ' novedades'), size: 'small', theme: 'warning' }) : S.badge({ label: 'Sin novedades', size: 'small', theme: 'positive' })) });
           };
           body =
             S.card({ size: 'small', cls: 'nws-card--none nws-card--flush', content: S.h('div', { class: 'nws-row', style: 'gap:0' },
@@ -15358,9 +15557,9 @@ window.PANTALLAS['operario-app'] = (function () {
                 return S.h('div', { class: 'nws-col nws-grow', style: 'padding:var(--naotech-sizing-12) var(--naotech-sizing-14);' + (i < 2 ? 'border-right:1px solid var(--naotech-app-color-200)' : '') },
                   S.h('span', { class: 'nwt-stat-card__label' }, kv[0]), S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, kv[1]));
               })) }) +
-            (hoy.length ? S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold' }, 'Hoy') + S.h('div', { class: 'nws-col', style: 'gap:0' }, hoy.map(fila)) : '') +
+            (hoy.length ? S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold' }, 'Hoy') + S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-8)' }, hoy.map(fila)) : '') +
             S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold' }, 'Esta semana') +
-            S.h('div', { class: 'nws-col', style: 'gap:0' }, antes.map(fila)) +
+            S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-8)' }, antes.map(fila)) +
             S.h('div', { class: 'nws-mob__lock nwt-smalltext-font-regular' }, S.icon('history'), 'El detalle de cada ruta cerrada lo revisa el supervisor; acá queda el resumen.');
         }
         return body;
@@ -15440,6 +15639,10 @@ window.PANTALLAS['operario-app'] = (function () {
         transicionar(st.cargando ? esqueleto(S, st.v, T) : cuerpo(), trans || 'none');
         if (st.v === 'ruta' && !st.cargando) { pintarMapa(); }
         tabsActivas();
+        /* DC-342: la barra de tabs solo en las vistas de primer nivel (Hoy,
+           Mi ruta, Historial); marcar parada y ruta cerrada son internas y
+           tienen su propio "atrás" en la barra. */
+        root.querySelector('#mob-nav').classList.toggle('nws-hidden', st.v === 'marcar' || st.v === 'fin');
         ctx.posicionarIndicadores(root);
         requestAnimationFrame(function () { ctx.posicionarIndicadores(root); });
       }
@@ -15612,7 +15815,7 @@ window.PANTALLAS['supervisor-tablero'] = {
     })) : '';
 
     return stats +
-      S.h('div', { class: 'nws-row', style: 'margin-top:var(--naotech-sizing-16)' },
+      S.h('div', { class: 'nws-tabla__head', style: 'margin-top:var(--naotech-sizing-8)' },
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Todas las rutas ejecutadas'),
         S.badge({ label: '—', size: 'small', theme: 'neutral', cls: 'bind-nTotalVis' }),
         S.h('div', { class: 'nws-grow' }),
@@ -15668,7 +15871,17 @@ window.PANTALLAS['supervisor-tablero'] = {
         html = S.h('div', { class: 'nws-col', style: 'flex:1;min-width:0;gap:var(--naotech-sizing-8)' },
           S.card({ cls: 'nws-card--fill nws-card--flush', style: 'flex:1;min-width:0', attrs: { 'nwt-theme': T },
             content: S.datatable({
-              columns: [{ label: 'Ruta', cls: 'nwt-width-xs-17-5' }, { label: 'Operario', cls: 'nwt-width-xs-15' }, { label: 'Ejecutada', cls: 'nwt-width-xs-10', style: 'justify-content:center' }, { label: 'Marcadas', cls: 'nwt-width-xs-15' }, { label: 'Evidencias', cls: 'nwt-width-xs-7-5', style: 'justify-content:center' }, { label: 'Estado', cls: 'nwt-width-xs-12-5' }, { label: 'Plazo', cls: 'nwt-width-xs-10' }, { label: 'Acción', actions: true, cls: 'nwt-width-xs-12-5', style: 'justify-content:flex-end' }],
+              /* DC-357: anchos por contenido (px) para las cortas, flex para las
+                 dos de texto largo — mismo criterio que la tabla del admin. */
+              columns: [
+                { label: 'Ruta', style: 'flex:1.2 1 0;min-width:150px' },
+                { label: 'Operario', style: 'flex:1 1 0;min-width:160px' },
+                { label: 'Ejecutada', style: 'flex:0 0 88px', cls: 'nws-col-center' },
+                { label: 'Marcadas', style: 'flex:0 0 120px' },
+                { label: 'Evidencias', style: 'flex:0 0 96px', cls: 'nws-col-center' },
+                { label: 'Estado', style: 'flex:0 0 120px' },
+                { label: 'Plazo', style: 'flex:0 0 112px' },
+                { label: 'Acción', actions: true, style: 'flex:0 0 104px;justify-content:flex-end' }],
               rows: vis.map(function (c) {
                 var d = deco(c);
                 return { cls: 'nws-list__row--click', attrs: { 'data-card': c.id }, cells: [
@@ -15849,12 +16062,24 @@ window.PANTALLAS['supervisor-revision'] = {
         k ? S.timeline({ skeleton: true }) : '')
     });
 
-    return hero + S.h('div', { class: 'nws-split', style: 'min-height:80vh;max-height:80vh' }, evidencia, S.h('div', { class: 'nws-col', style: 'flex:0 0 400px;gap:var(--naotech-sizing-16);min-height:80vh;max-height:80vh' }, observacion, linea));
+    /* DC-337: debajo de evidencia + observación va la bitácora de la ruta —
+       las observaciones ya registradas, una por fila con fecha/hora, quién,
+       juicio y hallazgos. Arranca vacía y se llena al "Registrar observación"
+       (pintarObservaciones en mount). */
+    var observaciones = S.card({
+      cls: 'nws-card--none', style: 'flex:none', attrs: { 'nwt-theme': T, id: 'card-observaciones' },
+      header: S.h('div', { class: 'nws-card-head' },
+        S.h('span', { class: 'nwt-body-font-semibold' }, 'Observaciones registradas'),
+        S.h('span', { id: 'obs-n' }, S.badge({ label: 0, size: 'small', theme: 'neutral' }))),
+      content: S.h('div', { id: 'obs-lista', class: 'nws-list' })
+    });
+
+    return hero + S.h('div', { class: 'nws-split', style: 'min-height:80vh;max-height:80vh' }, evidencia, S.h('div', { class: 'nws-col', style: 'flex:0 0 400px;gap:var(--naotech-sizing-16);min-height:80vh;max-height:80vh' }, observacion, linea)) + observaciones;
   },
 
   mount: function (root, ctx) {
     var S = ctx.S, D = ctx.D, R = D.revision, T = ctx.rol.theme, e = S.esc;
-    var st = { ev: 2, juicio: null, obs: '', hall: [], registrado: false };
+    var st = { ev: 2, juicio: null, obs: '', hall: [], registrado: false, registradas: [] };
     function bind(k, v) { root.querySelectorAll('[data-bind="' + k + '"]').forEach(function (n) { n.textContent = v; }); }
 
     /* R.evidencias solo trae 7 de muestra; el resto (hasta metricas.total)
@@ -15941,6 +16166,22 @@ window.PANTALLAS['supervisor-revision'] = {
       S.repintar(root.querySelector('#tl-cuerpo'), S.timeline({ items: items }));
     }
 
+    function pintarObservaciones() {
+      root.querySelector('#obs-n').innerHTML = S.badge({ label: st.registradas.length, size: 'small', theme: 'neutral' });
+      root.querySelector('#obs-lista').innerHTML = st.registradas.length
+        ? st.registradas.map(function (o) {
+            return S.h('div', { class: 'nws-list__row', style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-6)' },
+              S.h('div', { class: 'nws-row' },
+                S.h('span', { class: 'nwt-smalltext-font-semibold nws-tnum' }, e(o.fecha)),
+                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted nws-grow' }, e(o.quien)),
+                S.badge({ label: D.estados[o.juicio].label, size: 'medium', theme: D.estados[o.juicio].theme })),
+              o.hallazgos.length ? S.h('div', { class: 'nws-row', style: 'flex-wrap:wrap' }, o.hallazgos.map(function (hz) { return S.tag({ label: hz, size: 'small' }); })) : '',
+              S.h('div', { class: 'nws-note nwt-smalltext-font-regular' }, e(o.texto)));
+          }).join('')
+        : S.h('div', { class: 'nwt-smalltext-font-regular nws-muted', style: 'padding:var(--naotech-sizing-12) var(--naotech-sizing-16)' }, 'Todavía no hay observaciones registradas para esta ruta.');
+    }
+    pintarObservaciones();
+
     function botonDe(nombre) { return root.querySelector('[data-toggle-card2="' + nombre + '"]'); }
     function expandirCard(nombre, card) {
       card.classList.remove('nws-card--collapsed');
@@ -15979,7 +16220,7 @@ window.PANTALLAS['supervisor-revision'] = {
       var a = ob.getAttribute('data-obs');
       if (a === 'ok') { st.juicio = 'ok'; st.hall = []; pintarObs(); }
       if (a === 'no') { st.juicio = 'no'; pintarObs(); }
-      if (a === 'registrar' && st.juicio && st.obs) { st.registrado = true; pintarObs(); pintarLinea(); ctx.toast({ title: 'Observación registrada', message: R.ruta.codigo + ' pasa a Observada. El cierre se hace desde el tablero.', theme: 'positive', icon: 'positive' }); }
+      if (a === 'registrar' && st.juicio && st.obs) { st.registrado = true; var ahora = new Date(); st.registradas.unshift({ fecha: D.entidad.fecha.replace('martes ', '') + ' · ' + ('0' + ahora.getHours()).slice(-2) + ':' + ('0' + ahora.getMinutes()).slice(-2), quien: ctx.rol.nombre + ' · ' + ctx.rol.rol, juicio: st.juicio === 'ok' ? 'conforme' : 'hallazgos', hallazgos: st.hall.map(function (i) { return R.hallazgos[i]; }), texto: st.obs }); pintarObservaciones(); pintarObs(); pintarLinea(); ctx.toast({ title: 'Observación registrada', message: R.ruta.codigo + ' pasa a Observada. El cierre se hace desde el tablero.', theme: 'positive', icon: 'positive' }); }
     }
     function onInput(ev) { if (ev.target.matches('[data-field="obs"]')) { st.obs = ev.target.value; var listo = !!st.juicio && st.obs.length > 0 && !st.registrado; root.querySelector('[data-obs="registrar"]').disabled = !listo; } }
     root.addEventListener('click', onClick); root.addEventListener('input', onInput);
@@ -16172,11 +16413,18 @@ window.PANTALLAS['supervisor-revision'] = {
           logoutLabel: 'Cambiar de perfil',
           logo: S.h('div', { class: 'nws-brand' },
             S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'small', variant: 'quiet', theme: 'neutral' }),
-            S.h('div', { class: 'nws-col nws-brand__text' }, S.h('span', { class: 'nwt-body-font-semibold' }, S.esc(D.entidad.sigla)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, S.esc(rol.portal)))),
+            S.h('div', { class: 'nws-col nws-brand__text' }, S.h('span', { class: 'nwt-body-font-semibold' }, S.esc(D.entidad.sigla)),
+              /* DC-349: "Portal del X" cambia por rol — badge con el color del
+                 rol en vez de texto muted, mismo tratamiento en los 4 portales. */
+              S.badge({ label: rol.portal, size: 'medium', theme: rol.theme }))),
+          /* DC-345/346: mismo avatar que el selector de rol (iniciales del ROL,
+             loud, color del rol — no las de la persona/organización, que no
+             coincidían con el nombre de al lado) y el rol como primera línea,
+             debajo quién lo ocupa y dónde. */
           footer: S.h('div', { class: 'nws-owner' },
             S.h('div', { class: 'nws-row' },
-              S.avatar({ text: rol.iniciales, size: 'tiny', variant: 'loud', theme: rol.theme }),
-              S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-smalltext-font-semibold nws-ink' }, S.esc(rol.nombre)), S.h('span', { class: 'nwt-smalltext-font-regular' }, S.esc(rol.rol + ' · ' + rol.organizacion)))))
+              S.avatar({ text: { admin: 'AD', operador: 'OD', operario: 'OP', supervisor: 'SU' }[rol.id] || rol.iniciales, size: 'small', variant: 'loud', color: rol.color }),
+              S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-smalltext-font-semibold nws-ink' }, S.esc(rol.rol)), S.h('span', { class: 'nwt-smalltext-font-regular nws-clip' }, S.esc(rol.nombre + ' · ' + rol.organizacion)))))
         }),
         S.h('div', { class: 'nwt-app__main' },
           S.toolbar({ body: tb.body, actions: tb.actions }),
