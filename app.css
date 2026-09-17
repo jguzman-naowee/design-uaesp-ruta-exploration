@@ -1,0 +1,1154 @@
+/* ===================================================================
+   UAESP · Módulo de Rutas · estilos propios (prefijo nws-)
+
+   Acá vive SOLO lo que el SDK no tiene: composición de layout, el mapa,
+   el kanban, el panel lateral, el selector de rol y el marco del
+   teléfono. Todo valor sale de un token --naotech-*. Cero hex.
+
+   Cada override a un default del SDK va marcado con "OVERRIDE" y su
+   porqué, para que se distinga de lo que es del SDK.
+   =================================================================== */
+
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: var(--naotech-sdk-font-family);
+  background: var(--naotech-app-background);
+  color: var(--naotech-app-font-color);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* El host pone la raíz: NwtApplication solo emite .nwt-app__body. */
+.nwt-app { height: 100%; }
+
+/* --- utilidades de composición --- */
+.nws-row      { display: flex; align-items: center; gap: var(--naotech-sizing-8); min-width: 0; }
+.nws-row--md  { gap: var(--naotech-sizing-16); }
+.nws-row--sm  { gap: var(--naotech-sizing-4); }
+.nws-col      { display: flex; flex-direction: column; min-width: 0; }
+.nws-grow     { flex: 1; min-width: 0; }
+.nws-stack    { display: flex; flex-direction: column; gap: var(--naotech-sizing-16); }
+.nws-stack--sm{ display: flex; flex-direction: column; gap: var(--naotech-sizing-8); }
+.nws-muted    { color: var(--naotech-app-color-600); }
+.nws-soft     { color: var(--naotech-app-color-500); }
+.nws-ink      { color: var(--naotech-app-color-900); }
+.nws-dark     { color: var(--naotech-app-color-800); }
+.nws-tnum     { font-feature-settings: 'tnum'; }
+.nws-nowrap   { white-space: nowrap; }
+.nws-right    { margin-left: auto; }
+.nws-hidden   { display: none !important; }
+.nws-clip     { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Columna de tabla centrada — header y celda leen la misma custom property,
+   así que basta con esta clase en la definición de la columna (aplica a
+   ambos, ver datatable() en sdk.js). */
+.nws-col-center { --naotech-datatable-justify-content: center; }
+/* DC-333: nwt-detail-item__label (SDK) viene a 16px semibold — acá el
+   resumen de recorrido/km/duración pide 14px, sin tocar el componente. */
+#resumen-ruta .nwt-detail-item__label { font-size: var(--naotech-smalltext-font-size); }
+/* DC-334: cualquier fila/celda que navegue (data-ir) debe verse clickeable,
+   aplica a todas las tablas — no solo a las que ya llevan la clase
+   nws-list__row--click. */
+[data-ir] { cursor: pointer; }
+
+.nwt-app__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--naotech-sizing-24);
+}
+
+/* -------------------------------------------------------------------
+   Barras de scroll: 2px en reposo, 8px al pasar el mouse por el contenedor.
+   El canal mide siempre 8px y lo que cambia es el borde transparente del
+   pulgar (background-clip): si cambiara el ancho de la barra, el contenido
+   se correría 6px cada vez que entra el mouse. Colores del SDK, los mismos
+   que usa foundations en NwtBottomSheet y NwtTextArea.
+   El `scrollbar-width` estándar va SOLO donde no existe ::-webkit-scrollbar
+   (Firefox): en Chrome, declararlo apaga los pseudo-elementos de abajo.
+   El estado "con el mouse encima" es una CLASE (nws-scroll--hover, la pone
+   app.js) y no `:hover`: Chrome no vuelve a resolver los estilos de las
+   partes de la barra cuando cambia el :hover del contenedor (medido: el
+   pulgar seguía en 2px con el mouse encima, incluso después de scrollear),
+   pero sí cuando cambia una clase.
+   ------------------------------------------------------------------- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--naotech-app-color-300); background-clip: padding-box;
+  border: 3px solid transparent; border-radius: var(--naotech-radius-pill);
+}
+.nws-scroll--hover::-webkit-scrollbar-thumb { border-width: 0; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--naotech-app-color-400); }
+::-webkit-scrollbar-corner { background: transparent; }
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: var(--naotech-app-color-300) transparent; }
+}
+
+/* -------------------------------------------------------------------
+   Navegación: contador dentro del item.
+   NwtSidebarMenu no tiene `count` (8 campos, ninguno lo es). Se compone
+   con un NwtBadge y se empuja a la derecha. Hueco del SDK → inventario.
+   ------------------------------------------------------------------- */
+.nws-nav-count { margin-left: auto; }
+.nwt-sidebar--collapsed .nws-nav-count { display: none; }
+
+/* Pie institucional del navegador lateral: requisito de identidad de la
+   entidad, no del SDK. */
+.nws-owner {
+  padding: var(--naotech-sizing-12) var(--naotech-sizing-16);
+  border-top: 1px solid var(--naotech-app-color-200);
+  color: var(--naotech-app-color-600);
+}
+.nwt-sidebar--collapsed .nws-owner { display: none; }
+
+/* Marca en la toolbar del sidebar */
+.nws-brand { display: flex; align-items: center; gap: var(--naotech-sizing-8); min-width: 0; }
+.nwt-sidebar--collapsed .nws-brand__text { display: none; }
+
+/* -------------------------------------------------------------------
+   Fila de indicadores. NwtStatCard no trae contenedor.
+   ------------------------------------------------------------------- */
+.nws-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--naotech-sizing-16);
+  flex: none;
+}
+.nws-stats--5 { grid-template-columns: 1.7fr repeat(4, 1fr); }
+.nws-stats--hero { grid-template-columns: 1.25fr 1fr 1fr 1.15fr; }
+.nws-stats > .nwt-stat-card { min-width: 0; }
+
+/* OVERRIDE, no default del SDK.
+   NwtStatCard centra vertical (align-items:center). Una tarjeta con barra
+   de avance queda 11px más alta que sus vecinas y las etiquetas dejan de
+   estar en la misma línea (medido). Se alinea la fila arriba.
+   El SDK no tiene stat card con progreso → pedido para Daniel. */
+.nws-stats > .nwt-stat-card { align-items: flex-start; }
+.nws-stat-progress { margin-top: var(--naotech-sizing-8); width: 100%; }
+/* DC-240: tweak oculto — solo aparece al pasar el mouse sobre la card. */
+.nws-stat-reset { position: absolute; top: var(--naotech-sizing-8); right: var(--naotech-sizing-8); opacity: 0; transition: opacity var(--naotech-duration-base) var(--naotech-animation-standard); }
+.nwt-stat-card:hover .nws-stat-reset, .nws-stat-reset:focus-visible { opacity: 1; }
+/* Layout único de las 3 zonas (reemplaza los anclajes --anchor-bottom /
+   --hint-bottom / --hint-bottom-all que cada pantalla traía distinto):
+   label fijo arriba, valor(+barra/sparkline) centrados en el medio, hint
+   siempre anclado abajo — sin importar cuánto contenido tenga cada card
+   ni si sus vecinas en la fila tienen más o menos. */
+.nws-stats .nwt-stat-card__content { width: 100%; height: 100%; display: flex; flex-direction: column; }
+.nws-stat-mid { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: var(--naotech-sizing-4); min-height: 0; }
+.nws-stats .nwt-stat-card__hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-top: var(--naotech-sizing-8); }
+
+/* Fila de 5 stat cards del detalle de ruta (operador): más compacta que el
+   default del SDK para no quedar más alta que el resto de las vistas. */
+.nws-stats--5 > .nwt-stat-card { --pvt-stat-card-padding: var(--naotech-sizing-12) var(--naotech-sizing-14); }
+.nws-stats--5 { gap: var(--naotech-sizing-12); }
+
+/* Variante "hero": la métrica principal en el color del rol. */
+.nws-stat-hero {
+  background: var(--naotech-theme-color-700) !important;
+  border-color: var(--naotech-theme-color-700) !important;
+  /* DC-161: el color solo se ponía en label/value/hint; el resto de spans
+     de la card (jornada, camión, zona…) usan color:inherit y, al no tener
+     ningún ancestro con el color claro puesto, heredaban el texto oscuro
+     por defecto — quedaban mezclados textos claros y oscuros en la misma
+     card. Se pone el color claro en la card entera y todo hereda de ahí. */
+  color: var(--naotech-theme-font-color);
+}
+.nws-stat-hero .nwt-stat-card__label,
+.nws-stat-hero .nwt-stat-card__value,
+.nws-stat-hero .nwt-stat-card__hint { color: inherit; }
+.nws-stat-hero .nwt-stat-card__label,
+.nws-stat-hero .nwt-stat-card__hint { opacity: .82; }
+.nws-stat-hero .nwt-progress-bar__track { background: var(--naotech-theme-color-500) !important; }
+.nws-stat-hero .nwt-progress-bar__fill  { background: var(--naotech-theme-font-color) !important; }
+
+/* Una silueta no lleva marco: el borde y la sombra de la tarjeta dibujan algo
+   que todavía no existe, y en una lista de cuatro siluetas se leen como cuatro
+   tarjetas vacías en vez de como contenido en camino. Se apagan las perillas
+   del cuerpo (las mismas que usa el variant) y quedan solo las barras.
+   NwtCard no trae esto: en el SDK el esqueleto conserva el marco. */
+.nwt-card--skeleton {
+  --pvt-body-border: none;
+  --pvt-body-shadow: none;
+  --pvt-card-border: none;
+}
+/* Y tampoco las líneas internas: el SDK separa encabezado, contenido y pie con
+   un border-top, que en una silueta dibuja la estructura de una tarjeta que
+   todavía no llegó — con cuatro seguidas parecen tarjetas vacías, no carga.
+   El selector repite los `:not(:empty)` del SDK porque cuentan para la
+   especificidad: sin eso la regla de foundations gana y la línea sigue ahí. */
+.nwt-card--skeleton .nwt-card__header:not(:empty) + .nwt-card__content:not(:empty),
+.nwt-card--skeleton .nwt-card__header:not(:empty) + .nwt-card__content:empty + .nwt-card__footer:not(:empty),
+.nwt-card--skeleton .nwt-card__content:not(:empty) + .nwt-card__footer:not(:empty) { border-top: none; }
+
+/* Misma idea en la tabla: mientras carga, las divisiones entre filas dibujan
+   una cuadrícula de registros que todavía no existen. */
+.nwt-datatable[aria-busy='true'] .nwt-datatable__record { border-bottom: none; }
+
+/* Esqueleto SOBRE UNA SUPERFICIE DE COLOR.
+   El del SDK está hecho para fondo claro: pinta con --naotech-app-color-200 y
+   late hacia el 300, dos grises fijos. Sobre la card del color del rol esas
+   barras se ven como suciedad pegada encima, no como "esto está por llegar".
+   Acá el esqueleto se hace con el color del TEXTO de la card (currentColor,
+   que en .nws-stat-hero es --naotech-theme-font-color) a baja opacidad: queda
+   una silueta del mismo material que el contenido que va a aparecer, y se
+   adapta sola a cualquier tema o rol sin repetir un solo color.
+   Pedido para foundations: que el esqueleto salga de una perilla en vez de dos
+   grises escritos a mano. */
+.nws-stat-hero .nwt-stat-card__skeleton-label,
+.nws-stat-hero .nwt-stat-card__skeleton-value {
+  animation-name: nws-skeleton-en-color;
+  background: color-mix(in srgb, currentColor 20%, transparent);
+}
+@keyframes nws-skeleton-en-color {
+  0%, 100% { background: color-mix(in srgb, currentColor 16%, transparent); }
+  50%      { background: color-mix(in srgb, currentColor 34%, transparent); }
+}
+
+/* Mini gráfica de barras dentro de una stat card. No hay chart en el SDK. */
+.nws-spark { display: flex; align-items: flex-end; gap: 3px; height: 28px; margin-top: var(--naotech-sizing-6); width: 100%; }
+.nws-spark i { flex: 1; display: block; border-radius: 2px; background: var(--naotech-app-color-300); min-height: 3px; }
+.nws-spark i:last-child { background: var(--naotech-theme-color-700); }
+
+.nws-delta {
+  display: inline-flex; align-items: baseline; gap: var(--naotech-sizing-8);
+}
+
+/* -------------------------------------------------------------------
+   Card de sección: cabecera compuesta dentro del slot header de NwtCard.
+   ------------------------------------------------------------------- */
+.nws-card-head {
+  display: flex; align-items: center; gap: var(--naotech-sizing-12); width: 100%; min-width: 0;
+}
+.nws-card--fill { display: flex; flex: 1; min-height: 0; }
+/* min-width:0 es obligatorio: el body es ítem de un flex-row y sin él su
+   ancho mínimo lo dicta el contenido (p.ej. la tira de 47 miniaturas del
+   supervisor, ~6000px) y se desborda por debajo de las cards vecinas. */
+.nws-card--fill > .nwt-card__body { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.nws-card--fill > .nwt-card__body > .nwt-card__content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.nws-card--flush > .nwt-card__body > .nwt-card__content { padding: 0 !important; }
+.nws-card--none > .nwt-card__body > .nwt-card__header:empty,
+.nws-card--none > .nwt-card__body > .nwt-card__footer:empty { display: none; }
+
+/* Tarjeta colapsable: sin equivalente en el SDK. Oculta el content/footer
+   y el card deja de forzar su min-height/flex, quedando solo el header.
+
+   `--pair` marca a las dos que se reparten una misma columna (supervisor ·
+   revisión): el reparto vive acá y NO inline, porque un inline le gana a
+   cualquier clase y el colapso tendría que pelearlo con !important.
+
+   Nota para quien venga a animar esto: el reparto NO se transiciona con
+   `flex-grow`. Se intentó y no funciona — al alternar entre los shorthands
+   `flex:1 1 0` y `flex:0 0 auto` el motor deja el grow a medio camino y las
+   dos tarjetas quedan con valores cruzados (una colapsada con grow 1, la otra
+   abierta con grow 0, medido). El camino bueno es poner la columna en grid y
+   transicionar `grid-template-rows`, como hace NwtAccordion. */
+.nws-card--pair { flex: 1 1 0; min-height: 0; }
+.nws-card--collapsed { flex: none !important; min-height: 0 !important; }
+.nws-card--collapsed > .nwt-card__body > .nwt-card__content,
+.nws-card--collapsed > .nwt-card__body > .nwt-card__footer { display: none; }
+
+.nws-split { display: flex; gap: var(--naotech-sizing-16); flex: 1; min-height: 0; }
+/* Bug real: .nwt-card__content del SDK es "flex:1" pero sin min-height:0,
+   así que con las cards en 70vh fijo (DC-173/174/175/176) el contenido no
+   se achicaba — se desbordaba fuera de la card en vez de scrollear, y
+   tapaba las cards vecinas. Se fuerza min-height:0 en toda la cadena para
+   que los overflow-y:auto internos (ev-cuerpo, obs-cuerpo, tl-cuerpo)
+   activen scroll de verdad. */
+.nws-split .nwt-card,
+.nws-split .nwt-card__body,
+.nws-split .nwt-card__content { min-height: 0; }
+
+.nws-divider-v { width: 1px; align-self: stretch; background: var(--naotech-app-color-200); margin: 0 var(--naotech-sizing-4); flex: none; }
+
+/* Indicador de dato vivo. */
+.nws-live { display: inline-flex; align-items: center; gap: var(--naotech-sizing-6); color: var(--naotech-app-color-600); white-space: nowrap; }
+/* El parpadeo corre en bucle, así que su duración sale de --naotech-duration-pulse
+   (1400ms) y no de las tres de transición: `slow` son 320ms y a esa velocidad
+   esto no late, titila. Es el mismo token con el que foundations anima todos
+   sus skeletons. */
+.nws-live__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--naotech-positive-color-600); animation: nws-blink var(--naotech-duration-pulse) var(--naotech-animation-standard) infinite; flex: none; }
+.nws-live--strong { color: var(--naotech-positive-color-700); font-weight: var(--naotech-font-weight-bold); }
+.nws-live--chip { background: var(--naotech-app-background); color: var(--naotech-positive-color-700); border-radius: var(--naotech-radius-pill); padding: var(--naotech-sizing-4) var(--naotech-sizing-10); }
+.nws-live--chip .nws-live__dot { background: var(--naotech-positive-color-600); }
+/* DC-242: 'posición actualizada' no queda fijo — solo se ve unos instantes
+   cuando el camión avanza en el mapa (ver flashPosicion en operador-ruta.js). */
+#pos-flash { opacity: 0; transition: opacity var(--naotech-duration-slow) var(--naotech-animation-standard); }
+#pos-flash.nws-live--flash { opacity: 1; }
+@keyframes nws-blink { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+
+/* Lista de filas (operarios en calle, cerradas, etc.) */
+.nws-list { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+.nws-list__row {
+  display: flex; align-items: center; gap: var(--naotech-sizing-14);
+  padding: var(--naotech-sizing-12) var(--naotech-sizing-18);
+  border-bottom: 1px solid var(--naotech-app-color-100);
+}
+.nws-list__row:last-child { border-bottom: none; }
+.nws-list__row--click { cursor: pointer; }
+.nws-list__row--click:hover { background: var(--naotech-app-color-050); }
+/* OVERRIDE: NwtBadge trae --naotech-badge-cursor: default de fábrica, así
+   que dentro de una fila o tarjeta clickable el mouse "cambia" de puntero
+   a flecha al pasar sobre el badge. Se hereda el cursor del contenedor. */
+.nws-list__row--click .nwt-badge,
+.nwt-card--clickable .nwt-badge,
+.nws-kanban .nwt-card--clickable .nwt-badge { --naotech-badge-cursor: inherit; }
+.nws-list__row--on { background: var(--naotech-theme-color-050); }
+/* DC-306: feedback de "ruta creada" — el modal se cierra y la fila nueva se
+   resalta unos segundos en la lista en vez de dejar el modal abierto. */
+.nws-list__row--nueva { animation: nws-fila-nueva 3s ease-out; }
+@keyframes nws-fila-nueva {
+  0%, 15% { background: var(--naotech-primary-color-100); }
+  100% { background: transparent; }
+}
+.nws-col-badge { flex: 0 0 118px; display: flex; justify-content: flex-start; }
+.nws-list--zebra > .nws-list__row:nth-child(even) { background: var(--naotech-app-color-050); }
+
+/* Bloque de observación / nota */
+.nws-note {
+  padding: var(--naotech-sizing-8) var(--naotech-sizing-10);
+  background: var(--naotech-app-color-050);
+  border-radius: var(--naotech-radius-lg);
+  color: var(--naotech-app-color-700);
+}
+
+/* Par clave/valor */
+.nws-kv { display: flex; gap: var(--naotech-sizing-12); align-items: baseline; }
+.nws-kv__k { flex: 0 0 132px; color: var(--naotech-app-color-600); }
+.nws-kv__v { flex: 1; min-width: 0; color: var(--naotech-app-color-900); }
+
+/* -------------------------------------------------------------------
+   nws-ticket — resumen de asignación con look de recibo. NO EXISTE EN
+   EL SDK: borde punteado + perforación simulada entre cabecera y cuerpo.
+   ------------------------------------------------------------------- */
+.nws-ticket {
+  border: 1.5px dashed var(--naotech-app-color-300); border-radius: var(--naotech-radius-xl);
+  background: var(--naotech-app-color-050); overflow: hidden;
+}
+.nws-ticket__head {
+  display: flex; align-items: center; gap: var(--naotech-sizing-8);
+  padding: var(--naotech-sizing-12) var(--naotech-sizing-16);
+  color: var(--naotech-app-color-700);
+  border-bottom: 1.5px dashed var(--naotech-app-color-300);
+}
+.nws-ticket__body { display: flex; flex-direction: column; gap: var(--naotech-sizing-10); padding: var(--naotech-sizing-16); }
+.nws-ticket__body--mono .nws-kv__v { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* DC-246/DC-248: el label 'Detalle' del textarea de observación (SDK, sin
+   clase propia) debe verse igual que el label a mano 'Qué encontraste'
+   (nwt-smalltext-font-semibold nws-dark, 8px de margen abajo). */
+#obs-cuerpo .nwt-input-box__label {
+  font-size: var(--naotech-smalltext-font-size); font-weight: var(--naotech-font-weight-semibold);
+  color: var(--naotech-app-color-800); margin-bottom: var(--naotech-sizing-8);
+}
+/* DC-266: mismo tratamiento para el label 'Observación' de la app móvil del
+   operario (ya estaba en 14px, pero regular/sin color — se empareja con el
+   estilo de labels a mano como 'Qué encontraste'). */
+#mob .nwt-input-box__label {
+  font-size: var(--naotech-smalltext-font-size); font-weight: var(--naotech-font-weight-semibold);
+  color: var(--naotech-app-color-800);
+}
+
+/* DC-247: estado inicial de 'Tu observación' — las dos opciones ocupan
+   toda la altura disponible en vez del tamaño chico que queda una vez
+   elegida una. */
+.nws-option--xl { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--naotech-sizing-6); text-align: center; }
+.nws-option--xl .nwt-icon { font-size: 28px; color: var(--naotech-theme-color-700); }
+/* DC-279/DC-280: fondito liviano fijo (no solo al elegir) para leer de un
+   vistazo qué opción es la "buena" y cuál la de alerta. */
+.nws-option--tint-positive { background-color: var(--naotech-positive-color-050); }
+.nws-option--tint-warning { background-color: var(--naotech-warning-color-050); }
+
+/* Opción grande seleccionable (modo manual/automático, conforme/hallazgos) */
+.nws-option {
+  flex: 1; min-width: 0;
+  padding: var(--naotech-sizing-14) var(--naotech-sizing-16);
+  border: 1px solid var(--naotech-app-color-200);
+  border-radius: var(--naotech-radius-xl);
+  background-color: var(--naotech-app-background);
+  /* DC-336: gradiente sutil de abajo hacia arriba, negro a transparente y
+     con poca opacidad general, para que el fondo (tint o no) se lea con
+     algo de profundidad en vez de plano. */
+  background-image: linear-gradient(to top, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0) 65%);
+  cursor: pointer; text-align: left;
+  display: flex; flex-direction: column; gap: var(--naotech-sizing-4);
+  color: inherit; font: inherit;
+}
+.nws-option:hover { border-color: var(--naotech-app-color-400); }
+.nws-option--on { border-color: var(--naotech-theme-color-700); box-shadow: inset 0 0 0 1px var(--naotech-theme-color-700); background-color: var(--naotech-theme-color-050); }
+.nws-option--off { opacity: .5; cursor: not-allowed; }
+/* DC-328: .nws-option (arriba) pone background-color:app-background y por
+   venir después en la hoja le ganaba al fondo verde/amarillo de --tint-*,
+   aunque las dos reglas tuvieran la misma especificidad. Se repite acá,
+   después de .nws-option, para que el tinte gane. */
+.nws-option.nws-option--tint-positive { background-color: var(--naotech-positive-color-050); }
+.nws-option.nws-option--tint-warning { background-color: var(--naotech-warning-color-050); }
+
+/* Miniatura "foto" del camión/equipo en el picker: reemplaza el avatar-icon
+   genérico (DC-063). Mismo degradé simulado que nws-ev__photo, sin red. */
+.nws-pick__foto {
+  position: relative;
+  flex: 0 0 auto; width: 4rem; height: 4rem; border-radius: var(--naotech-radius-lg);
+  display: flex; align-items: center; justify-content: center; color: var(--naotech-app-background);
+  background: linear-gradient(160deg, var(--naotech-app-color-400), var(--naotech-app-color-700));
+}
+.nws-pick__foto .nwt-icon { font-size: 26px; }
+/* Indicadores del stepper del asistente "Asignar ruta" al 2x (DC-124). */
+/* DC-235: mismo tamaño/apariencia para todos los steppers de asistentes
+   (antes solo as-stepper de operador-hub.js lo tenía; nr-stepper de
+   admin-hub.js se quedó en el tamaño default y chico del SDK). */
+.as-stepper, .nr-stepper { --pvt-badge-dimension: var(--naotech-sizing-48); --pvt-badge-font-size: var(--naotech-sizing-24); }
+/* DC-194: el ícono de check (paso ya hecho) trae su propio tamaño fijo
+   (--pvt-icon-dimension, 24px por defecto) en vez de heredar el tamaño del
+   badge — queda desproporcionado frente al número de los pasos sin hacer.
+   Se lo ajusta al font-size del badge, igual que el número. */
+.nwt-stepper__item__badge .nwt-icon { font-size: var(--pvt-badge-font-size); width: 1em; height: 1em; }
+.nws-pick__foto--tall { width: 72px; height: 128px; aspect-ratio: 9 / 16; border-radius: var(--naotech-radius-xl); }
+/* DC-178: la card queda muy angosta con el tag del equipo encima. */
+.nws-pick__foto--wide { width: 108px; }
+.nws-pick__foto--xwide { width: 216px; }
+
+/* Grilla de tarjetas seleccionables (operadores, operarios, equipos) */
+/* DC-304: dentro del nws-row con el buscador (ancho fijo) el segmentor podía
+   quedar apretado por el flex-shrink por defecto y las etiquetas ya no
+   entraban en su pastilla — nunca se encoge por debajo de su contenido. */
+#as-rol { flex: none; }
+.nws-pick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--naotech-sizing-12); }
+.nws-pick-grid--2 { grid-template-columns: repeat(2, 1fr); }
+.nws-pick .nwt-card__body { gap: var(--naotech-sizing-16); }
+/* DC-297: el outline se dibujaba sobre el .nwt-card (rectángulo), pero la
+   forma visible es la del .nwt-card__body redondeado (--naotech-radius-xxl)
+   adentro — sin el mismo radio, el marco de seleccionado se veía cuadrado
+   envolviendo una card redonda. */
+.nws-pick--on { outline: 2px solid var(--naotech-theme-color-700); outline-offset: -2px; border-radius: var(--naotech-radius-xxl); }
+.nws-pick--off { opacity: .55; }
+.nws-pick__stats { display: flex; justify-content: space-between; gap: var(--naotech-sizing-8); }
+/* DC-152: junto a una foto alta (--tall) la columna de texto queda más baja
+   que la foto y las stats quedan pegadas al nombre en vez del fondo. */
+.nws-pick__foto--tall ~ .nws-grow.nws-col { align-self: stretch; display: flex; flex-direction: column; }
+.nws-pick__foto--tall ~ .nws-grow.nws-col .nws-pick__stats { margin-top: auto; }
+/* DC-233: mismo anclaje al fondo para las cards del picker que NO tienen
+   foto (operarios) — nws-pick__stats es hermano directo del nws-row, no
+   hijo del nws-grow.nws-col, así que necesita su propia regla. */
+.nws-pick .nwt-card__content > .nws-pick__stats { margin-top: auto; }
+.nws-pick__stat { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+/* DC-098: si el badge (p.ej. "En mantenimiento") no entra en una sola línea
+   junto al nombre, que se pase a la línea de abajo en vez de desbordar la
+   tarjeta — nunca agrandar el badge a costa de recortar el contenido. */
+.nws-pick .nws-row { flex-wrap: wrap; row-gap: var(--naotech-sizing-6); }
+
+/* DC-204: los chips de hallazgos (supervisor) reusan .nws-opt__c/.nws-opt__b,
+   los mismos chips de causal de la app del operario — ver operario-app.js. */
+
+/* Caja punteada (evidencia / placeholder de foto) */
+.nws-box {
+  /* referencia del rótulo absoluto (.nws-ev__tag) cuando la caja ya tiene foto */
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--naotech-sizing-8);
+  border: 1.5px dashed var(--naotech-app-color-300); border-radius: var(--naotech-radius-xl);
+  background: var(--naotech-app-color-050); color: var(--naotech-app-color-600); text-align: center;
+  padding: var(--naotech-sizing-16);
+}
+.nws-box .nwt-icon { font-size: 26px; color: var(--naotech-app-color-400); }
+.nws-box--on { border-style: solid; border-color: var(--naotech-positive-color-600); background: var(--naotech-positive-color-050); color: var(--naotech-positive-color-800); }
+.nws-box--on .nwt-icon { color: var(--naotech-positive-color-700); }
+
+/* -------------------------------------------------------------------
+   nws-map — NO EXISTE EN EL SDK (ni componente ni glifo de mapa).
+   ------------------------------------------------------------------- */
+.nws-map {
+  position: relative; flex: 1; min-height: 240px;
+  border-radius: var(--naotech-input-box-radius, var(--naotech-radius-xl));
+  overflow: hidden; border: 1px solid var(--naotech-app-color-200);
+  background: var(--naotech-app-color-050);
+}
+/* El <svg> lo crea MAPA.crear (mapa.js); acá solo se le da el marco. El
+   viewBox lo calcula el controlador midiendo el contenedor, por eso el
+   svg ocupa el 100% en ambos ejes y `meet` no deja bandas: el viewBox ya
+   tiene la proporción exacta de la caja. */
+.nws-map > svg, .nws-mmap > svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+/* El svg va ABSOLUTO, no en el flujo: un <svg> con viewBox tiene alto
+   intrínseco (ancho × proporción del viewBox), y el viewBox se calcula
+   midiendo el contenedor. En una caja cuyo alto depende del contenido (el
+   cuerpo de un modal) eso es un bucle: el svg agranda la caja, la caja
+   agranda el viewBox, y el mapa crecía solo un pixel por vuelta. Fuera del
+   flujo, el alto lo pone siempre el contenedor. */
+/* Mapa dentro de un modal de tamaño fijo (asistente de nueva ruta, y
+   cualquier otro que venga): llena lo que queda del paso. Como el modal no
+   cambia de tamaño, el mapa tampoco: sale igual en todos los pasos y en todos
+   los modales. El piso evita que un paso con mucho contenido lo aplaste. */
+.nws-map--modal { flex: 1; min-height: var(--nws-map-alto-min, 260px); }
+/* Capa HTML sobre el mapa (escala, leyenda, título, velo). No captura el
+   mouse salvo lo que sea interactivo, para que el mapa siga siendo mapa. */
+.nws-map__overlay { position: absolute; inset: 0; pointer-events: none; }
+.nws-map__overlay > * { pointer-events: auto; }
+.nws-map__scale, .nws-map__legend, .nws-map__title {
+  position: absolute;
+  background: var(--naotech-app-background);
+  border: 1px solid var(--naotech-app-color-200);
+  border-radius: var(--naotech-button-radius, var(--naotech-radius-xl));
+  padding: var(--naotech-sizing-6) var(--naotech-sizing-10);
+  color: var(--naotech-app-color-700);
+}
+.nws-map__scale  { left: var(--naotech-sizing-14); bottom: var(--naotech-sizing-14); display: flex; align-items: center; gap: var(--naotech-sizing-8); }
+/* La barra mide lo que miden 100 m (una manzana) a ese zoom: la calcula el
+   controlador, no es un texto fijo. */
+.nws-map__scale i { display: block; height: 3px; border-radius: 2px; background: var(--naotech-app-color-700); }
+.nws-map__scale--arriba { top: var(--naotech-sizing-14); bottom: auto; }
+.nws-map--angosto .nws-map__legend { max-width: calc(100% - 28px); }
+.nws-map__title  { left: var(--naotech-sizing-14); top: var(--naotech-sizing-14); }
+/* La leyenda va en una sola fila al pie, a la derecha de la escala: el
+   controlador reserva ese alto al encuadrar, así nunca tapa el recorrido. */
+.nws-map__legend { right: var(--naotech-sizing-14); bottom: var(--naotech-sizing-14); display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--naotech-sizing-4) var(--naotech-sizing-12); max-width: calc(100% - 220px); }
+.nws-map__key  { display: flex; align-items: center; gap: var(--naotech-sizing-6); white-space: nowrap; }
+.nws-map__line { width: 16px; height: 3px; border-radius: 2px; display: block; flex: none; }
+.nws-map__line--dash { background: repeating-linear-gradient(90deg, var(--naotech-app-color-300) 0 6px, transparent 6px 10px); }
+.nws-map__line--dot  { background: repeating-linear-gradient(90deg, var(--naotech-app-color-500) 0 3px, transparent 3px 6px); }
+.nws-map__dot  { width: 9px; height: 9px; border-radius: 50%; display: block; flex: none; }
+.nws-map__dot--ring { background: var(--naotech-app-background); box-shadow: inset 0 0 0 2px var(--naotech-theme-color-700); }
+.nws-map__sq   { width: 10px; height: 10px; border-radius: 3px; display: block; flex: none; background: var(--naotech-app-color-900); }
+.nws-map__veil { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--naotech-app-background) 70%, transparent); color: var(--naotech-app-color-600); }
+/* Marcadores del mapa: cada uno es un <g> trasladado a su punto, así que el
+   origen de cualquier transform es su propio centro (fill-box), no el del
+   viewBox — sin esto un scale() lo haría volar por el mapa. */
+.nws-map__parada, .nws-map__hito, .nws-map__base, .nws-map__halo { transform-box: fill-box; transform-origin: center; }
+/* El camión se mueve con la Web Animations API (mapa.js → animarA): los
+   keyframes van vértice por vértice para que dobla en las esquinas. */
+.nws-map__camion { will-change: transform; }
+/* Un solo latido al llegar a una parada: es el gesto de "marcada". Sale del
+   token de pulso, el mismo con el que foundations anima sus skeletons. */
+.nws-map__halo--marcando { animation: nws-pulse var(--naotech-duration-pulse) var(--naotech-animation-deceleration) 1; }
+@keyframes nws-pulse { 0% { opacity: .32; transform: scale(.6); } 100% { opacity: 0; transform: scale(1.6); } }
+/* La entrada de un punto en el mapa es una entrada del sistema, no una
+   animación propia: se usa el keyframe de foundations (naotech-motion-scale-enter,
+   el mismo de nwt-motion="scale") y se entra frenando —deceleration—, como
+   manda utilities/motion.scss. */
+.nws-map__pt { animation: naotech-motion-scale-enter var(--naotech-duration-slow) var(--naotech-animation-deceleration) both; }
+@media (prefers-reduced-motion: reduce) {
+  .nws-map__halo--marcando, .nws-map__pt, .nws-live__dot { animation: none; }
+}
+
+/* -------------------------------------------------------------------
+   nws-stops — lista de paradas. NwtDatatable no sirve (flex disfrazado
+   de tabla); NwtTimeline no acepta contador ni estado por fila.
+   ------------------------------------------------------------------- */
+.nws-stops { flex: 1; min-height: 0; overflow-y: auto; }
+.nws-stop {
+  display: flex; align-items: center; gap: var(--naotech-sizing-10);
+  padding: var(--naotech-sizing-10) var(--naotech-sizing-18);
+  border-bottom: 1px solid var(--naotech-app-color-100);
+}
+.nws-stop:last-child { border-bottom: none; }
+.nws-stop--click { cursor: pointer; }
+.nws-stop--click:hover { background: var(--naotech-app-color-050); }
+.nws-stop--pendiente { opacity: .58; }
+.nws-stop--actual { background: var(--naotech-theme-color-050); border-radius: var(--naotech-radius-lg); }
+.nws-stop__n {
+  flex: none; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: var(--naotech-app-color-100); color: var(--naotech-app-color-700);
+}
+.nws-stop__n .nwt-icon { font-size: 12px; }
+.nws-stop--hecha .nws-stop__n { background: var(--naotech-theme-color-700); color: var(--naotech-theme-font-color); }
+.nws-stop--actual .nws-stop__n { background: var(--naotech-theme-color-100); color: var(--naotech-theme-color-800); box-shadow: 0 0 0 2px var(--naotech-theme-color-300); }
+.nws-stop__dir  { color: var(--naotech-app-color-900); }
+.nws-stop__meta { color: var(--naotech-app-color-600); }
+.nws-stop__cam  { flex: none; width: 40px; display: flex; align-items: center; gap: var(--naotech-sizing-4); color: var(--naotech-app-color-600); }
+.nws-stop__cam .nwt-icon { font-size: 13px; }
+.nws-stop--lk { opacity: .46; }
+.nws-stop--lk .nws-stop__n { border: 1.5px dashed var(--naotech-app-color-400); background: transparent; }
+.nws-stop__et { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex: none; text-align: right; }
+.nws-stop__et .nwt-caption-font-bold { font-feature-settings: 'tnum'; }
+
+/* -------------------------------------------------------------------
+   nws-mmap — mapa cuadrado de "mi ruta" en la app del operario. Recorte
+   cuadrado del mismo #basemap, con overlay de progreso, ETA e indicación
+   de giro. NO EXISTE EN EL SDK.
+   ------------------------------------------------------------------- */
+/* DC-160: integrado al fondo, sin borde ni sombra (antes se veía como una
+   card flotando sobre la página); un gradiente al pie funde el mapa con la
+   lista de direcciones que sigue debajo, sin necesitar un corte duro. */
+/* DC-262: se pidió lo contrario de DC-160/DC-223 — el mapa vuelve a ser un
+   cuadrado limpio, sin degradado ni sombra, como un elemento más de la
+   página (antes se fundía con el fondo en los 4 bordes). */
+.nws-mmap { position: relative; width: 100%; aspect-ratio: 1 / 1; flex: none; border-radius: var(--naotech-radius-xl); overflow: hidden; background: var(--naotech-app-color-050); }
+/* En el teléfono la escala va sin marco, integrada al mapa. */
+.nws-mmap .nws-map__scale { border: none; background: transparent; padding: 0; left: var(--naotech-sizing-10); bottom: var(--naotech-sizing-10); color: var(--naotech-app-color-600); }
+.nws-mmap__hd { position: absolute; left: var(--naotech-sizing-10); right: var(--naotech-sizing-10); top: var(--naotech-sizing-10); display: flex; gap: var(--naotech-sizing-8); align-items: flex-start; }
+/* DC-130: en la vista "mi ruta" del operario, la cabecera de progreso/ETA
+   sale del overlay del mapa (dejaba de verse el mapa detrás) y pasa a un
+   bloque normal arriba, fuera del recorte cuadrado. */
+.nws-mmap__hd--inline { position: static; margin-bottom: var(--naotech-sizing-8); }
+.nws-mmap__pg { flex: 1; min-width: 0; background: color-mix(in srgb, var(--naotech-app-background) 95%, transparent); border: 1px solid var(--naotech-app-color-200); border-radius: var(--naotech-radius-lg); padding: var(--naotech-sizing-8) var(--naotech-sizing-10); display: flex; flex-direction: column; gap: var(--naotech-sizing-6); }
+.nws-mmap__eta { flex: none; background: var(--naotech-app-color-900); color: var(--naotech-app-background); border-radius: var(--naotech-radius-lg); padding: var(--naotech-sizing-8) var(--naotech-sizing-10); text-align: right; }
+.nws-mmap__sc { position: absolute; left: var(--naotech-sizing-10); bottom: var(--naotech-sizing-10); display: flex; align-items: center; gap: var(--naotech-sizing-6); color: var(--naotech-app-color-600); }
+
+.nws-turn { display: flex; align-items: center; gap: var(--naotech-sizing-10); background: var(--naotech-app-color-900); color: var(--naotech-app-background); border-radius: var(--naotech-radius-xl); padding: var(--naotech-sizing-10) var(--naotech-sizing-12); box-shadow: var(--naotech-shadow-large); }
+/* DC-129: flota pegado abajo, sobre el tabbar, mientras se scrollea toda
+   la vista — no queda encerrado dentro del mapa. */
+.nws-turn--sticky { position: sticky; bottom: var(--naotech-sizing-10); z-index: 2; margin-top: var(--naotech-sizing-8); }
+/* DC-131: la lista de paradas deja de scrollear aparte — toda la vista
+   (mapa + giro + lista) scrollea junta desde nws-mob__body. */
+/* DC-228: el degradado del mapa ya funde su propio borde inferior, así que
+   el gap uniforme de nws-mob__body se sumaba a eso y dejaba un salto de
+   blanco grande antes de la lista. Se monta la lista un poco encima del
+   degradado (margin-top negativo) para que el mapa "pase por detrás". */
+/* DC-262 quitó el degradado del mapa (ver nws-mmap), así que ya no hace
+   falta el margin-top negativo de DC-228. nws-mob__body ya pone 20px de
+   gap entre hijos; se suma 4px más acá para llegar a los 24px pedidos
+   entre el mapa y la lista. */
+.nws-stops--flow { flex: none; min-height: 0; overflow: visible; margin-top: var(--naotech-sizing-4); }
+.nws-turn__a { width: 38px; height: 38px; border-radius: var(--naotech-radius-lg); background: rgba(255,255,255,.14); flex: none; display: flex; align-items: center; justify-content: center; }
+.nws-turn__t { color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nws-turn__m { opacity: .68; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* DC-226: lista flotante de próximas indicaciones — colapsada por defecto
+   (compactable), se abre con el botón de la derecha. */
+.nws-turn__more {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + var(--naotech-sizing-8));
+  background: var(--naotech-app-color-900); color: var(--naotech-app-background);
+  border-radius: var(--naotech-radius-xl); box-shadow: var(--naotech-shadow-large);
+  padding: 0 var(--naotech-sizing-12); display: flex; flex-direction: column; gap: var(--naotech-sizing-8);
+  max-height: 0; overflow: hidden; opacity: 0; pointer-events: none;
+  transition: max-height var(--naotech-duration-base) var(--naotech-animation-standard), opacity var(--naotech-duration-base) var(--naotech-animation-standard), padding var(--naotech-duration-base) var(--naotech-animation-standard);
+}
+.nws-turn__more--open { max-height: 260px; opacity: 1; padding: var(--naotech-sizing-12); pointer-events: auto; overflow-y: auto; }
+
+.nws-nxt { display: flex; align-items: center; gap: var(--naotech-sizing-10); padding: var(--naotech-sizing-8) var(--naotech-sizing-10); border-radius: var(--naotech-radius-lg); background: var(--naotech-theme-color-050); }
+.nws-nxt__i { width: 26px; height: 26px; border-radius: var(--naotech-radius-lg); background: var(--naotech-theme-color-700); color: var(--naotech-theme-font-color); flex: none; display: flex; align-items: center; justify-content: center; }
+.nws-nxt__l { color: var(--naotech-theme-color-700); }
+.nws-mob__lock { display: flex; align-items: center; gap: var(--naotech-sizing-8); color: var(--naotech-app-color-600); background: var(--naotech-app-color-100); border-radius: var(--naotech-radius-lg); padding: var(--naotech-sizing-8) var(--naotech-sizing-10); }
+
+/* acordeón de causales al recolectar */
+.nws-opt { border: 1px solid var(--naotech-app-color-200); border-radius: var(--naotech-radius-xl); background: var(--naotech-app-background); overflow: hidden; flex: none; }
+.nws-opt__h { display: flex; align-items: center; gap: var(--naotech-sizing-8); padding: var(--naotech-sizing-10) var(--naotech-sizing-12); cursor: pointer; user-select: none; color: var(--naotech-app-color-800); }
+/* Colapso del acordeón con la técnica de NwtAccordion (components.css):
+   el panel es un grid de una fila que va de 0fr a 1fr y el hijo recorta.
+   Es la única forma de transicionar "hasta el alto que mida el contenido"
+   sin fijar un max-height inventado que recorte cuando haya más causales. */
+.nws-opt__p {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows var(--naotech-duration-slow) var(--naotech-animation-standard);
+}
+.nws-opt__p--open { grid-template-rows: 1fr; }
+/* Cerrado, el panel mide 0 de contenido pero el padding inferior del cuerpo
+   seguía ahí y por esa franja se asomaban las cabezas de los chips (overflow
+   recorta en el borde del padding, no del contenido). El padding aparece con
+   el panel abierto y se anima con él. */
+.nws-opt__p > .nws-opt__b { overflow: hidden; min-height: 0; padding-bottom: 0; transition: padding-bottom var(--naotech-duration-slow) var(--naotech-animation-standard); }
+.nws-opt__p--open > .nws-opt__b { padding-bottom: var(--naotech-sizing-10); }
+.nws-opt__b { padding: 0 var(--naotech-sizing-12) var(--naotech-sizing-10); display: flex; flex-wrap: wrap; gap: var(--naotech-sizing-6); }
+.nws-opt__c { height: 30px; padding: 0 var(--naotech-sizing-10); border-radius: var(--naotech-radius-lg); border: 1px solid var(--naotech-app-color-200); background: var(--naotech-app-background); color: var(--naotech-app-color-700); display: inline-flex; align-items: center; gap: var(--naotech-sizing-6); cursor: pointer; user-select: none; }
+.nws-opt__c:hover { border-color: var(--naotech-theme-color-700); }
+/* Al elegir un chip aparece su "×" y eso lo ENSANCHA de golpe, recorriendo
+   toda la fila y haciendo saltar de línea a los que siguen. La × se emite
+   siempre y lo que se anima es su ancho, así el movimiento es del chip que
+   tocaste y no de sus seis vecinos.
+   (El peso no interviene: el chip ya viene en semibold elegido o no.) */
+.nws-opt__c { transition: background-color var(--naotech-duration-fast) var(--naotech-animation-standard), border-color var(--naotech-duration-fast) var(--naotech-animation-standard), color var(--naotech-duration-fast) var(--naotech-animation-standard); }
+.nws-opt__c__x {
+  display: inline-block; overflow: hidden;
+  max-width: 0; opacity: 0;
+  /* el margen negativo se come el `gap` del chip mientras la × está escondida:
+     si no, queda un hueco de 6px reservado para algo que no se ve */
+  margin-inline-start: calc(-1 * var(--naotech-sizing-6));
+  transition: max-width var(--naotech-duration-fast) var(--naotech-animation-standard),
+              margin-inline-start var(--naotech-duration-fast) var(--naotech-animation-standard),
+              opacity var(--naotech-duration-fast) var(--naotech-animation-standard);
+}
+.nws-opt__c--on .nws-opt__c__x { max-width: 1.2em; opacity: 1; margin-inline-start: 0; }
+.nws-opt__c--on { background: var(--naotech-theme-color-050); border-color: var(--naotech-theme-color-700); color: var(--naotech-theme-color-800); font-weight: var(--naotech-font-weight-semibold); }
+
+/* -------------------------------------------------------------------
+   nws-kanban — NO EXISTE EN EL SDK. Columnas compuestas; cada tarjeta
+   es un NwtCard real (small, clickable).
+   ------------------------------------------------------------------- */
+.nws-kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--naotech-sizing-16); flex: 1; min-height: 0; }
+.nws-kanban__col {
+  display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  background: var(--naotech-app-color-050); border: 1px solid var(--naotech-app-color-200);
+  border-radius: var(--naotech-radius-xl);
+}
+.nws-kanban__head { display: flex; align-items: center; gap: var(--naotech-sizing-8); padding: var(--naotech-sizing-12) var(--naotech-sizing-14); border-bottom: 1px solid var(--naotech-app-color-200); }
+.nws-kanban__dot  { width: 8px; height: 8px; border-radius: 50%; background: var(--naotech-theme-color-700); flex: none; }
+.nws-kanban__body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--naotech-sizing-10); display: flex; flex-direction: column; gap: var(--naotech-sizing-10); }
+.nws-kanban .nwt-card__body { gap: var(--naotech-sizing-8); }
+.nws-kanban__foot { display: flex; align-items: center; gap: var(--naotech-sizing-8); padding-top: var(--naotech-sizing-8); border-top: 1px solid var(--naotech-app-color-100); }
+.nws-kanban__empty { padding: var(--naotech-sizing-24); text-align: center; color: var(--naotech-app-color-500); display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-6); }
+.nws-kanban__empty .nwt-icon { font-size: 22px; color: var(--naotech-app-color-400); }
+
+
+/* Modal ancho para los asistentes (nueva ruta, asignar) */
+/* Perilla PÚBLICA del SDK: components.css la consume con fallback 30rem. */
+/* TAMAÑO FIJO durante todo el flujo. El modal no crece ni se achica entre
+   pasos: es el contenido el que llena el espacio (el mapa, la grilla de
+   operadores) o scrollea adentro de su cuerpo (.nws-modal__cuerpo) cuando no
+   cabe. Así el marco queda quieto y el ojo sigue al contenido, no al borde.
+   Perillas: --nws-modal-ancho / --nws-modal-alto; en ventanas chicas manda
+   el viewport menos 48px. El height del SDK (--pvt-component-height) se pisa a
+   propósito: el estado oculto ya se resuelve con visibility/opacity. */
+.nws-modal-wide { --naotech-modal-max-width: none; }
+.nws-modal-wide .nwt-modal__content {
+  width: min(var(--nws-modal-ancho, 980px), calc(100vw - var(--naotech-sizing-48)));
+  height: min(var(--nws-modal-alto, 780px), calc(100vh - var(--naotech-sizing-48)));
+  max-width: none;
+}
+.nws-modal-wide .nwt-modal__component { display: flex; flex-direction: column; gap: var(--naotech-sizing-16); flex: 1; min-height: 0; overflow: hidden; }
+/* El paso actual: ocupa lo que queda entre el stepper y el pie; si su
+   contenido mide más, scrollea acá y no en el modal entero. */
+.nws-modal__cuerpo { flex: 1; min-height: 0; overflow-y: auto; }
+.nws-modal__foot { display: flex; align-items: center; gap: var(--naotech-sizing-12); padding-top: var(--naotech-sizing-12); border-top: 1px solid var(--naotech-app-color-200); margin-top: auto; flex: none; }
+/* Mapa a pantalla completa (operador · detalle de ruta): el modal ocupa casi
+   toda la ventana y el mapa llena el cuerpo, que se encuadra solo al abrir. */
+/* DC-309: el modal usa --naotech-z-dialog (240), pero el snackbar del SDK
+   pesa más (320) y podía taparlo. El mapa a pantalla completa es la vista
+   más "de foco" que hay — le gana a cualquier otra capa, toast incluido. */
+.nws-modal-mapa { --naotech-modal-max-width: none; z-index: 9000; }
+.nws-modal-mapa .nwt-modal__content { width: min(92vw, 1480px); height: min(90vh, 1000px); max-width: none; }
+.nws-modal-mapa .nwt-modal__component { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: var(--naotech-sizing-16); overflow: hidden; }
+.nws-modal-mapa .nws-map { flex: 1; min-height: 0; }
+.nws-modal__body { display: flex; flex-direction: column; gap: var(--naotech-sizing-14); flex: 1; min-height: 0; }
+
+/* OVERRIDE: un badge que parte en dos líneas nunca es intencional; el SDK
+   no lo impide y en una celda angosta "En ejecución" se partía. */
+.nwt-badge__label { white-space: nowrap; }
+
+/* Evidencia: 3 cámaras */
+.nws-ev { display: grid; grid-template-columns: 1.6fr 1fr; grid-auto-rows: 1fr; gap: var(--naotech-sizing-10); min-height: 220px; flex: 1; }
+.nws-ev__main, .nws-ev__side { position: relative; border-radius: var(--naotech-radius-xl); background: var(--naotech-app-color-100); display: flex; align-items: center; justify-content: center; color: var(--naotech-app-color-400); overflow: hidden; }
+.nws-ev__side { display: grid; grid-template-rows: 1fr 1fr; gap: var(--naotech-sizing-10); background: none; align-items: stretch; justify-content: stretch; justify-items: stretch; min-height: 0; }
+.nws-ev__cam { position: relative; border-radius: var(--naotech-radius-xl); background: var(--naotech-app-color-100); display: flex; align-items: center; justify-content: center; color: var(--naotech-app-color-400); min-height: 0; }
+.nws-ev__main .nwt-icon, .nws-ev__cam .nwt-icon { font-size: 30px; }
+.nws-ev__tag { position: absolute; left: var(--naotech-sizing-10); top: var(--naotech-sizing-10); }
+.nws-ev__na { grid-row: 1 / span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--naotech-sizing-8); padding: var(--naotech-sizing-16); text-align: center; color: var(--naotech-app-color-600); border: 1.5px dashed var(--naotech-app-color-300); border-radius: var(--naotech-radius-xl); }
+/* Fotos "reales" simuladas: sin red, solo degradés propios por cámara —
+   ver nota de DC-054 en design-comments-done.md sobre por qué no se
+   hotlinkean imágenes de internet acá. */
+.nws-ev__main.nws-ev__photo { background: linear-gradient(160deg, var(--naotech-app-color-300), var(--naotech-app-color-600)); color: var(--naotech-app-background); }
+.nws-ev__cam.nws-ev__photo { background: linear-gradient(160deg, var(--naotech-app-color-400), var(--naotech-app-color-700)); color: var(--naotech-app-background); }
+.nws-ev__meta { display: flex; justify-content: space-between; gap: var(--naotech-sizing-16); padding: var(--naotech-sizing-12) var(--naotech-sizing-14); background: var(--naotech-app-color-900); border-radius: var(--naotech-radius-xl); margin-top: var(--naotech-sizing-12); }
+.nws-ev__meta .nwt-stat-card__label { color: var(--naotech-app-color-400); }
+.nws-ev__meta .nwt-caption-font-semibold { color: var(--naotech-app-background); }
+/* DC-172: slider horizontal de una sola fila con scroll, no grilla que
+   envuelve — con flechas a los lados (nws-thumbs-slider). */
+.nws-thumbs-slider { display: flex; align-items: center; gap: var(--naotech-sizing-8); padding-top: var(--naotech-sizing-12); flex: 0 0 auto; min-width: 0; }
+.nws-thumbs { display: flex; flex-wrap: nowrap; gap: var(--naotech-sizing-8); align-items: flex-start; flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; }
+.nws-thumb {
+  position: relative; width: 80px; height: 80px; border-radius: var(--naotech-radius-lg);
+  background: var(--naotech-app-color-100); border: 2px solid transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; color: var(--naotech-app-color-400); flex: none; padding: 0; font: inherit;
+}
+.nws-thumb--on { border-color: var(--naotech-theme-color-700); }
+.nws-thumb__n { position: absolute; left: 6px; top: 5px; background: var(--naotech-app-background); border-radius: var(--naotech-radius-sm); padding: 0 4px; color: var(--naotech-app-color-700); }
+.nws-thumb__b { position: absolute; right: 6px; bottom: 5px; }
+
+/* -------------------------------------------------------------------
+   nws-login — selector de rol, tipo Netflix. NO EXISTE EN EL SDK.
+   Cada perfil es un NwtCard clickable con un NwtAvatar.
+   ------------------------------------------------------------------- */
+.nws-login {
+  min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--naotech-sizing-16); padding: var(--naotech-sizing-16);
+  background: var(--naotech-app-color-050);
+  box-sizing: border-box;
+  position: relative; overflow: hidden;
+}
+/* DC-221: fondo muy difuminado (foto real de recolección, pre-blureada a
+   baja resolución con ffmpeg antes de embeber, no CSS blur en vivo) +
+   patrón de puntos encima, todo detrás del contenido (z-index). */
+.nws-login::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, var(--naotech-app-color-100), var(--naotech-app-background));
+}
+.nws-login::after {
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(var(--naotech-app-color-300) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: .28;
+}
+.nws-login > * { position: relative; z-index: 1; }
+
+/* Sticker-tag: pastilla rotada tipo "branding / website / illustration",
+   pedida para el acceso al /showroom desde el selector de rol. Genérica
+   (nws-sticker) por si sale otro color; el salmón es el único que se usa
+   hoy. NO EXISTE EN EL SDK. */
+.nws-sticker {
+  position: absolute; top: var(--naotech-sizing-20); right: var(--naotech-sizing-24); z-index: 2;
+  display: inline-flex; align-items: center; gap: var(--naotech-sizing-8);
+  padding: var(--naotech-sizing-10) var(--naotech-sizing-18);
+  border-radius: var(--naotech-radius-pill);
+  font-family: var(--naotech-sdk-font-family); font-weight: var(--naotech-font-weight-bold);
+  font-size: var(--naotech-sizing-16); text-decoration: none; white-space: nowrap;
+  box-shadow: var(--naotech-shadow-medium);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.nws-sticker:hover, .nws-sticker:focus-visible { transform: translateY(-2px); box-shadow: var(--naotech-shadow-large); }
+.nws-sticker .nwt-icon { font-size: var(--naotech-sizing-20); }
+.nws-sticker--salmon {
+  background: var(--naotech-caution-color-100); color: var(--naotech-caution-color-800);
+  border: 1px solid var(--naotech-caution-color-300);
+}
+@media (max-width: 520px) { .nws-sticker { top: var(--naotech-sizing-12); right: var(--naotech-sizing-12); padding: var(--naotech-sizing-8) var(--naotech-sizing-14); font-size: var(--naotech-sizing-14); } }
+.nws-login__head { display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-8); text-align: center; }
+.nws-login__grid { display: grid; grid-template-columns: repeat(4, 220px); gap: var(--naotech-sizing-20); margin: var(--naotech-sizing-24) 0; }
+@media (max-width: 1040px) { .nws-login__grid { grid-template-columns: repeat(2, 220px); } }
+@media (max-width: 520px)  { .nws-login__grid { grid-template-columns: 1fr; } }
+.nws-login .nwt-card {
+  cursor: pointer; border-radius: var(--naotech-radius-xxl);
+  transition: transform var(--naotech-duration-fast) var(--naotech-animation-standard), box-shadow var(--naotech-duration-fast) var(--naotech-animation-standard);
+  /* DC-260: variant quiet del SDK deja el fondo transparente (se ve el
+     degradé/puntos del login a través); acá siempre debe ser blanco, no
+     solo al hacer hover. */
+  --pvt-body-background-color: var(--naotech-app-background);
+}
+.nws-login .nwt-card:hover, .nws-login .nwt-card:focus-visible { transform: translateY(-4px); box-shadow: var(--naotech-shadow-large); }
+.nws-login .nwt-card__content { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--naotech-sizing-10); padding-top: var(--naotech-sizing-8); }
+.nws-login__foot { display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-4); text-align: center; color: var(--naotech-app-color-600); }
+.nws-login__last { position: absolute; top: var(--naotech-sizing-12); right: var(--naotech-sizing-12); }
+
+/* Título del login: sin equivalente en el SDK, brillo propio con el color
+   del tema neutral (no hay rol elegido todavía en esta pantalla). */
+.nws-login__title {
+  background: linear-gradient(90deg, var(--naotech-app-color-900), var(--naotech-primary-color-700));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 32px var(--naotech-primary-color-200);
+  letter-spacing: -0.01em;
+}
+
+/* -------------------------------------------------------------------
+   nws-phone — marco de teléfono para la app del operario (390×800).
+   ------------------------------------------------------------------- */
+.nws-phone-stage { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; padding: var(--naotech-sizing-24); min-height: 0; overflow: hidden; }
+.nws-phone {
+  width: 390px; height: 824px;
+  border-radius: 40px; background: var(--naotech-app-color-900); padding: 12px;
+  box-shadow: var(--naotech-shadow-large); flex: none;
+  transform-origin: center; transition: transform var(--naotech-duration-fast) var(--naotech-animation-standard);
+  /* DC-275: solo .nws-phone__screen (el contenido) recortaba overflow; el
+     marco del teléfono mismo no, así que cualquier cosa que se dibujara
+     justo en el borde (sombras, animaciones) podía asomar por fuera del
+     dispositivo. */
+  overflow: hidden;
+}
+.nws-phone-zoom {
+  position: absolute; top: var(--naotech-sizing-14); right: var(--naotech-sizing-14); z-index: 1;
+  display: flex; gap: var(--naotech-sizing-4); padding: var(--naotech-sizing-4);
+  background: var(--naotech-app-background); border: 1px solid var(--naotech-app-color-200);
+  border-radius: var(--naotech-radius-xl); box-shadow: var(--naotech-shadow-medium);
+}
+.nws-phone__screen {
+  width: 100%; height: 100%; border-radius: 30px; overflow: hidden;
+  background: var(--naotech-app-color-050); display: flex; flex-direction: column;
+  /* referencia para lo que flota dentro del teléfono: el toast interno y la
+     vista que sale durante una transición (ver .nws-mob__view) */
+  position: relative;
+}
+.nws-mob__bar { display: flex; align-items: center; gap: var(--naotech-sizing-10); padding: var(--naotech-sizing-6) var(--naotech-sizing-16) var(--naotech-sizing-10); background: var(--naotech-app-background); border-bottom: 1px solid var(--naotech-app-color-200); flex: none; min-height: var(--naotech-sizing-64); box-sizing: border-box; }
+.nws-mob__body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--naotech-sizing-14); display: flex; flex-direction: column; gap: var(--naotech-sizing-20); }
+
+/* -------------------------------------------------------------------
+   Todo lo que hace que la app del operario se sienta app y no página:
+   cromo fijo (barra de estado, barra de título, tabbar) y una sola capa
+   que cambia —la vista— con empuje/retroceso, esqueletos por vista y
+   toast propio. Nada de esto existe en el SDK; lo que sí existe (motion
+   utilities, skeleton pulse, NwtToast) se reusa tal cual.
+   ------------------------------------------------------------------- */
+/* Barra de estado del sistema. Hora + señal + batería dibujadas con CSS: la
+   fuente de iconos no trae wifi/batería y meter un PNG rompería el 1:1 con
+   tokens. Es cromo del dispositivo, no de la app: va fuera de la vista. */
+.nws-mob__status { flex: none; display: flex; align-items: center; justify-content: space-between; padding: var(--naotech-sizing-10) var(--naotech-sizing-24) 0; height: var(--naotech-sizing-28); box-sizing: border-box; background: var(--naotech-app-background); color: var(--naotech-app-color-900); font-feature-settings: 'tnum'; }
+.nws-mob__status__r { display: flex; align-items: center; gap: var(--naotech-sizing-6); }
+.nws-mob__status__sig { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
+.nws-mob__status__sig i { display: block; width: 3px; border-radius: 1px; background: currentColor; }
+.nws-mob__status__sig i:nth-child(1) { height: 4px; } .nws-mob__status__sig i:nth-child(2) { height: 6px; }
+.nws-mob__status__sig i:nth-child(3) { height: 8px; } .nws-mob__status__sig i:nth-child(4) { height: 10px; opacity: .35; }
+.nws-mob__status__bat { position: relative; width: 22px; height: 11px; border: 1.5px solid currentColor; border-radius: 3px; box-sizing: border-box; }
+.nws-mob__status__bat::before { content: ''; position: absolute; left: 1.5px; top: 1.5px; bottom: 1.5px; width: 62%; border-radius: 1px; background: currentColor; }
+.nws-mob__status__bat::after { content: ''; position: absolute; right: -4px; top: 3px; width: 2px; height: 3px; border-radius: 0 1px 1px 0; background: currentColor; }
+
+/* La capa de vista. La saliente se clona encima en absoluto y se anima con
+   `exit` mientras la nueva entra con `enter`: dos nodos, dos animaciones
+   del sistema (naotech-motion-slide-x-*). La distancia del sistema son 16px,
+   pensados para un panel que aparece; para una pantalla que se empuja se
+   sube a 32 para que se lea como desplazamiento y no como temblor. */
+.nws-mob__view { flex: 1; min-height: 0; position: relative; overflow: hidden; display: flex; flex-direction: column; --naotech-motion-distance: var(--naotech-sizing-32); }
+.nws-mob__view > .nws-mob__body { position: relative; z-index: 1; }
+.nws-mob__view > .nws-mob__body--saliente { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .nws-mob__view { --naotech-motion-distance: 0px; } }
+
+/* Toast dentro del teléfono. NwtToast se posiciona fixed al pie del
+   documento; acá el "documento" es la pantalla, así que se ancla al pie de
+   la vista, por encima del tabbar, y se le suma un fade porque el
+   desplazamiento de 100% que trae el SDK dejaría el toast asomando sobre
+   las tabs mientras entra y sale. */
+.nws-mob__toast { position: absolute; left: var(--naotech-sizing-12); right: var(--naotech-sizing-12); bottom: calc(var(--naotech-sizing-64) + var(--naotech-sizing-8)); height: 0; z-index: 5; pointer-events: none; }
+.nws-mob__toast .nwt-toast__content { position: absolute; left: 50%; bottom: 0; width: 100%; max-width: 100%; padding: 0; opacity: 0; transition: transform var(--naotech-duration-base) var(--naotech-animation-standard), opacity var(--naotech-duration-base) var(--naotech-animation-standard); }
+.nws-mob__toast .nwt-toast--visible .nwt-toast__content { opacity: 1; }
+.nws-mob__toast .nwt-toast__component { pointer-events: auto; box-shadow: var(--naotech-shadow-large); }
+
+/* Toast de una sola línea ("… · Disponible próximamente"): el título no se
+   parte; si no cabe, se recorta con puntos suspensivos. En la página se le da
+   algo más de ancho que el default del SDK (30rem) para que quepa entero. */
+.nws-toast--linea { --pvt-content-max-width: 34rem; }
+.nws-toast--linea .nwt-toast__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nws-toast--linea .nwt-toast__body { justify-content: center; min-width: 0; }
+
+/* Esqueletos de la app. Sobre el hero de color, el mismo truco de
+   .nws-stat-hero: la silueta se hace con currentColor. */
+.nws-stat-hero .nws-skel { animation-name: nws-skeleton-en-color; background: color-mix(in srgb, currentColor 20%, transparent); }
+.nws-mob__skel-row { display: flex; align-items: center; gap: var(--naotech-sizing-10); padding: var(--naotech-sizing-10) var(--naotech-sizing-4); }
+.nws-mob__skel-map { width: 100%; aspect-ratio: 1 / 1; border-radius: var(--naotech-radius-xl); display: flex; align-items: center; justify-content: center; color: var(--naotech-app-color-500); }
+.nws-mob__skel-map .nwt-icon { font-size: 28px; opacity: .6; }
+
+/* La caja de foto mientras "captura": spinner en el lugar del ícono. */
+.nws-box--busy { border-style: solid; border-color: var(--naotech-app-color-300); cursor: progress; }
+.nws-box--busy .nwt-spinner { --naotech-spinner-dimesion: var(--naotech-sizing-28); }
+
+/* Historial: filas con el mismo ritmo que las paradas. */
+.nws-hist { display: flex; align-items: center; gap: var(--naotech-sizing-10); padding: var(--naotech-sizing-10) var(--naotech-sizing-4); border-bottom: 1px solid var(--naotech-app-color-100); }
+.nws-hist:last-child { border-bottom: none; }
+.nws-hist__d { flex: none; width: 44px; text-align: center; color: var(--naotech-app-color-600); text-transform: lowercase; }
+.nws-hist__d b { display: block; color: var(--naotech-app-color-900); font-size: var(--naotech-sizing-18); line-height: var(--naotech-sizing-20); }
+
+/* En la parada recién marcada y en el punto nuevo del mapa la entrada es la
+   del sistema (scale enter), la misma que ya usa nws-map__pt. */
+.nws-stop--recien { animation: naotech-motion-fade-enter var(--naotech-duration-slow) var(--naotech-animation-deceleration) both; }
+.nws-mob__nav { flex: none; background: var(--naotech-app-background); border-top: 1px solid var(--naotech-app-color-200); }
+.nws-mob__avatar-icon { --naotech-avatar-icon-dimension: 2.25rem; }
+.nws-mob__sec { display: block; margin: var(--naotech-sizing-4) 0; margin-top: calc(var(--naotech-sizing-4) + var(--naotech-sizing-8)); font-size: var(--naotech-sizing-14); color: var(--naotech-app-color-800); text-transform: uppercase; letter-spacing: .06em; }
+.nws-mob .nwt-card__body { gap: var(--naotech-sizing-8); }
+.nws-mob__stats { display: flex; justify-content: space-between; gap: var(--naotech-sizing-8); padding-top: var(--naotech-sizing-8); border-top: 1px solid var(--naotech-theme-color-500); }
+.nws-mob__stat { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; color: var(--naotech-theme-font-color); }
+.nws-mob__fin { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--naotech-sizing-14); text-align: center; flex: 1; }
+.nws-mob__fin-ic { width: 64px; height: 64px; border-radius: 50%; background: var(--naotech-positive-color-050); color: var(--naotech-positive-color-700); display: flex; align-items: center; justify-content: center; }
+.nws-mob__fin-ic .nwt-icon { font-size: 30px; }
+.nws-mob__cta { width: 100%; justify-content: center; }
+.nws-mob .nwt-button { width: 100%; }
+
+
+/* Centrado de contenedor de página cuando el contenido no llena */
+.nws-page { display: flex; flex-direction: column; gap: var(--naotech-sizing-16); flex: 1; min-height: 0; }
+
+/* OVERRIDE: NwtDatatable no se estira dentro de un contenedor flex-column
+   propio (nws-card--fill); sin esto el footer queda pegado a la última
+   fila visible en vez de al fondo de la tarjeta. */
+.nws-grow > .nwt-datatable { flex: 1; min-height: 0; }
+
+/* OVERRIDE — bug del SDK, no un default. El skeleton de NwtDatatable no se ve:
+   `.nwt-datatable__skeleton-cell` solo declara padding, pero el
+   `.nwt-datatable__record` que la contiene es `display:flex` (la tabla del SDK
+   es flex disfrazada de <table>, ver nota de nws-stops). Sin flex-grow la celda
+   mide lo que mida su contenido, y su contenido es una barra con `width:70%`
+   de un padre de ancho 0 → la fila de carga sale en blanco. Medido acá con las
+   4 filas de SKELETON_ROWS.
+   El `colspan` tampoco hace nada por lo mismo: en un contenedor flex el
+   atributo de tabla se ignora, así que la celda tiene que ocupar la fila por
+   CSS. Pedido para foundations (`.nwt-datatable__skeleton-cell { flex: 1 }`)
+   → cuando salga, esta regla se borra. */
+.nwt-datatable__skeleton-cell { flex: 1; min-width: 0; }
+
+/* Fila flotante de acciones en toolbar */
+.nwt-toolbar__actions { display: flex; align-items: center; gap: var(--naotech-sizing-10); }
+
+/* Título del toolbar con más jerarquía (pedido puntual, no todo NwtTitle). */
+.nws-title-strong .nwt-title__description { font-weight: var(--naotech-font-weight-bold); }
+.nws-title-light .nwt-title__description { font-weight: var(--naotech-font-weight-light); }
+
+/* -------------------------------------------------------------------
+   Angosto (< 900px). El producto es de escritorio; acá solo se garantiza
+   que nada desborde ni scrollee en horizontal.
+   ------------------------------------------------------------------- */
+/* Columna lateral del detalle de ruta (lista de paradas): fija en ancho para
+   que el mapa se quede con el resto; se angosta antes de apilar. */
+.nws-card--aside { flex: 0 0 420px; }
+@media (max-width: 1240px) {
+  .nws-card--aside { flex: 0 0 320px; }
+  /* Cinco stat cards no caben con ícono a este ancho: el ícono es adorno, el
+     número no. */
+  .nws-stats--5 { grid-template-columns: 1.4fr repeat(4, 1fr); }
+  .nws-stats--5 .nwt-stat-card__icon, .nws-stats--5 .nwt-avatar-icon { display: none; }
+  /* "Pantalla completa" queda solo con su ícono: el texto partía en dos
+     líneas dentro de la cabecera angosta de la card del mapa. */
+  [data-abrir-mapa] .nwt-button__content { display: none; }
+}
+@media (max-width: 900px) {
+  .nws-stats, .nws-stats--5, .nws-stats--hero { grid-template-columns: 1fr 1fr; }
+  .nws-split { flex-direction: column; }
+  .nws-split > * { flex: none !important; width: auto !important; }
+  .nws-kanban { grid-template-columns: 1fr 1fr; }
+  .nws-pick-grid { grid-template-columns: 1fr; }
+  .nwt-sidebar { display: none; }
+}
+@media (max-width: 560px) {
+  .nws-stats, .nws-stats--5, .nws-stats--hero, .nws-kanban { grid-template-columns: 1fr; }
+}
+
+/* -------------------------------------------------------------------
+   nws-show — /showroom. Vitrina de venta del módulo, no una pantalla del
+   producto: fullscreen, con scroll propio, sin sesión. NO EXISTE EN EL SDK.
+   Todo lo que se ve adentro (mapa, evidencia, kanban, teléfono, tabla) son
+   los componentes reales de las otras pantallas con sus mismas clases; acá
+   solo vive la composición de la página. Cero hex: todo en tokens.
+   ------------------------------------------------------------------- */
+.nws-show { min-height: 100%; overflow-y: auto; background: var(--naotech-app-background); }
+.nws-show__wrap { max-width: 1240px; margin: 0 auto; padding: 0 var(--naotech-sizing-24) var(--naotech-sizing-40); }
+
+.nws-show__nav { display: flex; align-items: center; justify-content: space-between; gap: var(--naotech-sizing-16); padding: var(--naotech-sizing-24) 0; }
+.nws-show__nav-links { display: flex; gap: var(--naotech-sizing-32); color: var(--naotech-app-color-600); }
+.nws-show__nav-links a { color: inherit; text-decoration: none; }
+.nws-show__nav-links a:hover { color: var(--naotech-app-color-900); }
+
+/* Hero: card gris, copy a la izquierda y el mapa real a la derecha. */
+.nws-show__hero {
+  background: var(--naotech-app-color-050); border-radius: var(--naotech-radius-xxl);
+  padding: var(--naotech-sizing-56); display: grid; grid-template-columns: 1fr 1fr; gap: var(--naotech-sizing-48); align-items: center;
+}
+.nws-show__hero-copy { display: flex; flex-direction: column; align-items: flex-start; gap: var(--naotech-sizing-16); }
+.nws-show__title {
+  margin: 0; font-size: var(--naotech-sizing-40); line-height: 1.12; letter-spacing: -0.02em;
+  font-weight: var(--naotech-font-weight-black); color: var(--naotech-app-color-900);
+}
+.nws-show__h2 { margin: 0; font-size: var(--naotech-sizing-32); line-height: 1.15; letter-spacing: -0.01em; font-weight: var(--naotech-font-weight-black); color: var(--naotech-app-color-900); }
+.nws-show__h3 { margin: 0; font-size: var(--naotech-sizing-20); line-height: 1.3; font-weight: var(--naotech-font-weight-bold); color: var(--naotech-app-color-900); }
+.nws-show__p  { margin: 0; color: var(--naotech-app-color-600); line-height: 1.6; }
+.nws-show__eyebrow { color: var(--naotech-primary-color-700); text-transform: uppercase; letter-spacing: .06em; }
+.nws-show__lead { display: flex; flex-direction: column; gap: var(--naotech-sizing-12); max-width: 62ch; margin-bottom: var(--naotech-sizing-32); }
+.nws-show__sec { padding-top: calc(var(--naotech-sizing-48) * 2); }
+.nws-show__sec--tight { padding-top: var(--naotech-sizing-48); }
+.nws-show__sec-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--naotech-sizing-16); }
+.nws-show__sec-head .nws-show__lead { margin-bottom: var(--naotech-sizing-24); }
+
+/* Mapa real (mapa.js) dentro de una card; se anima en mount(). */
+.nws-show__map-card {
+  background: var(--naotech-app-background); border: 1px solid var(--naotech-app-color-200); border-radius: var(--naotech-radius-xl);
+  padding: var(--naotech-sizing-16); display: flex; flex-direction: column; gap: var(--naotech-sizing-12);
+}
+.nws-show__map.nws-map { flex: none; min-height: 0; aspect-ratio: 16 / 11; }
+.nws-show__map-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--naotech-sizing-8); }
+.nws-show__map-kpis > div { display: flex; flex-direction: column; gap: 2px; }
+.nws-show__map-kpis b { font-size: var(--naotech-sizing-16); font-weight: var(--naotech-font-weight-bold); }
+.nws-show__stats { margin-top: var(--naotech-sizing-24); }
+/* DC-281: versión "hype" del showroom — 6 métricas, grid de a 3 que envuelve
+   a 2 filas. El degradé radial por card (DC-290) se sacó en DC-292. */
+.nws-show__stats--hype { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) { .nws-show__stats--hype { grid-template-columns: repeat(2, 1fr); } }
+
+/* Evidencia: la misma card de revisión, con más altura para que sea el
+   bloque más grande de la página. */
+.nws-show__ev .nws-ev { min-height: 380px; }
+.nws-show__ev .nws-ev__meta { margin-top: var(--naotech-sizing-12); border-radius: var(--naotech-radius-lg); }
+.nws-show__thumb-more { display: inline-flex; align-items: center; justify-content: center; color: var(--naotech-app-color-600); background: transparent; border-color: transparent; }
+
+/* Split 50/50: media de un lado, cuerpo del otro. */
+.nws-show__split { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--naotech-app-color-200); border-radius: var(--naotech-radius-xxl); overflow: hidden; background: var(--naotech-app-background); }
+.nws-show__split-body { padding: var(--naotech-sizing-48); display: flex; flex-direction: column; gap: var(--naotech-sizing-16); justify-content: center; }
+.nws-show__split-media { position: relative; background: var(--naotech-app-color-050); min-height: 400px; display: flex; }
+.nws-show__split-media--l { border-right: 1px solid var(--naotech-app-color-200); }
+.nws-show__split-media--r { border-left: 1px solid var(--naotech-app-color-200); }
+
+/* Hueco de imagen: caja punteada + ícono + etiqueta. Con foto (--foto) la
+   caja desaparece y queda solo la imagen; la etiqueta se oculta. */
+.nws-show__ph {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--naotech-sizing-8);
+  background: var(--naotech-app-color-100); border: 2px dashed var(--naotech-app-color-300);
+  border-radius: var(--naotech-radius-xl); color: var(--naotech-app-color-500); text-align: center;
+  padding: var(--naotech-sizing-16); background-size: cover; background-position: center;
+}
+.nws-show__ph-ic { font-size: 28px; }
+.nws-show__ph--sm { padding: var(--naotech-sizing-24) var(--naotech-sizing-16); }
+.nws-show__ph--sm .nws-show__ph-ic { font-size: 22px; }
+.nws-show__ph--fill { flex: 1; border-radius: 0; }
+.nws-show__ph--foto { border-color: transparent; }
+.nws-show__ph--foto .nws-show__ph-ic, .nws-show__ph--foto .nws-show__ph-label { display: none; }
+.nws-show__ph-tag { position: absolute; left: var(--naotech-sizing-14); bottom: var(--naotech-sizing-14); }
+
+/* Kanban real, compacto: sin altura mínima ni scroll propio. */
+.nws-show__kanban { padding: var(--naotech-sizing-24); align-items: stretch; }
+.nws-show__kanban .nws-kanban { gap: var(--naotech-sizing-10); flex: 1; min-height: 0; }
+.nws-show__kanban .nws-kanban__col { min-height: 0; background: var(--naotech-app-background); }
+.nws-show__kanban .nws-kanban__body { overflow: visible; }
+
+/* Intermedias: 3 cards iguales; el pie va anclado abajo. */
+.nws-show__grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--naotech-sizing-20); align-items: stretch; }
+.nws-show__card {
+  display: flex; flex-direction: column; gap: var(--naotech-sizing-12); background: var(--naotech-app-background);
+  border: 1px solid var(--naotech-app-color-200); border-radius: var(--naotech-radius-xxl); padding: var(--naotech-sizing-28);
+}
+.nws-show__card-foot { margin-top: auto; display: flex; flex-direction: column; padding-top: var(--naotech-sizing-12); }
+.nws-show__row { display: flex; align-items: center; gap: var(--naotech-sizing-10); padding: var(--naotech-sizing-8) 0; border-bottom: 1px solid var(--naotech-app-color-100); min-width: 0; }
+.nws-show__row:last-child { border-bottom: none; }
+
+/* El teléfono real (390×824) escalado para caber en la card. */
+.nws-show__phone { margin-top: auto; height: 380px; display: flex; justify-content: center; overflow: hidden; }
+.nws-show__phone .nws-phone { transform: scale(.44); transform-origin: top center; box-shadow: var(--naotech-shadow-medium); }
+.nws-show__phone .nws-mob__body { gap: var(--naotech-sizing-14); }
+
+/* Los diez estados en línea: badge → conector → badge. */
+.nws-show__estados {
+  display: flex; align-items: center; gap: var(--naotech-sizing-8);
+  border: 1px solid var(--naotech-app-color-200); border-radius: var(--naotech-radius-xxl); padding: var(--naotech-sizing-24); overflow-x: auto;
+}
+.nws-show__estado-line { flex: 1; height: 2px; min-width: 12px; background: var(--naotech-app-color-200); }
+.nws-show__estados-res { display: flex; flex-direction: column; gap: var(--naotech-sizing-6); align-items: flex-start; padding-left: var(--naotech-sizing-16); margin-left: var(--naotech-sizing-8); border-left: 1px solid var(--naotech-app-color-200); flex: none; }
+
+/* Los tres puntos de "cámara del camión vs. personal en campo" (DC-282). */
+.nws-show__pasos { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--naotech-sizing-16); margin: var(--naotech-sizing-8) 0; }
+.nws-show__paso { display: flex; flex-direction: column; gap: var(--naotech-sizing-4); padding: var(--naotech-sizing-14); border: 1px solid var(--naotech-app-color-200); border-radius: var(--naotech-radius-xl); background: var(--naotech-app-color-050); }
+.nws-show__paso-ic { font-size: 20px; color: var(--naotech-primary-color-700); margin-bottom: var(--naotech-sizing-4); }
+
+/* Tabla completa: enlaces monoespaciados al deep-link de cada pantalla. */
+.nws-show__table .nwt-datatable__cell { vertical-align: top; padding-top: var(--naotech-sizing-12); padding-bottom: var(--naotech-sizing-12); }
+.nws-show__table { --naotech-datatable-align-items: flex-start; --naotech-datatable-justify-content: flex-start; }
+/* DC-301: el override de arriba (para alinear las filas arriba, no al medio)
+   se hereda también en el encabezado vía la misma custom property — acá se
+   vuelve a centrar solo el título, sin tocar las filas. */
+.nws-show__table .nwt-datatable__title { --naotech-datatable-align-items: center; }
+/* DC-293: el SDK trunca el contenido de la celda a una línea (nowrap +
+   ellipsis) por defecto; acá las descripciones son largas a propósito, así
+   que se dejan envolver en vez de cortarse a la mitad de la palabra. */
+.nws-show__table .nwt-datatable__cell > span { white-space: normal; overflow: visible; text-overflow: clip; }
+.nws-show__link { color: var(--naotech-primary-color-700); text-decoration: none; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: nowrap; }
+.nws-show__link:hover { text-decoration: underline; }
+
+/* Roles: 4 cards a lo ancho (a diferencia del login, que las centra). */
+.nws-show__roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--naotech-sizing-16); }
+.nws-show__roles .nwt-card { cursor: pointer; --pvt-body-background-color: var(--naotech-app-background); transition: box-shadow .18s ease, transform .18s ease; }
+.nws-show__roles .nwt-card:hover, .nws-show__roles .nwt-card:focus-visible { transform: translateY(-3px); box-shadow: var(--naotech-shadow-large); }
+/* DC-303: mismo centrado que .nws-login .nwt-card__content — sin esta regla
+   el contenido quedaba alineado a la izquierda en vez de calcado del index. */
+.nws-show__roles .nwt-card__content { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--naotech-sizing-10); padding-top: var(--naotech-sizing-8); }
+
+.nws-show__foot {
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--naotech-sizing-8);
+  margin-top: calc(var(--naotech-sizing-48) * 2); padding-top: var(--naotech-sizing-24);
+  border-top: 1px solid var(--naotech-app-color-200); color: var(--naotech-app-color-500);
+}
+
+@media (max-width: 1040px) {
+  .nws-show__hero, .nws-show__split, .nws-show__grid3 { grid-template-columns: 1fr; }
+  .nws-show__roles { grid-template-columns: 1fr 1fr; }
+  .nws-show__nav-links { display: none; }
+  .nws-show__split-media { min-height: 300px; }
+}
+@media (max-width: 560px) {
+  .nws-show__hero { padding: var(--naotech-sizing-24); }
+  .nws-show__split-body { padding: var(--naotech-sizing-24); }
+  .nws-show__roles { grid-template-columns: 1fr; }
+}
+
+/* DC-271: piso de 14px para labels sueltos (no badges/tags) dentro de
+   cualquier tabla — varias columnas quedaban en caption (12px). Selector
+   por substring de clase para cubrir todas las tablas del proyecto de una
+   sola vez en vez de tocar cada pantalla. */
+.nwt-datatable__cell [class*="nwt-caption-font-"] {
+  font-size: var(--naotech-smalltext-font-size);
+  line-height: var(--naotech-smalltext-line-height);
+  letter-spacing: var(--naotech-smalltext-letter-spacing);
+}
+
+/* DC-272: la escala "yellow" del SDK no tiene un tono realmente oscuro
+   (yellow-800/900 siguen siendo amarillo brillante, #f9c200/#f5b800), así
+   que cualquier badge theme="warning" (ej. estado "Ejecutada") queda con
+   texto de bajo contraste. Se fuerza un color de texto oscuro real. */
+.nwt-badge[nwt-theme='warning'] { --pvt-badge-font-color: var(--naotech-app-color-900); }
+
+/* DC-277: bloque de skeleton a mano para la foto+cuadrilla del hero de
+   operador-ruta.js — no hay componente del SDK para esto, se reusa la
+   animación naotech-skeleton-pulse que ya trae foundations. */
+.nws-skel { display: block; border-radius: var(--naotech-radius-lg); background: var(--naotech-app-color-200); animation: naotech-skeleton-pulse var(--naotech-duration-pulse) var(--naotech-animation-standard) infinite; }
+.nws-skel--circle { border-radius: 50%; flex: none; }

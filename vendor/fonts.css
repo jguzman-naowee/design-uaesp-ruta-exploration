@@ -1,0 +1,44 @@
+
+@font-face {
+  font-family: -naotech-sdk-inter;
+  font-style: normal;
+  font-weight: 100 300;
+  src: url('./inter/inter-light.ttf')
+    format('truetype');
+}
+
+@font-face {
+  font-family: -naotech-sdk-inter;
+  font-style: normal;
+  font-weight: 400;
+  src: url('./inter/inter-regular.ttf')
+    format('truetype');
+}
+
+@font-face {
+  font-family: -naotech-sdk-inter;
+  font-style: normal;
+  font-weight: 500;
+  src: url('./inter/inter-medium.ttf')
+    format('truetype');
+}
+
+@font-face {
+  font-family: -naotech-sdk-inter;
+  font-style: normal;
+  font-weight: 600;
+  src: url('./inter/inter-semibold.ttf')
+    format('truetype');
+}
+
+@font-face {
+  font-family: -naotech-sdk-inter;
+  font-style: normal;
+  font-weight: 700 900;
+  src: url('./inter/inter-bold.ttf')
+    format('truetype');
+}
+
+:root {
+  --naotech-sdk-font-family-base: -naotech-sdk-inter;
+}

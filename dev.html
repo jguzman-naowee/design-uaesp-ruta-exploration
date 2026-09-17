@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Módulo de Rutas · UAESP</title>
+<meta name="description" content="Prototipo de alta fidelidad del Módulo de Rutas de la UAESP sobre el SDK de Naowee. Cuatro roles, siete pantallas, datos de demostración.">
+
+<!--
+  Módulo de Rutas UAESP · alta fidelidad sobre el SDK de Naowee.
+
+  vendor/  = copia LITERAL de sdk-frontend-foundations@3.1.0 (origin/main,
+             16-sep-2026). Lo único que se les cambió es la ruta del
+             @font-face, que en el paquete apunta a un especificador de npm.
+  sdk.js   = la anatomía que emiten los Nwt* de sdk-react-components@4.1.0,
+             leída del compilado. Mismas clases, mismos atributos nwt-*.
+  app.css  = lo que el SDK no tiene (prefijo nws-), todo en tokens.
+  datos.js = los datos, en JSON. Van como script para que la página abra
+             también con doble clic (file:// bloquea fetch).
+
+  Sin npm, sin build. Se abre y funciona.
+-->
+
+<link rel="stylesheet" href="vendor/fonts.css">
+<link rel="stylesheet" href="vendor/foundations.css">
+<link rel="stylesheet" href="vendor/components.css">
+<link rel="stylesheet" href="vendor/icons.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="app" style="height:100%"></div>
+
+<script src="sdk.js"></script>
+<script src="mapa.js"></script>
+<script src="datos.js"></script>
+<script src="pantallas/login.js"></script>
+<script src="pantallas/showroom.js"></script>
+<script src="pantallas/admin-hub.js"></script>
+<script src="pantallas/admin-entrega.js"></script>
+<script src="pantallas/operador-hub.js"></script>
+<script src="pantallas/operador-ruta.js"></script>
+<script src="pantallas/operario-app.js"></script>
+<script src="pantallas/supervisor-tablero.js"></script>
+<script src="pantallas/supervisor-revision.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
