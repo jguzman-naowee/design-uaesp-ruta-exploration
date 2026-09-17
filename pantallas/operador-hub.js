@@ -325,23 +325,15 @@ window.PANTALLAS['operador-hub'] = {
 
     pintarStats(); pintarCalle(); pintarRecibidas();
     var timer = setInterval(function () {
-      /* DC-348: las rutas avanzan y, al llegar al total, se quedan 3 ticks en
-         "Terminó" y bajan a "Completadas hoy" — la lista de calle se vacía sola. */
-      var terminadas = [];
-      st.enCalle.forEach(function (o) {
-        if (o.hechas < o.total) { if (Math.random() < 0.7) { o.hechas = Math.min(o.total, o.hechas + 1); } }
-        else { o.done = (o.done || 0) + 1; if (o.done >= 3) { terminadas.push(o); } }
-      });
+      /* DC-348 / DC-002: "que progresen es que se muevan, no que desaparezcan":
+         las rutas avanzan (barra y contador se mueven en su fila) y, cuando una
+         pasa a otra en avance, la lista se reordena por % — nadie se va de la
+         lista; al llegar al total queda en "Terminó". */
+      st.enCalle.forEach(function (o) { if (o.hechas < o.total && Math.random() < 0.7) { o.hechas = Math.min(o.total, o.hechas + 1); } });
       st.hace = (st.hace % 9) + 1;
-      if (terminadas.length) {
-        terminadas.forEach(function (o) {
-          st.enCalle.splice(st.enCalle.indexOf(o), 1);
-          O.completadasHoy.unshift({ codigo: o.ruta.split(' · ')[0], operario: o.nombre, horario: o.inicio + ' — ' + o.eta, resumen: o.total + ' unidades · ' + o.camion + ' · sin novedades' });
-        });
-        var lc = root.querySelector('#lista-completadas'); if (lc) { lc.innerHTML = O.completadasHoy.map(function (c) { return filaCompletada(S, D, c); }).join(''); }
-        var nb = root.querySelector('.bind-nCompletadas .nwt-badge__label'); if (nb) { nb.textContent = O.completadasHoy.length; }
-        if (st.vista === 'calle') { pintarCalle(); }
-      }
+      var orden = st.enCalle.slice().sort(function (a, b) { return (b.hechas / b.total) - (a.hechas / a.total); });
+      var cambio = orden.some(function (o, i) { return o !== st.enCalle[i]; });
+      if (cambio) { st.enCalle = orden; if (st.vista === 'calle') { pintarCalle(); } }
       pintarStats(); if (st.vista === 'calle') { actualizarProgresoCalle(); }
     }, 2200);
     return function () { clearInterval(timer); root.removeEventListener('click', onClick); root.removeEventListener('input', onInput); document.removeEventListener('keydown', onKey); };

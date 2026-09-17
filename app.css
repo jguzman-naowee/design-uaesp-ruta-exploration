@@ -62,9 +62,11 @@ body {
 /* OVERRIDE (DC-351): la toolbar del sidebar del SDK mide 88px con padding
    24 y el toggle a la IZQUIERDA del logo. Pedido: logo a la izquierda a la
    misma distancia que los items del menú (20px, el padding de
-   nwt-sidebar__menu__link), chevron a la derecha a 8px del borde, y menos
-   alto. El orden se resuelve con `order`, sin tocar la anatomía. */
-.nwt-sidebar__toolbar { height: var(--naotech-sizing-64); padding: 0 var(--naotech-sizing-8) 0 var(--naotech-sizing-20); }
+   nwt-sidebar__menu__link), chevron a la derecha a 8px del borde. El orden
+   se resuelve con `order`, sin tocar la anatomía. */
+/* DC-001 (bis): el alto NO se toca — debe coincidir con el toolbar principal
+   (--naotech-toolbar-height, 88px); solo cambian padding y orden. */
+.nwt-sidebar__toolbar { padding: 0 var(--naotech-sizing-8) 0 var(--naotech-sizing-20); }
 .nwt-sidebar__toolbar__logo { order: 1; flex: 1; min-width: 0; }
 .nwt-sidebar__toolbar__button { order: 2; margin-left: auto; }
 .nwt-sidebar--collapsed .nwt-sidebar__toolbar { padding: 0 var(--naotech-sizing-8); justify-content: center; }
@@ -323,6 +325,9 @@ body {
   border-bottom: 1px solid var(--naotech-app-color-100);
 }
 .nws-list__row:last-child { border-bottom: none; }
+/* OVERRIDE (DC-002): NwtProgressBar trae transition:none en el fill; en la
+   lista en vivo el avance saltaba en vez de moverse. Solo dentro de listas. */
+.nws-list .nwt-progress-bar__fill { transition: width var(--naotech-duration-slow) var(--naotech-animation-standard); }
 .nws-list__row--click { cursor: pointer; }
 .nws-list__row--click:hover { background: var(--naotech-app-color-050); }
 /* OVERRIDE: NwtBadge trae --naotech-badge-cursor: default de fábrica, así
