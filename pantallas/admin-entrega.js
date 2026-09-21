@@ -8,13 +8,12 @@ window.PANTALLAS['admin-entrega'] = {
   titulo: 'Revisión antes de entregar',
 
   toolbar: function (ctx) {
-    var S = ctx.S, rol = ctx.rol;
+    var S = ctx.S;
     return {
       body: S.iconButton({ icon: 'chevron-left', size: 'medium', variant: 'mute', theme: 'neutral', label: 'Volver a rutas', attrs: { 'data-ir': '#/admin' } }) +
             S.title({ text: 'Revisión antes de entregar', subtitle: 'Rutas / Nueva ruta / Revisión' }),
       actions: S.button({ label: 'Guardar borrador', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-toast': 'borrador' } }) +
-               S.button({ label: 'Volver a trazar', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-abrir-modal': 'nueva', 'data-ir': '#/admin' } }) +
-               S.avatar({ text: rol.iniciales, size: 'small', variant: 'loud', theme: rol.theme })
+               S.button({ label: 'Volver a trazar', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-abrir-modal': 'nueva', 'data-ir': '#/admin' } })
     };
   },
 

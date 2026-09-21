@@ -1,7 +1,9 @@
 /**
  * Supervisor · revisión de ruta ejecutada.
- * Evidencia parada por parada (3 cámaras), observación obligatoria
- * (conforme / con hallazgos) y línea de tiempo de la ruta.
+ * Evidencia parada por parada (3 cámaras) y línea de tiempo — solo lectura.
+ * El juicio por punto (conforme/hallazgo/no verificable) se registra desde
+ * el móvil en ruta (supervisor-ruta-app.js); acá ya no se "toma" ni se
+ * registra observación — el cierre lo hace Operador desde operador/control.
  */
 window.PANTALLAS = window.PANTALLAS || {};
 window.PANTALLAS['supervisor-revision'] = {
@@ -9,13 +11,12 @@ window.PANTALLAS['supervisor-revision'] = {
   titulo: 'Revisión de ruta ejecutada',
 
   toolbar: function (ctx) {
-    var S = ctx.S, rol = ctx.rol;
+    var S = ctx.S;
     return {
-      body: S.iconButton({ icon: 'chevron-left', size: 'medium', variant: 'mute', theme: 'neutral', label: 'Volver a supervisión', attrs: { 'data-ir': '#/supervisor' } }) +
-            S.title({ text: 'Revisión de ruta ejecutada', subtitle: 'Supervisión / En revisión / R-2409' }),
+      body: S.iconButton({ icon: 'chevron-left', size: 'medium', variant: 'mute', theme: 'neutral', label: 'Volver a supervisión', attrs: { 'data-ir': '#/supervisor-dashboard' } }) +
+            S.title({ text: 'Revisión de ruta ejecutada', subtitle: 'Supervisión / Historial / R-2409' }),
       actions: S.button({ label: 'Anterior', icon: 'chevron-left', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-toast': 'anterior' } }) +
-               S.button({ label: 'Siguiente', iconEnd: 'chevron-right', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-toast': 'siguiente' } }) +
-               S.avatar({ text: rol.iniciales, size: 'small', variant: 'loud', theme: rol.theme })
+               S.button({ label: 'Siguiente', iconEnd: 'chevron-right', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-toast': 'siguiente' } })
     };
   },
 
@@ -35,7 +36,7 @@ window.PANTALLAS['supervisor-revision'] = {
           S.h('span', { class: 'nwt-overline-font-semibold nws-muted' }, 'Ruta ejecutada'),
           S.h('span', { class: 'nwt-subtitle-font-bold', style: 'font-size:var(--naotech-sizing-24);line-height:var(--naotech-sizing-28)' }, e(R.ruta.codigo)),
           S.h('div', { class: 'nws-row', style: 'margin-top:var(--naotech-sizing-2);flex-wrap:wrap' },
-            S.h('span', { id: 'badge-estado' }, S.badge({ label: 'En revisión', size: 'medium', theme: 'informative' })),
+            S.badge({ label: 'En verificación', size: 'medium', theme: 'informative' }),
             S.badge({ label: 'Dentro del plazo', size: 'medium', theme: 'positive' }),
             S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, e(R.ruta.zona + ' · ejecutada el ' + R.ruta.fecha + ' · trazada por la ' + R.ruta.trazadaPor)))),
         S.h('div', { class: 'nws-divider-v' }),
@@ -80,50 +81,22 @@ window.PANTALLAS['supervisor-revision'] = {
         k ? S.card({ skeleton: true, footer: 1 }) : '')
     });
 
-    var observacion = S.card({
-      /* El reparto de espacio (flex) vive en .nws-card--pair, no acá: inline
-         le gana a cualquier clase y el colapso tendría que pelearlo con
-         !important, que es justo lo que deja la transición a medio camino. */
-      cls: 'nws-card--fill nws-card--pair', style: 'min-height:0', attrs: { 'nwt-theme': T, id: 'card-observacion' },
-      header: S.h('div', { class: 'nws-card-head', style: 'cursor:pointer', 'data-toggle-card2': 'observacion' }, S.h('span', { class: 'nwt-body-font-semibold' }, 'Tu observación'), S.badge({ label: 'obligatoria', size: 'medium', theme: 'negative' }),
-        S.h('div', { class: 'nws-grow' }),
-        S.iconButton({ icon: 'chevron-up', size: 'small', variant: 'mute', theme: 'neutral', label: 'Colapsar', attrs: { 'data-toggle-card2': 'observacion' } })),
-      /* DC-329: 'Registrar observación' vivía en el footer del card, siempre
-         montado y colapsado a alto 0 hasta elegir tipo. Ahora es parte del
-         contenido que aparece recién junto con el detalle/hallazgos, una
-         vez elegido el tipo — no hay nada por fuera que mostrar antes. */
-      content: S.h('div', { id: 'obs-cuerpo', class: 'nws-col', style: 'flex:1;gap:var(--naotech-sizing-16);overflow-y:auto' },
-        k ? S.card({ skeleton: true }) : '')
-    });
+    var C = D.camionReporte;
+    var lado = S.h('div', { class: 'nws-col', style: 'flex:0 0 400px;gap:var(--naotech-sizing-16);min-height:0' },
+      camionCard(S, C, T, e),
+      S.card({
+        cls: 'nws-card--fill', style: 'min-height:0', attrs: { 'nwt-theme': T },
+        header: S.h('div', { class: 'nws-card-head' }, S.h('span', { class: 'nwt-body-font-semibold' }, 'Línea de tiempo de la ruta')),
+        content: S.h('div', { id: 'tl-cuerpo', style: 'overflow-y:auto' },
+          k ? S.timeline({ skeleton: true }) : '')
+      }));
 
-    var linea = S.card({
-      cls: 'nws-card--pair nws-card--collapsed', style: 'min-height:0', attrs: { 'nwt-theme': T, id: 'card-linea' },
-      header: S.h('div', { class: 'nws-card-head', style: 'cursor:pointer', 'data-toggle-card2': 'linea' }, S.h('span', { class: 'nwt-body-font-semibold' }, 'Línea de tiempo de la ruta'),
-        S.h('div', { class: 'nws-grow' }),
-        S.iconButton({ icon: 'chevron-down', size: 'small', variant: 'mute', theme: 'neutral', label: 'Expandir', attrs: { 'data-toggle-card2': 'linea' } })),
-      content: S.h('div', { id: 'tl-cuerpo', style: 'overflow-y:auto' },
-        k ? S.timeline({ skeleton: true }) : '')
-    });
-
-    /* DC-337: debajo de evidencia + observación va la bitácora de la ruta —
-       las observaciones ya registradas, una por fila con fecha/hora, quién,
-       juicio y hallazgos. Arranca vacía y se llena al "Registrar observación"
-       (pintarObservaciones en mount). */
-    var observaciones = S.card({
-      cls: 'nws-card--none', style: 'flex:none', attrs: { 'nwt-theme': T, id: 'card-observaciones' },
-      header: S.h('div', { class: 'nws-card-head' },
-        S.h('span', { class: 'nwt-body-font-semibold' }, 'Observaciones registradas'),
-        S.h('span', { id: 'obs-n' }, S.badge({ label: 0, size: 'small', theme: 'neutral' }))),
-      content: S.h('div', { id: 'obs-lista', class: 'nws-list' })
-    });
-
-    return hero + S.h('div', { class: 'nws-split', style: 'min-height:80vh;max-height:80vh' }, evidencia, S.h('div', { class: 'nws-col', style: 'flex:0 0 400px;gap:var(--naotech-sizing-16);min-height:80vh;max-height:80vh' }, observacion, linea)) + observaciones;
+    return hero + S.h('div', { class: 'nws-split', style: 'min-height:80vh;max-height:80vh' }, evidencia, lado);
   },
 
   mount: function (root, ctx) {
     var S = ctx.S, D = ctx.D, R = D.revision, T = ctx.rol.theme, e = S.esc;
-    var st = { ev: 2, juicio: null, obs: '', hall: [], registrado: false, registradas: [] };
-    function bind(k, v) { root.querySelectorAll('[data-bind="' + k + '"]').forEach(function (n) { n.textContent = v; }); }
+    var st = { ev: 2 };
 
     /* R.evidencias solo trae 7 de muestra; el resto (hasta metricas.total)
        se completa acá cicleando calles/tipos, para que la tira de miniaturas
@@ -170,104 +143,18 @@ window.PANTALLAS['supervisor-revision'] = {
       if (activo) { activo.scrollIntoView({ block: 'nearest', inline: 'center' }); }
     }
 
-    function pintarObs() {
-      var listo = !!st.juicio && st.obs.length > 0 && !st.registrado;
-      if (!st.juicio && !st.registrado) {
-        /* DC-247: estado inicial — las dos opciones grandes, llenando el
-           espacio disponible; al elegir una se acomodan como fila compacta
-           (ver rama de abajo) y aparece el resto (detalle, hallazgos). */
-        S.repintar(root.querySelector('#obs-cuerpo'),
-        S.h('div', { class: 'nws-col nws-grow', style: 'gap:var(--naotech-sizing-12)' },
-            S.h('button', { type: 'button', class: 'nws-option nws-option--xl nws-option--tint-positive', 'data-obs': 'ok', 'nwt-theme': T, style: 'flex:1' },
-              S.icon('positive'), S.h('span', { class: 'nwt-body-font-bold' }, 'Conforme'), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Se ejecutó como corresponde')),
-            S.h('button', { type: 'button', class: 'nws-option nws-option--xl nws-option--tint-warning', 'data-obs': 'no', 'nwt-theme': T, style: 'flex:1' },
-              S.icon('attention'), S.h('span', { class: 'nwt-body-font-bold' }, 'Con hallazgos'), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Hay algo que registrar'))));
-        return;
-      }
-      S.repintar(root.querySelector('#obs-cuerpo'),
-        S.h('div', { class: 'nws-row', style: 'align-items:stretch' },
-          S.h('button', { type: 'button', class: S.cls('nws-option', st.juicio === 'ok' && 'nws-option--on'), 'data-obs': 'ok', 'nwt-theme': T, disabled: st.registrado },
-            S.h('span', { class: 'nwt-smalltext-font-semibold' }, 'Conforme'), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Se ejecutó como corresponde')),
-          S.h('button', { type: 'button', class: S.cls('nws-option', st.juicio === 'no' && 'nws-option--on'), 'data-obs': 'no', 'nwt-theme': T, disabled: st.registrado },
-            S.h('span', { class: 'nwt-smalltext-font-semibold' }, 'Con hallazgos'), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Hay algo que registrar'))) +
-        (st.juicio === 'no' ? S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-6)' },
-          S.h('span', { class: 'nwt-smalltext-font-semibold nws-dark', style: 'margin-bottom:var(--naotech-sizing-8)' }, 'Qué encontraste'),
-          S.h('div', { class: 'nws-opt__b', style: 'padding:0' }, R.hallazgos.map(function (hl, i) {
-            var on = st.hall.indexOf(i) >= 0;
-            return S.h('div', { class: S.cls('nws-opt__c nwt-smalltext-font-semibold', on && 'nws-opt__c--on'), 'data-hall': i, 'nwt-theme': T, 'aria-pressed': on ? 'true' : 'false' },
-              e(hl), on ? S.h('span', null, '×') : '');
-          }))) : '') +
-        S.textArea({ label: 'Detalle', placeholder: 'Qué encontraste al revisar esta ruta…', rows: 4, size: 'small', value: st.obs, name: 'obs' }) +
-        S.h('div', { class: 'nws-row', style: 'justify-content:flex-end' },
-          S.button({ label: st.registrado ? 'Registrada' : 'Registrar observación', size: 'medium', variant: 'loud', theme: T, disabled: !listo, attrs: { 'data-obs': 'registrar' } })));
-      root.querySelector('#badge-estado').innerHTML = S.badge({ label: st.registrado ? 'Observada' : 'En revisión', size: 'medium', theme: st.registrado ? 'primary' : 'informative' });
-    }
-
     function pintarLinea() {
       var items = R.hitos.map(function (hh) { return { title: hh.titulo, subtitle: hh.detalle }; });
-      items.push(st.registrado ? { title: 'Observada', subtitle: 'observada hoy 14:35 · L. Sarmiento', theme: T } : { title: 'En revisión', subtitle: 'tomada hoy 14:20 · L. Sarmiento · sos vos', theme: T });
       S.repintar(root.querySelector('#tl-cuerpo'), S.timeline({ items: items }));
     }
 
-    function pintarObservaciones() {
-      root.querySelector('#obs-n').innerHTML = S.badge({ label: st.registradas.length, size: 'small', theme: 'neutral' });
-      root.querySelector('#obs-lista').innerHTML = st.registradas.length
-        ? st.registradas.map(function (o) {
-            return S.h('div', { class: 'nws-list__row', style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-6)' },
-              S.h('div', { class: 'nws-row' },
-                S.h('span', { class: 'nwt-smalltext-font-semibold nws-tnum' }, e(o.fecha)),
-                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted nws-grow' }, e(o.quien)),
-                S.badge({ label: D.estados[o.juicio].label, size: 'medium', theme: D.estados[o.juicio].theme })),
-              o.hallazgos.length ? S.h('div', { class: 'nws-row', style: 'flex-wrap:wrap' }, o.hallazgos.map(function (hz) { return S.tag({ label: hz, size: 'small' }); })) : '',
-              S.h('div', { class: 'nws-note nwt-smalltext-font-regular' }, e(o.texto)));
-          }).join('')
-        : S.h('div', { class: 'nwt-smalltext-font-regular nws-muted', style: 'padding:var(--naotech-sizing-12) var(--naotech-sizing-16)' }, 'Todavía no hay observaciones registradas para esta ruta.');
-    }
-    pintarObservaciones();
-
-    function botonDe(nombre) { return root.querySelector('[data-toggle-card2="' + nombre + '"]'); }
-    function expandirCard(nombre, card) {
-      card.classList.remove('nws-card--collapsed');
-      var b = botonDe(nombre); b.querySelector('.nwt-icon i').className = 'naotech-icon-chevron-up'; b.querySelector('button').setAttribute('aria-label', 'Colapsar');
-    }
-    function colapsarCard(nombre, card) {
-      card.classList.add('nws-card--collapsed');
-      var b = botonDe(nombre); b.querySelector('.nwt-icon i').className = 'naotech-icon-chevron-down'; b.querySelector('button').setAttribute('aria-label', 'Expandir');
-    }
     function onClick(ev) {
       var t = ev.target;
-      var tg2 = t.closest('[data-toggle-card2]');
-      if (tg2) {
-        var nombre = tg2.getAttribute('data-toggle-card2');
-        var otro = nombre === 'observacion' ? 'linea' : 'observacion';
-        var card = root.querySelector('#card-' + nombre), cardOtro = root.querySelector('#card-' + otro);
-        var colapsando = !card.classList.contains('nws-card--collapsed');
-        /* DC-173: con las dos cards en 70vh fijo, no pueden estar abiertas
-           las dos a la vez — o una o la otra. Al abrir una se colapsa la
-           otra; al colapsar la que está abierta, se abre la otra (nunca
-           quedan las dos colapsadas). */
-        if (colapsando) {
-          if (cardOtro.classList.contains('nws-card--collapsed')) { expandirCard(otro, cardOtro); }
-        } else {
-          colapsarCard(otro, cardOtro);
-        }
-        var colapsada = card.classList.toggle('nws-card--collapsed');
-        tg2.querySelector('.nwt-icon i').className = colapsada ? 'naotech-icon-chevron-down' : 'naotech-icon-chevron-up';
-        tg2.querySelector('button').setAttribute('aria-label', colapsada ? 'Expandir' : 'Colapsar');
-        return;
-      }
       var evb = t.closest('[data-ev]'); if (evb) { st.ev = +evb.getAttribute('data-ev'); pintarEvidencia(); return; }
       var step = t.closest('[data-ev-step]'); if (step) { st.ev = Math.max(0, Math.min(R.evidencias.length - 1, st.ev + (+step.getAttribute('data-ev-step')))); pintarEvidencia(); return; }
-      var hl = t.closest('[data-hall]'); if (hl) { if (st.registrado) { return; } var i = +hl.getAttribute('data-hall'), p = st.hall.indexOf(i); p >= 0 ? st.hall.splice(p, 1) : st.hall.push(i); pintarObs(); return; }
-      var ob = t.closest('[data-obs]'); if (!ob) { return; }
-      var a = ob.getAttribute('data-obs');
-      if (a === 'ok') { st.juicio = 'ok'; st.hall = []; pintarObs(); }
-      if (a === 'no') { st.juicio = 'no'; pintarObs(); }
-      if (a === 'registrar' && st.juicio && st.obs) { st.registrado = true; var ahora = new Date(); st.registradas.unshift({ fecha: D.entidad.fecha.replace('martes ', '') + ' · ' + ('0' + ahora.getHours()).slice(-2) + ':' + ('0' + ahora.getMinutes()).slice(-2), quien: ctx.rol.nombre + ' · ' + ctx.rol.rol, juicio: st.juicio === 'ok' ? 'conforme' : 'hallazgos', hallazgos: st.hall.map(function (i) { return R.hallazgos[i]; }), texto: st.obs }); pintarObservaciones(); pintarObs(); pintarLinea(); ctx.toast({ title: 'Observación registrada', message: R.ruta.codigo + ' pasa a Observada. El cierre se hace desde el tablero.', theme: 'positive', icon: 'positive' }); }
     }
-    function onInput(ev) { if (ev.target.matches('[data-field="obs"]')) { st.obs = ev.target.value; var listo = !!st.juicio && st.obs.length > 0 && !st.registrado; root.querySelector('[data-obs="registrar"]').disabled = !listo; } }
-    root.addEventListener('click', onClick); root.addEventListener('input', onInput);
-    pintarEvidencia(); pintarObs(); pintarLinea();
-    return function () { root.removeEventListener('click', onClick); root.removeEventListener('input', onInput); };
+    root.addEventListener('click', onClick);
+    pintarEvidencia(); pintarLinea();
+    return function () { root.removeEventListener('click', onClick); };
   }
 };

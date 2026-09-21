@@ -292,6 +292,8 @@ window.MAPA = (function () {
     var st = {
       ruta: o.ruta || null, hechas: o.hechas || 0, enBase: !!o.enBase,
       camion: o.camion !== false && !!o.ruta, siguiente: o.siguiente !== false,
+      /* segundo marcador opcional: el camión que va adelante del supervisor */
+      adelante: (typeof o.adelante === 'number') ? o.adelante : null, adelanteFin: !!o.adelanteFin,
       hitos: o.hitos !== false, pad: o.pad || 44, uMin: o.uMin || 0.5,
       extra: { t: 0, b: 0 },   /* lo que ocupan título (arriba) y leyenda/escala (abajo) */
       vb: null, u: 1, anims: [], vivo: true, entrada: o.entrada
@@ -394,13 +396,33 @@ window.MAPA = (function () {
           glifo('home', 0, 0, 12 * u, 'var(--naotech-app-background)') +
           etiqueta('Base', 24 * u, u));
 
-        /* camión */
+        /* Camión de adelante (21-sep · vista del supervisor en ruta): un
+           SEGUNDO marcador, el del camión que va por delante, para que quien
+           verifica sepa cuánto le lleva de ventaja. Se dibuja antes que el
+           marcador propio para que este quede encima si se cruzan. */
+        /* DC-072: morado — se confundía con Base (mismo --naotech-app-
+           color-900). El mensaje de arriba (estadoCamion, DC-018) ya explica
+           qué es, así que no hace falta una leyenda nueva acá. */
+        if (st.adelante !== null) {
+          var La = st.adelanteFin ? st.ruta.total : Lde(st.adelante);
+          var qa = puntoEn(La);
+          html += '<g class="nws-map__adelante" style="transform:translate(' + qa.x + 'px,' + qa.y + 'px)">' +
+            /* DC-096: rojo — pedido directo, corrige el morado de DC-072
+               (que ya distinguía de Base, pero el color de identidad del
+               camión pasó a ser rojo en toda la app). */
+            '<circle r="' + (13 * u) + '" fill="var(--naotech-color-red-700)" stroke="var(--naotech-app-background)" stroke-width="' + (3 * u) + '"></circle>' +
+            glifo('vehicles', 0, 0, 12 * u, 'var(--naotech-app-background)') +
+            etiqueta(st.adelanteFin ? 'Camión · terminó' : 'Camión', 22 * u, u) + '</g>';
+        }
+
+        /* camión (o, en la vista del supervisor, su propia posición) */
         if (st.camion) {
           var q = puntoEn(L);
           html += '<g class="nws-map__camion" style="transform:translate(' + q.x + 'px,' + q.y + 'px)">' +
             '<circle class="nws-map__halo" r="' + (24 * u) + '" fill="var(--naotech-theme-color-700)" opacity=".16"></circle>' +
             '<circle r="' + (14 * u) + '" fill="var(--naotech-theme-color-700)" stroke="var(--naotech-app-background)" stroke-width="' + (3 * u) + '"></circle>' +
-            glifo('vehicles', 0, 0, 13 * u, 'var(--naotech-theme-font-color)') + '</g>';
+            glifo(o.icono || 'vehicles', 0, 0, 13 * u, 'var(--naotech-theme-font-color)') +
+            (o.yoLabel ? etiqueta(o.yoLabel, 24 * u, u) : '') + '</g>';
         }
       }
       svg.innerHTML = html;
@@ -512,6 +534,8 @@ window.MAPA = (function () {
         if (s.ruta !== undefined) { st.ruta = s.ruta; reencuadrar = true; }
         if (s.hechas !== undefined) { st.hechas = s.hechas; }
         if (s.enBase !== undefined) { st.enBase = s.enBase; }
+        if (s.adelante !== undefined) { st.adelante = s.adelante; }
+        if (s.adelanteFin !== undefined) { st.adelanteFin = s.adelanteFin; }
         if (s.veil !== undefined) { o.veil = s.veil; }
         if (s.titulo !== undefined) { o.titulo = s.titulo; }
         cancelar();

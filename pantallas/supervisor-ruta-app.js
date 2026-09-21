@@ -1,7 +1,9 @@
 /**
- * Operario · app móvil (390×800) dentro de un marco de teléfono.
- * Vistas: hoy → mi ruta (mapa cuadrado + giro) → marcar parada (foto +
- * causal + observación) → ruta cerrada. Y historial.
+ * Supervisor en ruta · app móvil (390×800) dentro de un marco de teléfono.
+ * Va detrás del camión en tiempo y distancia: cuando abre un punto, las
+ * fotos del camión ya deberían estar. Vistas: hoy → mi ruta (mapa cuadrado
+ * + giro) → verificar parada (fotos del camión + foto propia opcional +
+ * juicio: conforme/hallazgo/no verificable) → ruta cerrada. Y historial.
  * Sin sidebar: la sesión se cierra desde la barra superior del escenario.
  *
  * Cómo se siente app y no página: el cromo del teléfono (barra de estado,
@@ -13,7 +15,7 @@
  * y los avisos salen dentro de la pantalla, no en la página que la aloja.
  */
 window.PANTALLAS = window.PANTALLAS || {};
-window.PANTALLAS['operario-app'] = (function () {
+window.PANTALLAS['supervisor-ruta-app'] = (function () {
 
   /* Latencia simulada de la app: misma perilla que el router (`?lento` la
      sube a 4s para mirar las siluetas con calma). Se lee al momento porque
@@ -39,6 +41,15 @@ window.PANTALLAS['operario-app'] = (function () {
       S.h('div', { class: 'nws-mob__status__r' },
         S.h('span', { class: 'nws-mob__status__sig' }, '<i></i><i></i><i></i><i></i>'),
         S.h('span', { class: 'nws-mob__status__bat' })));
+  }
+
+  /* DC-106: fila de marca fija arriba de #mob-bar — Naowee horizontal a la
+     izquierda, UAESP a la derecha. Estática (no la toca barra() en mount,
+     que solo repinta #mob-bar). Mismo patrón que conductor-app.js. */
+  function barraMarca(S, D) {
+    return S.h('div', { class: 'nws-mob__marca' },
+      S.h('div', { class: 'nws-mob__marca__naowee' }, window.NAOWEE.logo),
+      S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'small', variant: 'quiet', theme: 'neutral' }));
   }
 
   function tabbar(S, T, valor) {
@@ -103,13 +114,19 @@ window.PANTALLAS['operario-app'] = (function () {
        la carga se resuelve adentro del teléfono (mount), no repintando el
        marco. Ver `estable` en app.js. */
     estable: true,
-    titulo: 'App del operario',
+    titulo: 'Supervisor de Rutas',
 
     render: function (ctx) {
       var S = ctx.S, rol = ctx.rol, D = ctx.D, A = D.operarioApp;
-      return S.h('div', { class: 'nws-col', style: 'height:100%;background:var(--naotech-app-color-100)' },
+      /* Identidad de color de Supervisor (pedido directo) — fullscreen, no
+         pasa por shell(), se marca acá directo (ver app.js para el caso
+         sidebar/dashboard). */
+      return S.h('div', { class: 'nws-col nws-tema-supervisor', style: 'height:100%;background:var(--naotech-app-color-100)' },
         S.toolbar({
-          body: S.h('div', { class: 'nws-row nws-title-light' }, S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'small', variant: 'quiet', theme: 'neutral' }), S.title({ text: 'App del operario', subtitle: rol.nombre + ' · ' + rol.organizacion })),
+          /* DC-074: título en negrita, solo acá (nws-title-light--bold) —
+             conductor-app.js comparte esta misma fila y nadie pidió cambiarla
+             ahí. */
+          body: S.h('div', { class: 'nws-row nws-title-light nws-title-light--bold' }, S.h('div', { class: 'nws-title__naowee' }, window.NAOWEE.icono), S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'small', variant: 'quiet', theme: 'neutral' }), S.title({ text: 'Supervisor de Rutas', subtitle: rol.nombre + ' · ' + rol.organizacion })),
           actions: S.button({ label: 'Cambiar de perfil', icon: 'logout', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-logout': true } })
         }),
         S.h('div', { class: 'nws-phone-stage', id: 'stage' },
@@ -125,6 +142,7 @@ window.PANTALLAS['operario-app'] = (function () {
           S.h('div', { class: 'nws-phone', id: 'phone', 'nwt-theme': rol.theme },
             S.h('div', { class: 'nws-phone__screen nws-mob', id: 'mob' },
               barraEstado(S, A.evidencia.hora.slice(0, 5)),
+              barraMarca(S, D),
               S.h('div', { class: 'nws-mob__bar', id: 'mob-bar' }, barraCarga(S)),
               S.h('div', { class: 'nws-mob__view', id: 'mob-view' },
                 S.h('div', { class: 'nws-mob__body', 'aria-busy': 'true' }, esqueleto(S, 'hub', rol.theme))),
@@ -148,14 +166,25 @@ window.PANTALLAS['operario-app'] = (function () {
       var S = ctx.S, D = ctx.D, M = window.MAPA, A = D.operarioApp, T = ctx.rol.theme, e = S.esc;
       var barEl = root.querySelector('#mob-bar'), viewEl = root.querySelector('#mob-view'), navEl = root.querySelector('#mob-nav'), toastEl = root.querySelector('#mob-toast');
       var FOTOS = (D.revision && D.revision.evidenciaFotos) || [];
+      function foto(n) { return FOTOS.length ? 'background-image:url(' + FOTOS[n % FOTOS.length] + ');background-size:cover;background-position:center' : ''; }
+      var HALLAZGOS = (D.revision && D.revision.hallazgos) || [];
       var total = A.paradas.length;
       var HIST = A.historial || [];
+      var CUADRILLA = A.cuadrilla || [];
       var RUTA = M.rutas.operario(total);
 
       function estadoInicial() {
-        return { v: 'hub', marcadas: [], idx: 0, foto: false, fotoCargando: false, fotoRecien: false, nota: '', opt: false, causales: ['ok'], turnMore: false,
+        /* DC-063 (mismo pedido que DC-013 en conductor-app.js): el
+           acordeón de juicio arranca abierto. */
+        return { v: 'hub', marcadas: [], idx: 0, foto: false, fotoCargando: false, fotoRecien: false, juicio: null, hallazgosSel: [], nota: '', opt: true, turnMore: false,
           pos: 0, enBase: false, cargando: false, vistas: {}, enviando: false, cerrando: false, recien: null };
       }
+
+      /* El camión va SIEMPRE por delante: arranca con ventaja y mantiene un
+         colchón sobre lo verificado. Si ya llegó al final, se queda ahí —
+         "el camión terminó" es justamente lo que el supervisor necesita ver. */
+      var VENTAJA = 4;
+      function camionEn() { return Math.min(total, st.marcadas.length + VENTAJA); }
       var st = estadoInicial();
 
       /* Temporizadores: todos pasan por acá para poder cancelarlos al
@@ -166,6 +195,10 @@ window.PANTALLAS['operario-app'] = (function () {
 
       function km(m) { return m >= 1000 ? (Math.round(m / 100) / 10).toFixed(1).replace('.', ',') + ' km' : m + ' m'; }
       function sumDesde(desde, campo) { var t = 0; for (var i = desde; i < total; i++) { t += A.paradas[i][campo]; } return t; }
+      /* DC-018/019: distancia y tiempo entre dos paradas cualquiera —hace
+         falta para saber qué tan lejos va el camión (adelante) respecto a
+         dónde va el supervisor, no solo "cuántas paradas" de ventaja. */
+      function sumEntre(desde, hasta, campo) { var t = 0; for (var i = desde; i < hasta; i++) { t += A.paradas[i][campo]; } return t; }
       var GIRO_ICON = { u: 'arrow-up', r: 'arrow-right', l: 'arrow-left', f: 'positive' };
 
       /* ---------- toast dentro del teléfono ----------
@@ -201,21 +234,48 @@ window.PANTALLAS['operario-app'] = (function () {
         var sigIdx = Math.min(hechas, total - 1), GS = A.paradas[sigIdx];
         var body = '';
 
+        /* DC-018: "el camión va delante" — cuánto (en distancia y tiempo, no
+           solo en paradas) es lo que ordena el trabajo del supervisor, y se
+           necesita saber desde ANTES de iniciar (acá arriba), no solo una vez
+           en 'ruta' (donde ya vivía como estadoCamion, pero sin distancia). */
+        var cam = camionEn(), ventaja = cam - hechas, camFin = cam >= total;
+        var camDist = !camFin ? sumEntre(hechas, cam, 'm') : 0, camMin = !camFin ? sumEntre(hechas, cam, 'min') : 0;
+        /* DC-061: el mensaje quedó más largo desde DC-018 (ahora trae
+           distancia y tiempo) y suele partirse en dos líneas — el padding
+           vertical de .nws-mob__lock (8px, pensado para una línea corta)
+           lo dejaba pegado arriba y abajo. Se sube acá, sin tocar la clase
+           compartida con los lock de una sola línea en otras vistas. */
+        /* DC-095: elementos rojos que lo atan al marcador del mapa (DC-096,
+           mismo color) — el ícono y la palabra "camión". */
+        var estadoCamion = S.h('div', { class: 'nws-mob__lock nwt-smalltext-font-regular', style: 'padding-top:var(--naotech-sizing-12);padding-bottom:var(--naotech-sizing-12)' },
+          camFin ? S.icon('positive') : S.h('span', { style: 'color:var(--naotech-color-red-700)' }, S.icon('vehicles')),
+          S.h('b', { style: camFin ? undefined : 'color:var(--naotech-color-red-700)' }, 'El camión'),
+          camFin
+            ? ' ya terminó la ruta · te faltan ' + (total - hechas) + ' por verificar'
+            : ' va en la parada ' + cam + ' de ' + total + ' · ' + ventaja + (ventaja === 1 ? ' parada' : ' paradas') + ' (' + km(camDist) + ' · ' + camMin + ' min) por delante tuyo');
+
         if (st.v === 'hub') {
           var hero = hechas === 0
             ? S.h('div', { class: 'nwt-stat-card nws-stat-hero', 'nwt-theme': T, style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-8)' },
                 S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-stat-card__label' }, 'Tu jornada'), S.h('div', { class: 'nws-grow' }),
                   S.h('span', { class: 'nwt-smalltext-font-regular', style: 'color:inherit;opacity:.85' }, A.jornada.desde + ' — ' + A.jornada.hasta)),
-                /* DC-341: divider arriba también, simétrico al de abajo. */
-                S.h('div', { class: 'nws-row', style: 'justify-content:space-between;align-items:center;padding-top:var(--naotech-sizing-6);border-top:1px solid rgba(255,255,255,.22)' },
-                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'max-width:14ch' }, 'Unidades por recolectar'),
+                /* DC-079: mismo fondito claro que En ruta/Ritmo/Faltan
+                   (DC-060) en vez de dividers — pedido explícito para que
+                   los bloques del hero se vean consistentes (conductor y
+                   supervisor comparten el mismo tratamiento). */
+                S.h('div', { class: 'nws-mob__stat', style: 'flex-direction:row;justify-content:space-between;align-items:center;width:100%' },
+                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'max-width:14ch;text-align:left' }, 'Unidades por verificar'),
                   S.h('span', { class: 'nwt-stat-card__value', style: 'font-size:var(--naotech-sizing-40);line-height:var(--naotech-sizing-40)' }, total)),
-                S.h('div', { class: 'nws-row nws-row--md', style: 'justify-content:space-between;padding-top:var(--naotech-sizing-6);border-top:1px solid rgba(255,255,255,.22)' },
-                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'color:inherit' }, A.ruta.camion),
-                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'color:inherit' }, A.ruta.zona),
-                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'color:inherit' }, km(sumDesde(0, 'm')) + ' de recorrido')))
+                /* DC-019: acá vivía "camión · zona · km de recorrido" — la
+                   misma fila que Conductor, pero el kilometraje es de quien
+                   maneja, no de quien supervisa detrás. Se cambia por a quién
+                   se está verificando: el camión y su cuadrilla. */
+                S.h('div', { class: 'nws-row nws-row--md' },
+                  S.h('div', { class: 'nws-mob__stat' }, S.h('span', { class: 'nwt-smalltext-font-bold nws-clip', style: 'color:inherit;display:block;width:100%;text-align:center' }, A.ruta.camion)),
+                  S.h('div', { class: 'nws-mob__stat' }, S.h('span', { class: 'nwt-smalltext-font-bold nws-clip', style: 'color:inherit;display:block;width:100%;text-align:center' }, A.ruta.zona)),
+                  S.h('div', { class: 'nws-mob__stat' }, S.h('span', { class: 'nwt-smalltext-font-bold nws-clip', style: 'color:inherit;display:block;width:100%;text-align:center' }, (CUADRILLA.length ? CUADRILLA.map(function (c) { return c.nombre; }).join(' · ') : 'sin cuadrilla asignada')))))
             : S.h('div', { class: 'nwt-stat-card nws-stat-hero', 'nwt-theme': T, style: 'flex-direction:column;align-items:stretch;gap:var(--naotech-sizing-8)' },
-                S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-stat-card__label' }, 'Recolectadas hoy'), S.h('div', { class: 'nws-grow' }), S.h('span', { class: 'nws-live nws-live--chip nwt-smalltext-font-semibold' }, S.h('span', { class: 'nws-live__dot' }), 'en vivo')),
+                S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-stat-card__label' }, 'Verificadas hoy'), S.h('div', { class: 'nws-grow' }), S.h('span', { class: 'nws-live nws-live--chip nwt-smalltext-font-semibold' }, S.h('span', { class: 'nws-live__dot' }), 'en vivo')),
                 S.h('div', { class: 'nws-delta' }, S.h('span', { class: 'nwt-stat-card__value', style: 'font-size:var(--naotech-sizing-40);line-height:var(--naotech-sizing-40)' }, hechas), S.h('span', { class: 'nwt-stat-card__hint' }, 'de ' + total + ' de tu ruta')),
                 S.progress({ value: pct, size: 'medium', theme: T }),
                 S.h('div', { class: 'nws-mob__stats' },
@@ -229,9 +289,10 @@ window.PANTALLAS['operario-app'] = (function () {
                 S.h('div', { class: 'nws-grow', style: 'min-width:0' }, S.h('div', { class: 'nwt-smalltext-font-semibold nws-nxt__l' }, 'Siguiente parada'), S.h('div', { class: 'nwt-caption-font-medium nws-clip' }, e(GS.dir))),
                 S.h('div', { class: 'nws-stop__et' }, S.h('span', { class: 'nwt-caption-font-bold' }, km(GS.m)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, GS.min + ' min')))
             : '';
-          var hint = hechas === 0
-            ? S.h('div', { class: 'nws-mob__lock nwt-smalltext-font-regular' }, S.icon('shipping'), 'Al iniciar se activa el mapa y las paradas se habilitan una por una, en orden.')
-            : '';
+          /* DC-018: acá vivía un aviso genérico ("al iniciar se activa el
+             mapa…"); lo que hacía falta era saber dónde va el camión — así
+             que `hint` pasa a ser estadoCamion, antes y durante la ruta. */
+          var hint = estadoCamion;
 
           body =
             hero +
@@ -267,6 +328,8 @@ window.PANTALLAS['operario-app'] = (function () {
              camión sale de la base, va a la siguiente unidad al marcarla y, con
              la ruta completa, vuelve al patio. */
           var mapa = S.h('div', { class: 'nws-mmap', id: 'mmap' });
+          /* cam/ventaja/camFin/estadoCamion ya se calcularon arriba (comunes
+             a 'hub' y 'ruta' — DC-018). */
 
           var siguientes = A.paradas.slice(sigIdx + 1, sigIdx + 5);
           var turn = S.h('div', { class: 'nws-turn nws-turn--sticky' },
@@ -289,7 +352,7 @@ window.PANTALLAS['operario-app'] = (function () {
           var recien = st.recien; st.recien = null;
           var lista = S.h('div', { class: 'nws-stops nws-stops--flow' }, A.paradas.map(function (p, k) {
             var done = k < hechas, next = k === sigIdx && !completa;
-            var meta = done ? p.tipo.toLowerCase() + ' · marcada ' + p.hora : next ? p.tipo.toLowerCase() + ' · tocá para recolectar' : p.tipo.toLowerCase() + ' · se habilita en turno';
+            var meta = done ? p.tipo.toLowerCase() + ' · marcada ' + p.hora : next ? p.tipo.toLowerCase() + ' · tocá para verificar' : p.tipo.toLowerCase() + ' · se habilita en turno';
             return S.h('div', { class: S.cls('nws-stop', done && 'nws-stop--hecha', next && 'nws-stop--actual', !done && !next && 'nws-stop--lk', next && 'nws-stop--click', recien !== null && (k === recien || next) && 'nws-stop--recien'), 'data-parada': next ? k : undefined },
               S.h('div', { class: 'nws-stop__n nwt-smalltext-font-semibold' }, done ? S.icon('positive') : k + 1),
               S.h('div', { class: 'nws-grow nws-col' }, S.h('span', { class: 'nws-stop__dir nwt-body-font-medium' }, e(p.dir)), S.h('span', { class: 'nws-stop__meta nwt-smalltext-font-regular' }, e(meta))),
@@ -298,53 +361,65 @@ window.PANTALLAS['operario-app'] = (function () {
               next && S.icon('chevron-right', 'nws-soft'));
           }));
 
-          body = mmapHd + mapa + lista + (completa ? S.button({ label: 'Cerrar ruta', size: 'large', variant: 'loud', theme: 'positive', loading: st.cerrando, attrs: { 'data-m': 'cerrar' } }) : '') + turn;
+          body = mmapHd + mapa + estadoCamion + lista + (completa ? S.button({ label: 'Cerrar ruta', size: 'large', variant: 'loud', theme: 'positive', loading: st.cerrando, attrs: { 'data-m': 'cerrar' } }) : '') + turn;
         }
 
         if (st.v === 'marcar') {
           var p = A.paradas[st.idx];
-          var TODAS = [{ id: 'ok', txt: 'Recolectado', rec: true }].concat(A.causales);
-          var elegidas = TODAS.filter(function (c) { return st.causales.indexOf(c.id) >= 0; });
-          var requiereObs = elegidas.some(function (c) { return !c.rec; });
-          var resumen = elegidas.length ? elegidas.map(function (c) { return c.txt; }).join(', ') : 'Elegí qué pasó';
+          var JUICIOS = [{ id: 'conforme', txt: 'Conforme' }, { id: 'hallazgo', txt: 'Hallazgo' }, { id: 'no_verificable', txt: 'No verificable' }];
+          var elegido = JUICIOS.filter(function (c) { return c.id === st.juicio; })[0];
+          var resumen = elegido ? elegido.txt : 'Elegí un juicio';
           var opts = S.h('div', { class: 'nws-opt' },
             S.h('div', { class: 'nws-opt__h nwt-caption-font-semibold', 'data-m': 'toggleopt' },
               S.icon('filter', 'nws-soft'),
               S.h('span', { class: 'nws-grow nwt-body-font-semibold' }, resumen),
               S.icon(st.opt ? 'chevron-up' : 'chevron-down', 'nws-soft')) +
-            /* El cuerpo se emite SIEMPRE, abierto o cerrado, y lo que cambia es
-               la clase del panel: sin un nodo estable en el DOM no hay dos
-               estados entre los que transicionar, y el acordeón aparecía de
-               golpe empujando todo lo de abajo. Es la misma técnica de
+            /* El cuerpo se emite SIEMPRE, abierto o cerrado — misma técnica de
                NwtAccordion (grid-template-rows 0fr↔1fr), ver .nws-opt__p. */
             S.h('div', { class: S.cls('nws-opt__p', st.opt && 'nws-opt__p--open') },
-              S.h('div', { class: 'nws-opt__b' }, TODAS.map(function (c) {
-                var on = st.causales.indexOf(c.id) >= 0;
-                /* La × se emite siempre y la esconde el CSS: si se agregara al
-                   elegir, el chip se ensancharía de golpe y recorrería la fila. */
-                return S.h('div', { class: S.cls('nws-opt__c nwt-smalltext-font-semibold', on && 'nws-opt__c--on'), 'data-causal': c.id }, e(c.txt), S.h('span', { class: 'nws-opt__c__x' }, '×'));
+              S.h('div', { class: 'nws-opt__b' }, JUICIOS.map(function (c) {
+                var on = st.juicio === c.id;
+                return S.h('div', { class: S.cls('nws-opt__c nwt-smalltext-font-semibold', on && 'nws-opt__c--on'), 'data-juicio': c.id }, e(c.txt), on ? S.h('span', { class: 'nws-opt__c__x' }, '×') : '');
               }))));
-          /* Tres estados de la caja de foto: vacía (tocar), capturando (spinner
-             en lugar del ícono, mismo tamaño) y con foto — que entra con scale
-             la primera vez que aparece y se queda quieta en los repintados
-             siguientes (chips, observación). */
+
+          /* A diferencia del conductor, acá SÍ hay evidencia previa que ver:
+             el camión ya capturó sus dos ángulos cuando el conductor marcó el
+             punto — el supervisor llega después, en su propio tiempo. */
+          /* DC-062: mínimo 14px en esta vista — los badges 'small' quedaban
+             en 10px, se suben a 'large' (14px). */
+          var truckFotos = S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-6)' },
+            S.h('span', { class: 'nwt-smalltext-font-semibold nws-dark' }, 'Fotos del camión'),
+            S.h('div', { class: 'nws-row', style: 'gap:var(--naotech-sizing-6)' },
+              S.h('div', { class: 'nws-ev__cam nws-ev__photo', style: 'flex:1;min-height:84px;' + foto(st.idx * 3 + 1) }, S.h('span', { class: 'nws-ev__tag' }, S.badge({ label: 'truck-cam-left', size: 'large', theme: 'neutral' }))),
+              S.h('div', { class: 'nws-ev__cam nws-ev__photo', style: 'flex:1;min-height:84px;' + foto(st.idx * 3 + 2) }, S.h('span', { class: 'nws-ev__tag' }, S.badge({ label: 'truck-cam-right', size: 'large', theme: 'neutral' })))));
+
+          /* Tres estados de la caja de foto propia: vacía (tocar), capturando
+             y con foto — la del supervisor sigue siendo manual, refuerza su
+             verificación, no la del camión. */
           var fotoRecien = st.fotoRecien; st.fotoRecien = false;
           var caja = S.h('button', { type: 'button', class: S.cls('nws-box nwt-smalltext-font-semibold', st.foto && 'nws-box--on', st.fotoCargando && 'nws-box--busy'),
               'aria-busy': st.fotoCargando ? 'true' : undefined, disabled: st.fotoCargando || undefined,
               'nwt-motion': fotoRecien ? 'scale' : undefined, 'nwt-motion-intent': fotoRecien ? 'enter' : undefined, 'nwt-motion-easing': fotoRecien ? 'deceleration' : undefined,
-              style: 'flex:1;min-height:120px;font:inherit;' + (st.foto && FOTOS.length ? 'background-image:url(' + FOTOS[st.idx % FOTOS.length] + ');background-size:cover;background-position:center' : ''), 'data-m': 'foto' },
-            st.foto ? S.h('span', { class: 'nws-ev__tag' }, S.badge({ label: 'Foto capturada', size: 'small', theme: 'positive' })) : st.fotoCargando ? S.spinner({ theme: T }) : S.icon('camera'),
-            st.foto ? '' : S.h('span', { class: 'nwt-caption-font-semibold' }, st.fotoCargando ? 'Capturando…' : 'Tomar foto de evidencia'),
-            st.foto ? '' : S.h('span', { class: 'nwt-smalltext-font-regular' }, st.fotoCargando ? 'guardando hora y coordenada' : 'tocá acá · la hora y la coordenada se capturan solas'));
+              style: 'flex:1;min-height:100px;font:inherit;' + (st.foto ? foto(st.idx * 3) : ''), 'data-m': 'foto' },
+            st.foto ? S.h('span', { class: 'nws-ev__tag' }, S.badge({ label: 'Foto capturada', size: 'large', theme: 'positive' })) : st.fotoCargando ? S.spinner({ theme: T }) : S.icon('camera'),
+            st.foto ? '' : S.h('span', { class: 'nwt-smalltext-font-semibold' }, st.fotoCargando ? 'Capturando…' : 'Tu foto de verificación'),
+            st.foto ? '' : S.h('span', { class: 'nwt-smalltext-font-regular' }, st.fotoCargando ? 'guardando hora y coordenada' : 'tocá acá · opcional, refuerza tu verificación'));
           body =
             S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-4)' },
               S.h('span', { class: 'nwt-subtitle-font-bold' }, e(p.dir)),
-              S.h('div', { class: 'nws-row' }, S.badge({ label: p.tipo, size: 'small', theme: 'neutral' }), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Unidad ' + p.uid))) +
+              S.h('div', { class: 'nws-row' }, S.badge({ label: p.tipo, size: 'large', theme: 'neutral' }), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Unidad ' + p.uid))) +
+            truckFotos +
             caja +
             (st.foto ? S.h('div', { class: 'nwt-smalltext-font-regular nws-muted', style: 'margin-top:var(--naotech-sizing-4)', 'nwt-motion': fotoRecien ? 'fade' : undefined, 'nwt-motion-intent': fotoRecien ? 'enter' : undefined }, A.evidencia.hora + ' · ' + A.evidencia.coordenada + ' — capturado por el dispositivo') : '') +
             opts +
-            S.textArea({ label: requiereObs ? 'Observación (requerida por la novedad)' : 'Observación (opcional)', placeholder: 'Solo si hace falta…', rows: 2, size: 'small', value: st.nota, name: 'nota' }) +
-            S.button({ label: st.enviando ? 'Enviando…' : 'Enviar', size: 'large', variant: 'loud', theme: T, disabled: !st.foto, loading: st.enviando, attrs: { 'data-m': 'marcar', style: 'height:52px' } });
+            (st.juicio === 'hallazgo' ? S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-6)' },
+              S.h('span', { class: 'nwt-smalltext-font-semibold nws-dark' }, 'Qué encontraste'),
+              S.h('div', { class: 'nws-row', style: 'flex-wrap:wrap;gap:var(--naotech-sizing-6)' }, HALLAZGOS.map(function (hz, i) {
+                var on = st.hallazgosSel.indexOf(i) >= 0;
+                return S.h('div', { class: S.cls('nws-opt__c nwt-smalltext-font-semibold', on && 'nws-opt__c--on'), 'data-hallazgo': i }, e(hz), on ? S.h('span', { class: 'nws-opt__c__x' }, '×') : '');
+              }))) : '') +
+            S.textArea({ label: st.juicio === 'hallazgo' ? 'Observación (requerida por el hallazgo)' : 'Observación (opcional)', placeholder: 'Solo si hace falta…', rows: 2, size: 'small', value: st.nota, name: 'nota' }) +
+            S.button({ label: st.enviando ? 'Enviando…' : 'Enviar', size: 'large', variant: 'loud', theme: T, disabled: !st.juicio, loading: st.enviando, attrs: { 'data-m': 'marcar', style: 'height:52px' } });
         }
 
         if (st.v === 'fin') {
@@ -356,7 +431,7 @@ window.PANTALLAS['operario-app'] = (function () {
               S.h('div', { class: 'nws-mob__fin-ic', 'nwt-motion': 'scale', 'nwt-motion-intent': 'enter', 'nwt-motion-duration': 'slow', 'nwt-motion-easing': 'deceleration' }, S.icon('positive')),
               S.h('div', { class: 'nws-col', 'nwt-motion': 'fade', 'nwt-motion-intent': 'enter', style: 'align-items:center;gap:var(--naotech-sizing-4);animation-delay:var(--naotech-duration-fast)' },
                 S.h('span', { class: 'nwt-subtitle-font-bold' }, 'Ruta ejecutada'),
-                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted', style: 'padding:0 var(--naotech-sizing-24)' }, e(A.ruta.codigo) + ' · las ' + total + ' unidades quedaron marcadas con evidencia y ya viajan al supervisor.'))) +
+                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted', style: 'padding:0 var(--naotech-sizing-24)' }, e(A.ruta.codigo) + ' · las ' + total + ' unidades quedaron verificadas y ya viajan al operador para su cierre.'))) +
             S.card({ size: 'small', cls: 'nws-card--none nws-card--flush', attrs: { 'nwt-motion': 'slide', 'nwt-motion-direction': 'up', 'nwt-motion-intent': 'enter', style: 'animation-delay:var(--naotech-duration-base)' }, content: S.h('div', { class: 'nws-row', style: 'gap:0' },
               [['Unidades', total], ['Evidencias', total], ['Duración', '2h34']].map(function (kv, i) {
                 return S.h('div', { class: 'nws-col nws-grow', style: 'padding:var(--naotech-sizing-12) var(--naotech-sizing-14);' + (i < 2 ? 'border-right:1px solid var(--naotech-app-color-200)' : '') },
@@ -406,7 +481,11 @@ window.PANTALLAS['operario-app'] = (function () {
         var el = viewEl.querySelector('.nws-mob__body:not(.nws-mob__body--saliente) #mmap'); if (!el) { return; }
         var hechas = st.marcadas.length, completa = hechas === total;
         var desde = Math.min(st.pos, hechas);
-        mapaMob = M.crear(el, { ruta: RUTA, hechas: desde, enBase: st.enBase, pad: 34, uMin: 0.7, aria: 'Mapa de la ruta' });
+        /* Dos marcadores: el camión adelante (su avance lo simula camionEn())
+           y el supervisor atrás, en lo que lleva verificado. */
+        mapaMob = M.crear(el, { ruta: RUTA, hechas: desde, enBase: st.enBase, pad: 34, uMin: 0.7,
+          adelante: camionEn(), adelanteFin: camionEn() >= total, yoLabel: 'Tú', icono: 'visibility-on',
+          aria: 'Mapa de la ruta: el camión adelante y tu posición de verificación' });
         if (desde < hechas) { mapaMob.animarA(hechas).then(function () { st.pos = hechas; }); }
         else if (completa && !st.enBase) { mapaMob.animarA(total + 1, 2600).then(function () { st.enBase = true; }); }
         st.pos = hechas;
@@ -503,14 +582,13 @@ window.PANTALLAS['operario-app'] = (function () {
            ya está diciendo que trabaja */
         if (st.enviando || st.cerrando || st.fotoCargando) { return; }
         var tab = t.closest('#mob-tabs [data-tab]'); if (tab) { var v = tab.getAttribute('data-tab'); if (st.v !== v) { irATab(v); } return; }
-        var par = t.closest('[data-parada]'); if (par) { st.idx = +par.getAttribute('data-parada'); st.foto = false; st.fotoRecien = false; st.nota = ''; st.opt = false; st.causales = ['ok']; irA('marcar', 'push'); return; }
-        var ca = t.closest('[data-causal]');
-        if (ca) {
-          var id = ca.getAttribute('data-causal');
-          var pos = st.causales.indexOf(id);
-          if (pos >= 0) { st.causales.splice(pos, 1); } else { st.causales.push(id); }
-          var elegida = null; A.causales.forEach(function (c) { if (c.id === id) { elegida = c; } });
-          if (elegida && pos < 0 && !st.nota) { st.nota = elegida.obs; }
+        var par = t.closest('[data-parada]'); if (par) { st.idx = +par.getAttribute('data-parada'); st.foto = false; st.fotoRecien = false; st.nota = ''; st.opt = true; st.juicio = null; st.hallazgosSel = []; irA('marcar', 'push'); return; }
+        var ju = t.closest('[data-juicio]'); if (ju) { st.juicio = ju.getAttribute('data-juicio'); if (st.juicio !== 'hallazgo') { st.hallazgosSel = []; } pintar('none'); return; }
+        var hl = t.closest('[data-hallazgo]');
+        if (hl) {
+          var hi = +hl.getAttribute('data-hallazgo');
+          var hpos = st.hallazgosSel.indexOf(hi);
+          if (hpos >= 0) { st.hallazgosSel.splice(hpos, 1); } else { st.hallazgosSel.push(hi); }
           pintar('none'); return;
         }
         var m = t.closest('[data-m]'); if (!m) { return; }
@@ -532,17 +610,17 @@ window.PANTALLAS['operario-app'] = (function () {
           timer(function () { if (tokF !== seq || st.v !== 'marcar') { return; } st.fotoCargando = false; st.foto = true; st.fotoRecien = true; pintar('none'); }, Math.round(latencia() * 1.3));
           return;
         }
-        if (a === 'marcar' && st.foto) {
+        if (a === 'marcar' && st.juicio) {
           st.enviando = true; pintar('none');
           var tokE = ++seq, idx = st.idx;
           timer(function () {
             if (tokE !== seq || st.v !== 'marcar') { return; }
             st.enviando = false;
             if (st.marcadas.indexOf(idx) < 0) { st.marcadas.push(idx); }
-            st.recien = idx; st.foto = false; st.nota = ''; st.opt = false; st.causales = ['ok'];
+            st.recien = idx; st.foto = false; st.nota = ''; st.opt = true; st.juicio = null; st.hallazgosSel = [];
             irA('ruta', 'pop');
             var quedan = total - st.marcadas.length;
-            toastMob({ title: 'Parada ' + (idx + 1) + ' marcada', message: quedan ? 'Evidencia enviada · faltan ' + quedan + ' de ' + total : 'Evidencia enviada · ruta completa, ya podés cerrarla', theme: 'positive', icon: 'positive' });
+            toastMob({ title: 'Parada ' + (idx + 1) + ' verificada', message: quedan ? 'Faltan ' + quedan + ' de ' + total : 'Ruta completa, ya podés cerrarla', theme: 'positive', icon: 'positive' });
           }, Math.round(latencia() * 1.6));
           return;
         }

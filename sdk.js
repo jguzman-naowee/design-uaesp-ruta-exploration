@@ -591,8 +591,12 @@ window.SDK = (function () {
         /* DC-350: el pie institucional (o.footer) va DENTRO del footer del
            sidebar y antes del logout, así "Cambiar de perfil" es el último
            item y los dos quedan juntos, no en dos bloques separados. */
+        /* DC-117: entre el pie institucional y el logout va un divider real
+           (NwtDivider), no un border-top sobre el botón — así el botón
+           conserva su caja normal y la separación es simétrica. */
         h('div', { class: 'nwt-sidebar__footer' },
           o.footer || '',
+          o.footer ? divider({ cls: 'nws-owner__divider' }) : '',
           h('button', { class: 'nwt-sidebar__footer__logout', type: 'button', 'data-logout': true },
             icon('logout', 'nwt-sidebar__menu__icon'),
             h('span', { class: 'nwt-sidebar__footer__logout__label' }, esc(o.logoutLabel || 'Cerrar sesión'))))));

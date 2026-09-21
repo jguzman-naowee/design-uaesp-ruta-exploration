@@ -1,7 +1,7 @@
 # UAESP · Módulo de Rutas — alta fidelidad sobre el SDK de Naowee
 
 Paquete de front plano (HTML/CSS/JS, sin npm ni build) que reconstruye las
-siete pantallas del módulo con el SDK real. Cuatro roles, login ficticio.
+ocho pantallas del módulo con el SDK real. Cinco roles, login ficticio.
 
 ## Abrirlo
 
@@ -9,14 +9,15 @@ Doble clic en `index.html`. Es **el mismo archivo que está publicado**: una sol
 página con todo embebido. Funciona sin servidor.
 
 Entrada: selector de perfil. `#/salir` o "Cerrar sesión" vuelven ahí.
-Para compartir un link a una pantalla concreta: `index.html?rol=supervisor#/supervisor`.
+Para compartir un link a una pantalla concreta: `index.html?rol=supervisor#/supervisor-dashboard`.
 
 | Rol | Pantallas |
 |---|---|
 | Administrador | `#/admin` hub · `#/admin/entrega` revisar antes de entregar |
 | Operador | `#/operador` hub en vivo · `#/operador/ruta` detalle de ruta en vivo |
-| Operario | `#/operario` app móvil (hoy → mi ruta → marcar → cerrada · historial). Cromo fijo, vistas con push/pop, silueta por vista, toast interno; `?lento` alarga las cargas |
-| Supervisor | `#/supervisor` tablero/tabla · `#/supervisor/revision` revisión de ruta |
+| Conductor | `#/conductor` app móvil (hoy → mi ruta → marcar → cerrada · historial). Cromo fijo, vistas con push/pop, silueta por vista, toast interno; `?lento` alarga las cargas |
+| Supervisor en ruta | `#/supervisor-ruta` misma app móvil que Conductor (idéntica por ahora — se creó por duplicación y aún no diverge) |
+| Supervisor | `#/supervisor-dashboard` tablero/tabla · `#/supervisor/revision` revisión de ruta |
 
 ## Qué es y qué no es
 
@@ -26,7 +27,8 @@ histórico, reasignar, etc.) responde con un toast de una sola línea, **"‹fun
 próximamente"**. Sale de `proximamente()` en `app.js`: los botones
 marcados con `data-toast`, los enlaces del menú a rutas que no están en `RUTAS`,
 y una red de seguridad para cualquier control clickeable sin `data-*` que lo
-escuche. Dentro del teléfono del operario el aviso sale en el propio teléfono.
+escuche. Dentro del teléfono de la app móvil (Conductor, Supervisor en ruta) el
+aviso sale en el propio teléfono.
 
 **Es** una maqueta de alta fidelidad: carga el CSS real de
 `sdk-frontend-foundations` y emite la misma anatomía que los componentes

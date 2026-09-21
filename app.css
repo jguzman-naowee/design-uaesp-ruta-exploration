@@ -66,14 +66,50 @@ body {
    se resuelve con `order`, sin tocar la anatomía. */
 /* DC-001 (bis): el alto NO se toca — debe coincidir con el toolbar principal
    (--naotech-toolbar-height, 88px); solo cambian padding y orden. */
-.nwt-sidebar__toolbar { padding: 0 var(--naotech-sizing-8) 0 var(--naotech-sizing-20); }
-.nwt-sidebar__toolbar__logo { order: 1; flex: 1; min-width: 0; }
-.nwt-sidebar__toolbar__button { order: 2; margin-left: auto; }
-.nwt-sidebar--collapsed .nwt-sidebar__toolbar { padding: 0 var(--naotech-sizing-8); justify-content: center; }
-.nwt-sidebar--collapsed .nwt-sidebar__toolbar__button { margin-left: 0; }
+/* DC-046: 8px de gap entre todo lo del toolbar del sidebar (toggle ↔ logo,
+   y adentro del logo, isotipo ↔ fila UAESP — antes 6px). */
+/* DC-066: padding vertical (el alto fijo de 88px, DC-001bis, no se toca —
+   solo se redistribuye) + 16px mínimo de separación entre todo lo de acá
+   (toggle, isotipo, fila UAESP), antes 8px (DC-046). */
+/* DC-071: el chevron sube a alinearse con el isotipo (primera línea del
+   bloque de marca), no centrado contra las dos líneas (isotipo + UAESP). */
+/* DC-084: padding-bottom ajustado en vivo con el editor de estilos: 24px
+   (antes 12px, simétrico con el top). */
+/* DC-089: el logo compartía fila con el botón de colapsar (flex:1 sobre lo
+   que sobraba, nunca el 100% real) — el botón pasa a "flotante" (absolute),
+   en línea con la primera fila del logo (mismo padding-top del toolbar), y
+   el logo queda solo en la fila, full width de verdad. */
+.nwt-sidebar__toolbar { position: relative; padding: var(--naotech-sizing-12) var(--naotech-sizing-8) var(--naotech-sizing-24) var(--naotech-sizing-20); gap: var(--naotech-sizing-16); align-items: flex-start; }
+/* DC-085: full width explícito (flex:1 ya lo estiraba, pero sin width la
+   caja quedaba angosta para .nws-brand igual). */
+.nwt-sidebar__toolbar__logo { order: 1; flex: 1; width: 100%; min-width: 0; padding-right: var(--naotech-sizing-40); box-sizing: border-box; }
+/* DC-089: flotante — sale del flex, ya no le come ancho al logo, y queda
+   en línea con la primera fila (mismo padding-top:12px del toolbar). */
+.nwt-sidebar__toolbar__button { position: absolute; top: var(--naotech-sizing-12); right: var(--naotech-sizing-8); }
+/* DC-108: colapsado, el toggle y el ícono quedaban lado a lado (row +
+   centrado); pedido apiladO — toggle arriba, ícono/logo abajo. El order ya
+   los dejaba en esa secuencia (botón:0, logo:1), solo faltaba el column. */
+.nwt-sidebar--collapsed .nwt-sidebar__toolbar { padding: var(--naotech-sizing-12) var(--naotech-sizing-8); flex-direction: column; align-items: center; justify-content: center; }
+/* Colapsado vuelve al flujo normal (centrado con el logo) — lo flotante es
+   solo para la fila expandida, donde compite por ancho con .nws-brand. */
+.nwt-sidebar--collapsed .nwt-sidebar__toolbar__button { position: static; margin-left: 0; }
+.nwt-sidebar--collapsed .nwt-sidebar__toolbar__logo { padding-right: 0; }
 /* DC-350: el pie institucional ahora vive dentro de nwt-sidebar__footer,
    pegado al logout: sin borde superior propio ni padding lateral extra. */
 .nwt-sidebar__footer > .nws-owner { border-top: none; padding: var(--naotech-sizing-8) var(--naotech-sizing-12) 0; }
+/* DC-008: el pie (organización + cambiar de perfil) quedaba pegado al menú
+   de navegación sin separación. El divider va en el footer mismo, no en
+   .nws-owner (que ya renuncia al suyo por DC-350). */
+.nwt-sidebar__footer { border-top: 1px solid var(--naotech-app-color-200); }
+/* DC-024: divider también ENTRE la organización y "Cambiar de perfil" —
+   solo cuando hay organización delante (si no, ya alcanza con el de arriba,
+   uno pegado al otro se vería doble). */
+/* DC-097: 4px → 16px — regla compartida (shell), aplica a todos los
+   sidepanels por igual, no por pantalla. */
+/* DC-117 (cierra DC-024/DC-097/DC-113): el divider dejó de ser un border-top
+   sobre el botón — es un NwtDivider real (sdk.js) entre .nws-owner y el
+   logout, con 16px a cada lado. El botón vuelve a su caja normal. */
+.nwt-sidebar__footer > .nws-owner__divider { margin: var(--naotech-sizing-16) 0; }
 /* OVERRIDE (DC-357): NwtDatatable separa columnas con column-gap 16px. En
    tablas de 7-8 columnas dentro de un split eso son ~100px que no muestran
    nada mientras Operador se recorta; se baja a 12px en todo el demo. */
@@ -92,10 +128,13 @@ body {
    nws-list__row--click. */
 [data-ir] { cursor: pointer; }
 
+/* DC-069: 48px mínimo entre secciones de primer nivel — 24px generaba
+   demasiada carga cognitiva agrupando bloques que en realidad son
+   independientes (stats, tabla de rutas, paneles del split). */
 .nwt-app__content {
   display: flex;
   flex-direction: column;
-  gap: var(--naotech-sizing-24);
+  gap: var(--naotech-sizing-48);
 }
 
 /* -------------------------------------------------------------------
@@ -142,9 +181,44 @@ body {
 }
 .nwt-sidebar--collapsed .nws-owner { display: none; }
 
-/* Marca en la toolbar del sidebar */
-.nws-brand { display: flex; align-items: center; gap: var(--naotech-sizing-8); min-width: 0; }
-.nwt-sidebar--collapsed .nws-brand__text { display: none; }
+/* Marca en la toolbar del sidebar (pedido 21-sep): Naowee arriba como
+   principal, UAESP debajo más chica con un divisor entre las dos —
+   "conviven" pero no compiten en peso visual. El toolbar mide 88px fijos
+   (DC-351, alineado al toolbar principal) sin padding vertical propio, así
+   que el aire de las dos filas sale de achicar su contenido (logo, avatar,
+   texto, badge), no de agregar padding que desbordaría la caja. */
+/* DC-066: 16px mínimo también acá (isotipo ↔ fila UAESP), antes 8px. */
+.nws-brand { display: flex; flex-direction: column; gap: var(--naotech-sizing-16); width: 100%; min-width: 0; }
+/* DC-047: 1.5x (1.125rem → 1.6875rem). */
+.nws-brand__naowee svg { display: block; height: 1.6875rem; width: auto; }
+/* DC-071: más aire alrededor del divider — antes 8px, el mismo gap que
+   separaba el resto de los elementos (ya subido a 16px, DC-066). */
+/* DC-118 (bis): logo de la UAESP a la izquierda y, a su derecha, la sigla
+   con el badge del portal debajo (.nws-brand__text ya es columna, DC-053). */
+.nws-brand__tenant { display: flex; flex-direction: row; align-items: center; gap: var(--naotech-sizing-8); padding-top: var(--naotech-sizing-16); border-top: 1px solid var(--naotech-app-color-200); min-width: 0; }
+/* DC-053: era una fila (sigla + badge de portal lado a lado) — pasa a
+   columna, cada uno en su línea. */
+.nws-brand__text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--naotech-sizing-4); min-width: 0; }
+/* DC-088: colapsado, solo el isotipo de Naowee — antes solo se ocultaba el
+   texto (UAESP + badge) y el avatar de la organización quedaba solo,
+   huérfano, en su propia fila. Se oculta la fila entera. */
+.nwt-sidebar--collapsed .nws-brand__tenant { display: none; }
+/* DC-105: el logo horizontal completo y el isotipo compacto conviven en el
+   DOM (app.js); acá se decide cuál se ve. Expandido: el completo, el
+   compacto oculto. Colapsado: al revés, y se reabre nwt-sidebar__toolbar__
+   logo (el SDK lo esconde entero con !important propio — ver vendor/
+   components.css, .nwt-sidebar--collapsed .nwt-sidebar__toolbar__logo). */
+.nws-brand__naowee--compact { display: none; }
+.nws-brand__naowee--compact svg { display: block; height: var(--naotech-sizing-32); width: var(--naotech-sizing-32); }
+.nwt-sidebar--collapsed .nwt-sidebar__toolbar .nwt-sidebar__toolbar__logo { display: flex !important; justify-content: center; padding-right: 0; }
+.nwt-sidebar--collapsed .nws-brand { align-items: center; }
+.nwt-sidebar--collapsed .nws-brand__naowee { display: none; }
+.nwt-sidebar--collapsed .nws-brand__naowee--compact { display: block; }
+
+/* Mismo isotipo de Naowee, chico, en toolbars/nav donde solo entra un ícono
+   (apps móviles, showroom) — ver marca.js. */
+/* DC-073: mismo alto garantizado que el avatar 'small' de al lado (40px). */
+.nws-title__naowee svg { display: block; height: var(--naotech-sizing-40); width: var(--naotech-sizing-40); flex: none; }
 
 /* -------------------------------------------------------------------
    Fila de indicadores. NwtStatCard no trae contenedor.
@@ -201,6 +275,9 @@ body {
 .nws-stat-hero .nwt-stat-card__hint { opacity: .82; }
 .nws-stat-hero .nwt-progress-bar__track { background: var(--naotech-theme-color-500) !important; }
 .nws-stat-hero .nwt-progress-bar__fill  { background: var(--naotech-theme-font-color) !important; }
+/* DC-048: quedó resuelto de raíz por .nws-tema-supervisor (más abajo) —
+   ahora theme="primary" YA es teal dentro de las pantallas de Supervisor,
+   así que .nws-stat-hero (arriba) no necesita un override aparte. */
 
 /* Una silueta no lleva marco: el borde y la sombra de la tarjeta dibujan algo
    que todavía no existe, y en una lista de cuatro siluetas se leen como cuatro
@@ -360,6 +437,10 @@ body {
   border-radius: var(--naotech-radius-lg);
   color: var(--naotech-app-color-700);
 }
+/* DC-093: mini-cards de camionCard() (Lat/Lng/Última captura) — mismo
+   fondo/radio que .nws-note, pero en columna (label chico arriba, valor
+   abajo), para leerse como dato aparte y no como una nota de una línea. */
+.nws-camion-stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: var(--naotech-sizing-8) var(--naotech-sizing-10); background: var(--naotech-app-color-050); border-radius: var(--naotech-radius-lg); }
 
 /* Par clave/valor */
 .nws-kv { display: flex; gap: var(--naotech-sizing-12); align-items: baseline; }
@@ -415,10 +496,8 @@ body {
   border: 1px solid var(--naotech-app-color-200);
   border-radius: var(--naotech-radius-xl);
   background-color: var(--naotech-app-background);
-  /* DC-336: gradiente sutil de abajo hacia arriba, negro a transparente y
-     con poca opacidad general, para que el fondo (tint o no) se lea con
-     algo de profundidad en vez de plano. */
-  background-image: linear-gradient(to top, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0) 65%);
+  /* DC-112 (revierte DC-336): el gradiente se veía como una mancha, no como
+     profundidad — fondo plano. */
   cursor: pointer; text-align: left;
   display: flex; flex-direction: column; gap: var(--naotech-sizing-4);
   color: inherit; font: inherit;
@@ -481,13 +560,28 @@ body {
    hijo del nws-grow.nws-col, así que necesita su propia regla. */
 .nws-pick .nwt-card__content > .nws-pick__stats { margin-top: auto; }
 .nws-pick__stat { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+/* DC-040: solo la card de vehículo (Flota) — el picker de operador sigue
+   centrado, nadie pidió cambiarlo ahí. */
+/* DC-055 (corrige DC-040): izquierda, no derecha. */
+.nws-pick--flota .nws-pick__stat { align-items: flex-start; text-align: left; }
+/* DC-067: el valor nunca envuelve ("3 personas" no se parte en 2 líneas). */
+.nws-pick--flota .nws-pick__stat span { white-space: nowrap; }
+/* DC-068: full width (ocupa todo lo que le da nws-grow.nws-col, sin
+   encogerse) + divider entre Capacidad y Cuadrilla en vez de solo gap. */
+.nws-pick--flota .nws-pick__stats { width: 100%; }
+.nws-pick--flota .nws-pick__stats > .nws-pick__stat:not(:first-child) { border-left: 1px solid var(--naotech-app-color-200); padding-left: var(--naotech-sizing-16); }
+/* DC-041: 1.5x (72→108, 128→192, misma proporción 9/16) — solo la card de
+   vehículo; .nws-pick__foto--tall es compartida (operador-ruta, supervisor-
+   revision ya la sobreescriben con --xwide o inline, esto no los toca). */
+.nws-pick--flota .nws-pick__foto--tall { width: 108px; height: 192px; }
 /* DC-098: si el badge (p.ej. "En mantenimiento") no entra en una sola línea
    junto al nombre, que se pase a la línea de abajo en vez de desbordar la
    tarjeta — nunca agrandar el badge a costa de recortar el contenido. */
 .nws-pick .nws-row { flex-wrap: wrap; row-gap: var(--naotech-sizing-6); }
 
 /* DC-204: los chips de hallazgos (supervisor) reusan .nws-opt__c/.nws-opt__b,
-   los mismos chips de causal de la app del operario — ver operario-app.js. */
+   los mismos chips de causal de la app móvil — ver conductor-app.js /
+   supervisor-ruta-app.js. */
 
 /* Caja punteada (evidencia / placeholder de foto) */
 .nws-box {
@@ -527,6 +621,9 @@ body {
    cambia de tamaño, el mapa tampoco: sale igual en todos los pasos y en todos
    los modales. El piso evita que un paso con mucho contenido lo aplaste. */
 .nws-map--modal { flex: 1; min-height: var(--nws-map-alto-min, 260px); }
+/* DC-017: recapitulación estática de la ruta ejecutada, en la pantalla de
+   cierre del conductor — cabe en el teléfono junto al resto del resumen. */
+.nws-map--mini { flex: none; min-height: 0; height: 132px; }
 /* Capa HTML sobre el mapa (escala, leyenda, título, velo). No captura el
    mouse salvo lo que sea interactivo, para que el mapa siga siendo mapa. */
 .nws-map__overlay { position: absolute; inset: 0; pointer-events: none; }
@@ -683,6 +780,8 @@ body {
 /* DC-129: flota pegado abajo, sobre el tabbar, mientras se scrollea toda
    la vista — no queda encerrado dentro del mapa. */
 .nws-turn--sticky { position: sticky; bottom: var(--naotech-sizing-10); z-index: 2; margin-top: var(--naotech-sizing-8); }
+/* DC-015 (superada por DC-027): el sticky-en-scroll no bastaba con
+   contenido corto — "Enviar" ahora vive fijo en #mob-cta (.nws-mob__foot). */
 /* DC-131: la lista de paradas deja de scrollear aparte — toda la vista
    (mapa + giro + lista) scrollea junta desde nws-mob__body. */
 /* DC-228: el degradado del mapa ya funde su propio borde inferior, así que
@@ -734,6 +833,10 @@ body {
 .nws-opt__p--open > .nws-opt__b { padding-bottom: var(--naotech-sizing-10); }
 .nws-opt__b { padding: 0 var(--naotech-sizing-12) var(--naotech-sizing-10); display: flex; flex-wrap: wrap; gap: var(--naotech-sizing-6); }
 .nws-opt__c { height: 30px; padding: 0 var(--naotech-sizing-10); border-radius: var(--naotech-radius-lg); border: 1px solid var(--naotech-app-color-200); background: var(--naotech-app-background); color: var(--naotech-app-color-700); display: inline-flex; align-items: center; gap: var(--naotech-sizing-6); cursor: pointer; user-select: none; }
+/* DC-025: chip con avatar (Involucrado) — el avatar 'tiny' mide 32px y el
+   chip base es de 30px de alto a propósito para los de solo texto (causal).
+   Este modificador le da su propio piso, más ancho que alto. */
+.nws-opt__c--avatar { height: auto; min-height: var(--naotech-sizing-40); padding: var(--naotech-sizing-4) var(--naotech-sizing-12) var(--naotech-sizing-4) var(--naotech-sizing-6); }
 .nws-opt__c:hover { border-color: var(--naotech-theme-color-700); }
 /* Al elegir un chip aparece su "×" y eso lo ENSANCHA de golpe, recorriendo
    toda la fila y haciendo saltar de línea a los que siguen. La × se emite
@@ -815,6 +918,9 @@ body {
 .nws-ev__cam { position: relative; border-radius: var(--naotech-radius-xl); background: var(--naotech-app-color-100); display: flex; align-items: center; justify-content: center; color: var(--naotech-app-color-400); min-height: 0; }
 .nws-ev__main .nwt-icon, .nws-ev__cam .nwt-icon { font-size: 30px; }
 .nws-ev__tag { position: absolute; left: var(--naotech-sizing-10); top: var(--naotech-sizing-10); }
+/* DC-039: la del operator-cam lleva foto (iniciales) + nombre — las demás
+   (truck-cam-*) siguen siendo solo texto, esa cámara sí es de una persona. */
+.nws-ev__tag--persona { display: flex; align-items: center; gap: var(--naotech-sizing-6); background: var(--naotech-app-background); border-radius: var(--naotech-radius-pill); padding: var(--naotech-sizing-4) var(--naotech-sizing-10) var(--naotech-sizing-4) var(--naotech-sizing-4); box-shadow: var(--naotech-shadow-small); }
 .nws-ev__na { grid-row: 1 / span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--naotech-sizing-8); padding: var(--naotech-sizing-16); text-align: center; color: var(--naotech-app-color-600); border: 1.5px dashed var(--naotech-app-color-300); border-radius: var(--naotech-radius-xl); }
 /* Fotos "reales" simuladas: sin red, solo degradés propios por cámara —
    ver nota de DC-054 en design-comments-done.md sobre por qué no se
@@ -863,32 +969,91 @@ body {
 }
 .nws-login > * { position: relative; z-index: 1; }
 
-/* Sticker-tag: pastilla rotada tipo "branding / website / illustration",
-   pedida para el acceso al /showroom desde el selector de rol. Genérica
-   (nws-sticker) por si sale otro color; el salmón es el único que se usa
-   hoy. NO EXISTE EN EL SDK. */
-.nws-sticker {
-  position: absolute; top: var(--naotech-sizing-20); right: var(--naotech-sizing-24); z-index: 2;
-  display: inline-flex; align-items: center; gap: var(--naotech-sizing-8);
+/* DC-065: franja superior en grid de 3 — vacío / logo Naowee centrado /
+   Showroom a la derecha (reemplaza DC-045, que ponía el logo absoluto a la
+   izquierda "en la misma línea" que un Showroom también absoluto; ahora los
+   dos viven en el flujo normal, en la misma fila). La celda vacía existe
+   para que el logo caiga realmente al centro del ancho total, no del
+   espacio que sobra a la derecha del Showroom. */
+/* DC-076: full width pegado al tope de la pantalla — sale del stack
+   centrado de .nws-login (position:absolute) para no tomar el max-width:960
+   ni la centrada vertical de todo lo demás. */
+/* DC-083 (corrige DC-076): el padding de 40px estaba en cada CELDA del
+   grid, no en el contenedor — Showroom, alineado al final de su celda,
+   quedaba pegado al borde real de la pantalla igual (el padding le comía
+   espacio a su propia caja, no separaba nada del viewport). El padding
+   horizontal va en .nws-login__topbar; column-gap separa las 3 celdas
+   entre sí. */
+.nws-login__topbar { display: grid; grid-template-columns: 1fr auto 1fr; column-gap: var(--naotech-sizing-40); align-items: center; position: absolute; top: 0; left: 0; right: 0; width: 100%; padding: var(--naotech-sizing-24) var(--naotech-sizing-40); box-sizing: border-box; z-index: 2; }
+.nws-login__naowee { display: flex; justify-content: center; }
+.nws-login__naowee svg { display: block; height: 2rem; width: auto; }
+.nws-login__showroom {
+  justify-self: end; display: inline-flex; align-items: center; gap: var(--naotech-sizing-8);
   padding: var(--naotech-sizing-10) var(--naotech-sizing-18);
   border-radius: var(--naotech-radius-pill);
+  background: var(--naotech-caution-color-100); color: var(--naotech-caution-color-800);
+  border: 1px solid var(--naotech-caution-color-300);
   font-family: var(--naotech-sdk-font-family); font-weight: var(--naotech-font-weight-bold);
   font-size: var(--naotech-sizing-16); text-decoration: none; white-space: nowrap;
   box-shadow: var(--naotech-shadow-medium);
   transition: transform .18s ease, box-shadow .18s ease;
 }
-.nws-sticker:hover, .nws-sticker:focus-visible { transform: translateY(-2px); box-shadow: var(--naotech-shadow-large); }
-.nws-sticker .nwt-icon { font-size: var(--naotech-sizing-20); }
-.nws-sticker--salmon {
-  background: var(--naotech-caution-color-100); color: var(--naotech-caution-color-800);
-  border: 1px solid var(--naotech-caution-color-300);
+.nws-login__showroom:hover, .nws-login__showroom:focus-visible { transform: translateY(-2px); box-shadow: var(--naotech-shadow-large); }
+.nws-login__showroom .nwt-icon { font-size: var(--naotech-sizing-20); }
+@media (max-width: 520px) { .nws-login__showroom { padding: var(--naotech-sizing-8) var(--naotech-sizing-14); font-size: var(--naotech-sizing-14); } }
+/* DC-082 (corrige DC-078/064): una pastilla centrada seguía leyéndose
+   suelta — ahora es una cinta del ancho COMPLETO de la card, pegada a su
+   borde inferior con el mismo radio, a caballo hacia afuera (más adentro
+   que afuera): se lee como parte de la card, no como algo flotando sobre
+   ella. onClick (login.js) hace zoom desde la card real, no desde la
+   cinta, así que "abrir" se ve igual que cualquier otro rol. */
+.nws-login__flota {
+  position: absolute; left: 0; right: 0; bottom: 0; transform: translateY(65%); z-index: 2;
+  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: var(--naotech-sizing-6);
+  width: 100%; padding: var(--naotech-sizing-8) var(--naotech-sizing-12);
+  border-radius: 0 0 var(--naotech-radius-xxl) var(--naotech-radius-xxl);
+  border: 1px solid var(--naotech-warning-color-300); border-top: none;
+  background: var(--naotech-warning-color-100); color: var(--naotech-warning-color-800, var(--naotech-app-color-900));
+  font: inherit; font-size: var(--naotech-sizing-12); font-weight: var(--naotech-font-weight-bold); cursor: pointer; white-space: nowrap;
+  box-shadow: var(--naotech-shadow-small);
+  transition: transform .18s ease, box-shadow .18s ease;
 }
-@media (max-width: 520px) { .nws-sticker { top: var(--naotech-sizing-12); right: var(--naotech-sizing-12); padding: var(--naotech-sizing-8) var(--naotech-sizing-14); font-size: var(--naotech-sizing-14); } }
+.nws-login__flota .nwt-icon { font-size: var(--naotech-sizing-16); }
+.nws-login__flota:hover, .nws-login__flota:focus-visible { transform: translateY(65%) translateY(-2px); box-shadow: var(--naotech-shadow-medium); }
 .nws-login__head { display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-8); text-align: center; }
-.nws-login__grid { display: grid; grid-template-columns: repeat(4, 220px); gap: var(--naotech-sizing-20); margin: var(--naotech-sizing-24) 0; }
-@media (max-width: 1040px) { .nws-login__grid { grid-template-columns: repeat(2, 220px); } }
-@media (max-width: 520px)  { .nws-login__grid { grid-template-columns: 1fr; } }
+/* Slider horizontal (pedido 21-sep): los perfiles ya no entran cómodos en
+   una grilla de 4 —son seis y van a crecer—, así que corren en una sola
+   fila con scroll y snap. El ancho se recorta a 100vw y el padding lateral
+   deja respirar la primera/última card sin que se corten contra el borde.
+   Las cards se aligeraron: avatar, rol y una línea de descripción. */
+.nws-login__grid {
+  display: flex; gap: var(--naotech-sizing-16); margin: var(--naotech-sizing-8) 0;
+  width: 100%; max-width: 100vw; overflow-x: auto; overflow-y: hidden;
+  /* DC-028: con pocas cards (5, sin Flota — DC-023) y pantalla ancha, el
+     flex row quedaba pegado a la izquierda. justify-content:center no
+     rompe el caso con scroll: cuando el contenido es más ancho que el
+     contenedor no tiene efecto (no puede "encoger" hacia el centro). */
+  justify-content: center;
+  scroll-snap-type: x mandatory; scroll-padding: var(--naotech-sizing-24);
+  /* overflow-x:auto obliga a overflow-y:hidden (spec) — no hay forma de
+     "ver" ese overflow sin dejar de scrollear en X. Lo que sí se puede es
+     dejar de recortarlo EN LA PRÁCTICA (DC-021): más padding vertical del
+     que antes, ahora que las cards también son más altas (DC-022). */
+  padding: var(--naotech-sizing-56) var(--naotech-sizing-24) var(--naotech-sizing-64);
+  scrollbar-width: thin;
+}
+.nws-login__grid > * { flex: 0 0 216px; scroll-snap-align: center; }
+/* DC-022: las cards del selector de rol quedaban bajas frente al resto de
+   la pantalla (avatar + una línea de descripción no llenan el nwt-card
+   'medium'). Un piso de alto, no un alto fijo — una descripción de dos
+   líneas sigue creciendo la card en vez de cortarse. */
+.nws-login .nwt-card { min-height: 260px; }
+.nws-login__grid::-webkit-scrollbar { height: 6px; }
+.nws-login__grid::-webkit-scrollbar-thumb { background: var(--naotech-app-color-300); border-radius: var(--naotech-radius-pill); }
+.nws-login__grid::-webkit-scrollbar-track { background: transparent; }
 .nws-login .nwt-card {
+  /* relative: el badge de "última visitada" se posiciona contra la card */
+  position: relative;
   cursor: pointer; border-radius: var(--naotech-radius-xxl);
   transition: transform var(--naotech-duration-fast) var(--naotech-animation-standard), box-shadow var(--naotech-duration-fast) var(--naotech-animation-standard);
   /* DC-260: variant quiet del SDK deja el fondo transparente (se ve el
@@ -896,10 +1061,23 @@ body {
      solo al hacer hover. */
   --pvt-body-background-color: var(--naotech-app-background);
 }
-.nws-login .nwt-card:hover, .nws-login .nwt-card:focus-visible { transform: translateY(-4px); box-shadow: var(--naotech-shadow-large); }
+/* DC-077: el translateY(-4px) sumado al box-shadow-large necesitaba más
+   despeje del que el padding podía darle sin verse raro (overflow-x:auto
+   sigue obligando a clip en Y, no hay forma de evitarlo del todo). Se saca
+   el lift y se deja solo el cambio de sombra — pide bastante menos aire. */
+.nws-login .nwt-card:hover, .nws-login .nwt-card:focus-visible { box-shadow: var(--naotech-shadow-large); }
 .nws-login .nwt-card__content { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--naotech-sizing-10); padding-top: var(--naotech-sizing-8); }
 .nws-login__foot { display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-4); text-align: center; color: var(--naotech-app-color-600); }
-.nws-login__last { position: absolute; top: var(--naotech-sizing-12); right: var(--naotech-sizing-12); }
+/* Flota sobre la card, fuera del flujo: no empuja el contenido ni obliga a
+   pintar la franja de cabecera (que traía su divider y desalineaba esa card
+   contra las demás). */
+.nws-login__last { position: absolute; top: var(--naotech-sizing-10); right: var(--naotech-sizing-10); z-index: 2; }
+/* La descripción no usa todo el ancho de la card: dos líneas cortas leen
+   mejor que una línea larga pegada a los bordes. */
+/* DC-051: dos líneas parejas en todas las cards — algunas descripciones
+   entran en una sola y el bloque de abajo (avatar/rol) quedaba a distinta
+   altura entre cards. min-height reserva el espacio de 2 líneas siempre. */
+.nws-login__desc { margin: 0; max-width: 21ch; min-height: calc(var(--naotech-smalltext-line-height) * 2); }
 
 /* Título del login: sin equivalente en el SDK, brillo propio con el color
    del tema neutral (no hay rol elegido todavía en esta pantalla). */
@@ -946,6 +1124,13 @@ body {
      vista que sale durante una transición (ver .nws-mob__view) */
   position: relative;
 }
+/* DC-106/DC-107: fila de marca fija arriba de #mob-bar — Naowee horizontal
+   a la izquierda, UAESP (avatar) a la derecha. */
+.nws-mob__marca { display: flex; align-items: center; justify-content: space-between; padding: var(--naotech-sizing-8) var(--naotech-sizing-16); background: var(--naotech-app-background); border-bottom: 1px solid var(--naotech-app-color-200); flex: none; box-sizing: border-box; }
+/* DC-111: 1.25x (20px → 25px); no hay token en 25, se usa el más cercano de
+   la escala (24, --naotech-sizing-24). Clase compartida por conductor y
+   supervisor-ruta, así que ya aplica a los dos. */
+.nws-mob__marca__naowee svg { display: block; height: var(--naotech-sizing-24); width: auto; }
 .nws-mob__bar { display: flex; align-items: center; gap: var(--naotech-sizing-10); padding: var(--naotech-sizing-6) var(--naotech-sizing-16) var(--naotech-sizing-10); background: var(--naotech-app-background); border-bottom: 1px solid var(--naotech-app-color-200); flex: none; min-height: var(--naotech-sizing-64); box-sizing: border-box; }
 .nws-mob__body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--naotech-sizing-14); display: flex; flex-direction: column; gap: var(--naotech-sizing-20); }
 
@@ -987,7 +1172,15 @@ body {
 .nws-mob__toast { position: absolute; left: var(--naotech-sizing-12); right: var(--naotech-sizing-12); bottom: calc(var(--naotech-sizing-64) + var(--naotech-sizing-8)); height: 0; z-index: 5; pointer-events: none; }
 .nws-mob__toast .nwt-toast__content { position: absolute; left: 50%; bottom: 0; width: 100%; max-width: 100%; padding: 0; opacity: 0; transition: transform var(--naotech-duration-base) var(--naotech-animation-standard), opacity var(--naotech-duration-base) var(--naotech-animation-standard); }
 .nws-mob__toast .nwt-toast--visible .nwt-toast__content { opacity: 1; }
-.nws-mob__toast .nwt-toast__component { pointer-events: auto; box-shadow: var(--naotech-shadow-large); }
+/* DC-020: el host del toast no se limpia al cerrar (cerrarToast solo saca
+   la clase --visible, el HTML se queda) — con pointer-events:auto fijo, el
+   fantasma del último toast (opacity:0 pero clickeable) quedaba tapando lo
+   que estuviera debajo del centro-derecha de la pantalla PARA SIEMPRE
+   después del primer toast: el mouse chocaba con él y no llegaba al botón
+   real; tab+enter sí, porque el foco de teclado no pasa por hit-testing.
+   Solo activo mientras el toast está --visible de verdad. */
+.nws-mob__toast .nwt-toast__component { pointer-events: none; box-shadow: var(--naotech-shadow-large); }
+.nws-mob__toast .nwt-toast--visible .nwt-toast__component { pointer-events: auto; }
 
 /* Toast de una sola línea ("… · Disponible próximamente"): el título no se
    parte; si no cabe, se recorta con puntos suspensivos. En la página se le da
@@ -1017,16 +1210,29 @@ body {
    del sistema (scale enter), la misma que ya usa nws-map__pt. */
 .nws-stop--recien { animation: naotech-motion-fade-enter var(--naotech-duration-slow) var(--naotech-animation-deceleration) both; }
 .nws-mob__nav { flex: none; background: var(--naotech-app-background); border-top: 1px solid var(--naotech-app-color-200); }
+/* DC-027: pie fijo para el CTA de 'marcar' (#mob-cta) — flex:none normal,
+   no absolute/sticky, así queda pegado de verdad al fondo del teléfono sin
+   pelearse con el scroll ni con el transform de zoom del escenario.
+   :empty lo colapsa a 0 en cualquier otra vista, sin dejar hueco. */
+.nws-mob__foot:not(:empty) { flex: none; padding: var(--naotech-sizing-10) var(--naotech-sizing-14) var(--naotech-sizing-14); background: var(--naotech-app-background); box-shadow: 0 -4px 12px rgba(0, 0, 0, .06); }
 .nws-mob__avatar-icon { --naotech-avatar-icon-dimension: 2.25rem; }
 .nws-mob__sec { display: block; margin: var(--naotech-sizing-4) 0; margin-top: calc(var(--naotech-sizing-4) + var(--naotech-sizing-8)); font-size: var(--naotech-sizing-14); color: var(--naotech-app-color-800); text-transform: uppercase; letter-spacing: .06em; }
 .nws-mob .nwt-card__body { gap: var(--naotech-sizing-8); }
-.nws-mob__stats { display: flex; justify-content: space-between; gap: var(--naotech-sizing-8); padding-top: var(--naotech-sizing-8); border-top: 1px solid var(--naotech-theme-color-500); }
-.nws-mob__stat { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; color: var(--naotech-theme-font-color); }
+/* DC-060: el divider sobre la fila competía con el de arriba de la misma
+   card (DC-341) — se saca y cada stat pasa a tener su propio fondito, en
+   vez de separarse por una línea. */
+.nws-mob__stats { display: flex; justify-content: space-between; gap: var(--naotech-sizing-8); padding-top: var(--naotech-sizing-4); }
+.nws-mob__stat { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; color: var(--naotech-theme-font-color); background: rgba(255, 255, 255, .14); border-radius: var(--naotech-radius-lg); padding: var(--naotech-sizing-8) var(--naotech-sizing-4); }
 .nws-mob__fin { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--naotech-sizing-14); text-align: center; flex: 1; }
 .nws-mob__fin-ic { width: 64px; height: 64px; border-radius: 50%; background: var(--naotech-positive-color-050); color: var(--naotech-positive-color-700); display: flex; align-items: center; justify-content: center; }
 .nws-mob__fin-ic .nwt-icon { font-size: 30px; }
 .nws-mob__cta { width: 100%; justify-content: center; }
-.nws-mob .nwt-button { width: 100%; }
+/* DC-016: "Cerrar ruta"/"Enviar" se compactaban (perdían su alto de 48px)
+   al momento de cerrar — el botón tiene `height` pero no un `min-height`
+   propio, y en la transición de vista (.nws-mob__body--saliente pasa a
+   position:absolute) queda sin piso. flex:none evita además que compita
+   por espacio con sus hermanos dentro de .nws-mob__body (flex column). */
+.nws-mob .nwt-button { width: 100%; min-height: var(--naotech-sizing-48); flex: none; }
 
 
 /* Centrado de contenedor de página cuando el contenido no llena */
@@ -1056,6 +1262,10 @@ body {
 /* Título del toolbar con más jerarquía (pedido puntual, no todo NwtTitle). */
 .nws-title-strong .nwt-title__description { font-weight: var(--naotech-font-weight-bold); }
 .nws-title-light .nwt-title__description { font-weight: var(--naotech-font-weight-light); }
+/* DC-074: título en negrita, solo en supervisor-ruta-app.js (nws-title-light
+   --bold se suma a nws-title-light, y esta regla va DESPUÉS en el archivo
+   para ganarle en cascada a la de arriba, misma especificidad). */
+.nws-title-light--bold .nwt-title__description { font-weight: var(--naotech-font-weight-bold); }
 
 /* -------------------------------------------------------------------
    Angosto (< 900px). El producto es de escritorio; acá solo se garantiza
@@ -1064,6 +1274,12 @@ body {
 /* Columna lateral del detalle de ruta (lista de paradas): fija en ancho para
    que el mapa se quede con el resto; se angosta antes de apilar. */
 .nws-card--aside { flex: 0 0 420px; }
+/* DC-054: el panel activo del segmentor (Camión/Actividad, DC-052) debe
+   llenar el mismo alto que el mapa de la izquierda. camionCard() trae
+   flex:none inline (a propósito cuando comparte espacio con otra card
+   apilada) — acá no hay nada más abajo, así que se fuerza a crecer. */
+#panel-camion, #panel-actividad { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#panel-camion .nwt-card { flex: 1 !important; }
 @media (max-width: 1240px) {
   .nws-card--aside { flex: 0 0 320px; }
   /* Cinco stat cards no caben con ícono a este ancho: el ícono es adorno, el
@@ -1093,52 +1309,94 @@ body {
    los componentes reales de las otras pantallas con sus mismas clases; acá
    solo vive la composición de la página. Cero hex: todo en tokens.
    ------------------------------------------------------------------- */
-.nws-show { min-height: 100%; overflow-y: auto; background: var(--naotech-app-background); }
+.nws-show { height: 100%; display: flex; flex-direction: column; background: var(--naotech-app-background); outline: none; }
 .nws-show__wrap { max-width: 1240px; margin: 0 auto; padding: 0 var(--naotech-sizing-24) var(--naotech-sizing-40); }
 
-.nws-show__nav { display: flex; align-items: center; justify-content: space-between; gap: var(--naotech-sizing-16); padding: var(--naotech-sizing-24) 0; }
+/* DC-337: /showroom pasó de una sola página con scroll a diapositivas —
+   ver la nota al inicio de showroom.js sobre los tres mecanismos de
+   navegación. El nav y la barra inferior quedan fijos (flex:none) y el
+   deck es lo único que cambia entre diapositivas. */
+.nws-show__nav { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--naotech-sizing-16); padding: var(--naotech-sizing-16) var(--naotech-sizing-24); border-bottom: 1px solid var(--naotech-app-color-200); }
+.nws-show__count { white-space: nowrap; }
 .nws-show__nav-links { display: flex; gap: var(--naotech-sizing-32); color: var(--naotech-app-color-600); }
 .nws-show__nav-links a { color: inherit; text-decoration: none; }
 .nws-show__nav-links a:hover { color: var(--naotech-app-color-900); }
 
-/* Hero: card gris, copy a la izquierda y el mapa real a la derecha. */
+/* Hero: card gris, copy a la izquierda y el mapa real a la derecha.
+   DC-337: paddings, gaps y tipografía se achicaron respecto a la versión
+   de scroll — cada diapositiva ahora compite por una sola pantalla, así
+   que el aire que antes separaba secciones lejanas ya no hace falta. */
 .nws-show__hero {
   background: var(--naotech-app-color-050); border-radius: var(--naotech-radius-xxl);
-  padding: var(--naotech-sizing-56); display: grid; grid-template-columns: 1fr 1fr; gap: var(--naotech-sizing-48); align-items: center;
+  padding: var(--naotech-sizing-28); display: grid; grid-template-columns: 1fr 1fr; gap: var(--naotech-sizing-28); align-items: center;
 }
-.nws-show__hero-copy { display: flex; flex-direction: column; align-items: flex-start; gap: var(--naotech-sizing-16); }
+.nws-show__hero-copy { display: flex; flex-direction: column; align-items: flex-start; gap: var(--naotech-sizing-12); }
 .nws-show__title {
-  margin: 0; font-size: var(--naotech-sizing-40); line-height: 1.12; letter-spacing: -0.02em;
+  margin: 0; font-size: var(--naotech-sizing-32); line-height: 1.15; letter-spacing: -0.02em;
   font-weight: var(--naotech-font-weight-black); color: var(--naotech-app-color-900);
 }
-.nws-show__h2 { margin: 0; font-size: var(--naotech-sizing-32); line-height: 1.15; letter-spacing: -0.01em; font-weight: var(--naotech-font-weight-black); color: var(--naotech-app-color-900); }
+.nws-show__h2 { margin: 0; font-size: var(--naotech-sizing-28); line-height: 1.2; letter-spacing: -0.01em; font-weight: var(--naotech-font-weight-black); color: var(--naotech-app-color-900); }
 .nws-show__h3 { margin: 0; font-size: var(--naotech-sizing-20); line-height: 1.3; font-weight: var(--naotech-font-weight-bold); color: var(--naotech-app-color-900); }
-.nws-show__p  { margin: 0; color: var(--naotech-app-color-600); line-height: 1.6; }
+.nws-show__p  { margin: 0; color: var(--naotech-app-color-600); line-height: 1.55; }
 .nws-show__eyebrow { color: var(--naotech-primary-color-700); text-transform: uppercase; letter-spacing: .06em; }
-.nws-show__lead { display: flex; flex-direction: column; gap: var(--naotech-sizing-12); max-width: 62ch; margin-bottom: var(--naotech-sizing-32); }
-.nws-show__sec { padding-top: calc(var(--naotech-sizing-48) * 2); }
-.nws-show__sec--tight { padding-top: var(--naotech-sizing-48); }
+.nws-show__lead { display: flex; flex-direction: column; gap: var(--naotech-sizing-8); max-width: 62ch; margin-bottom: var(--naotech-sizing-20); }
+/* Cuando la vitrina era una sola página, cada .nws-show__sec se separaba de
+   la anterior con este padding; ahora cada una vive sola en su diapositiva
+   (.nws-show__slide-inner ya la centra), así que el padding queda en 0. */
+.nws-show__sec { padding-top: 0; }
+.nws-show__sec--tight { padding-top: 0; }
 .nws-show__sec-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--naotech-sizing-16); }
 .nws-show__sec-head .nws-show__lead { margin-bottom: var(--naotech-sizing-24); }
+
+/* El deck: una diapositiva visible a la vez, apiladas absolutas para poder
+   cruzar con un fade en vez de saltar. */
+.nws-show__deck { position: relative; flex: 1; min-height: 0; }
+.nws-show__slide {
+  position: absolute; inset: 0; overflow-y: auto; opacity: 0; pointer-events: none;
+  transition: opacity var(--naotech-duration-standard, 220ms) var(--naotech-animation-standard, ease);
+}
+.nws-show__slide--on { opacity: 1; pointer-events: auto; }
+.nws-show__slide-inner {
+  max-width: 1240px; margin: 0 auto; min-height: 100%; box-sizing: border-box;
+  padding: var(--naotech-sizing-24); display: flex; flex-direction: column; justify-content: center; gap: var(--naotech-sizing-20);
+}
+.nws-show__slide-inner > .nws-show__sec:only-child,
+.nws-show__slide-inner > *:first-child:last-child { margin: 0; }
+
+/* Flechas de los costados (mecanismo 2): flotan sobre el deck, ocultas en
+   pantallas angostas para no tapar contenido — ahí queda la barra inferior. */
+.nws-show__edge { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; }
+.nws-show__edge--l { left: var(--naotech-sizing-16); }
+.nws-show__edge--r { right: var(--naotech-sizing-16); }
+@media (max-width: 900px) { .nws-show__edge { display: none; } }
+
+/* Barra inferior (mecanismo 2, parte 2): flechas + puntos + contador. */
+.nws-show__bottombar { flex: none; display: flex; align-items: center; justify-content: center; gap: var(--naotech-sizing-16); padding: var(--naotech-sizing-12) var(--naotech-sizing-24); border-top: 1px solid var(--naotech-app-color-200); }
+.nws-show__dots { display: flex; align-items: center; gap: var(--naotech-sizing-8); }
+.nws-show__dot { width: 8px; height: 8px; padding: 0; border: none; border-radius: 50%; background: var(--naotech-app-color-300); cursor: pointer; }
+.nws-show__dot--on { background: var(--naotech-primary-color-700); width: 20px; border-radius: var(--naotech-radius-xl); transition: width .18s ease, background .18s ease; }
 
 /* Mapa real (mapa.js) dentro de una card; se anima en mount(). */
 .nws-show__map-card {
   background: var(--naotech-app-background); border: 1px solid var(--naotech-app-color-200); border-radius: var(--naotech-radius-xl);
   padding: var(--naotech-sizing-16); display: flex; flex-direction: column; gap: var(--naotech-sizing-12);
 }
-.nws-show__map.nws-map { flex: none; min-height: 0; aspect-ratio: 16 / 11; }
+.nws-show__map.nws-map { flex: none; min-height: 0; aspect-ratio: 16 / 9; }
 .nws-show__map-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--naotech-sizing-8); }
 .nws-show__map-kpis > div { display: flex; flex-direction: column; gap: 2px; }
 .nws-show__map-kpis b { font-size: var(--naotech-sizing-16); font-weight: var(--naotech-font-weight-bold); }
-.nws-show__stats { margin-top: var(--naotech-sizing-24); }
-/* DC-281: versión "hype" del showroom — 6 métricas, grid de a 3 que envuelve
-   a 2 filas. El degradé radial por card (DC-290) se sacó en DC-292. */
-.nws-show__stats--hype { grid-template-columns: repeat(3, 1fr); }
+/* DC-337: el margin-top de --24 se sacó — .nws-show__slide-inner ya separa
+   hero y stats con su propio gap; sumado, quedaban 56px de por medio. El
+   --pvt-stat-card-padding es la perilla que foundations expone para esto
+   (ver components.css) — se achica para que las 6 cards en 2 filas quepan
+   junto con el hero en una diapositiva de 900px de alto. */
+.nws-show__stats--hype { grid-template-columns: repeat(3, 1fr); gap: var(--naotech-sizing-12); --pvt-stat-card-padding: var(--naotech-sizing-12) var(--naotech-sizing-16); }
 @media (max-width: 900px) { .nws-show__stats--hype { grid-template-columns: repeat(2, 1fr); } }
 
 /* Evidencia: la misma card de revisión, con más altura para que sea el
-   bloque más grande de la página. */
-.nws-show__ev .nws-ev { min-height: 380px; }
+   bloque más grande de la página — DC-337 la achicó un poco para que la
+   diapositiva quepa sin scroll en pantallas de 900px de alto. */
+.nws-show__ev .nws-ev { min-height: 260px; }
 .nws-show__ev .nws-ev__meta { margin-top: var(--naotech-sizing-12); border-radius: var(--naotech-radius-lg); }
 .nws-show__thumb-more { display: inline-flex; align-items: center; justify-content: center; color: var(--naotech-app-color-600); background: transparent; border-color: transparent; }
 
@@ -1200,7 +1458,7 @@ body {
 .nws-show__paso-ic { font-size: 20px; color: var(--naotech-primary-color-700); margin-bottom: var(--naotech-sizing-4); }
 
 /* Tabla completa: enlaces monoespaciados al deep-link de cada pantalla. */
-.nws-show__table .nwt-datatable__cell { vertical-align: top; padding-top: var(--naotech-sizing-12); padding-bottom: var(--naotech-sizing-12); }
+.nws-show__table .nwt-datatable__cell { vertical-align: top; padding-top: var(--naotech-sizing-8); padding-bottom: var(--naotech-sizing-8); }
 .nws-show__table { --naotech-datatable-align-items: flex-start; --naotech-datatable-justify-content: flex-start; }
 /* DC-301: el override de arriba (para alinear las filas arriba, no al medio)
    se hereda también en el encabezado vía la misma custom property — acá se
@@ -1223,7 +1481,7 @@ body {
 
 .nws-show__foot {
   display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--naotech-sizing-8);
-  margin-top: calc(var(--naotech-sizing-48) * 2); padding-top: var(--naotech-sizing-24);
+  padding-top: var(--naotech-sizing-24);
   border-top: 1px solid var(--naotech-app-color-200); color: var(--naotech-app-color-500);
 }
 
@@ -1260,3 +1518,82 @@ body {
    animación naotech-skeleton-pulse que ya trae foundations. */
 .nws-skel { display: block; border-radius: var(--naotech-radius-lg); background: var(--naotech-app-color-200); animation: naotech-skeleton-pulse var(--naotech-duration-pulse) var(--naotech-animation-standard) infinite; }
 .nws-skel--circle { border-radius: 50%; flex: none; }
+
+/* DC-032: no hay ícono de "rueda" en la fuente — se gira el de 'refresh'
+   dentro del badge "En ruta" para que igual se lea como algo en movimiento. */
+.nws-badge-spin .nwt-badge__icon i { display: inline-block; animation: naotech-badge-spin 1.1s linear infinite; }
+@keyframes naotech-badge-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .nws-badge-spin .nwt-badge__icon i { animation: none; } }
+
+/* DC-033: acordeón de operador-control.js — compacto = una barra que se ve
+   entera como un botón, no una card con un resumen adentro. */
+.nws-panel-toggle {
+  display: flex; align-items: center; gap: var(--naotech-sizing-10); width: 100%;
+  padding: var(--naotech-sizing-14) var(--naotech-sizing-16);
+  border: 1px solid var(--naotech-app-color-200); border-radius: var(--naotech-radius-xl);
+  background: var(--naotech-app-background); cursor: pointer; font: inherit; color: var(--naotech-app-color-900);
+  transition: border-color var(--naotech-duration-fast) var(--naotech-animation-standard), box-shadow var(--naotech-duration-fast) var(--naotech-animation-standard);
+}
+.nws-panel-toggle:hover, .nws-panel-toggle:focus-visible { border-color: var(--naotech-theme-color-700); box-shadow: var(--naotech-shadow-small); }
+/* DC-038 (corrige DC-033): Verificación de Supervisor NO lleva un estilo
+   CTA aparte — misma forma que Camión recolector, ambos "reales". */
+
+/* DC-009: vistazo de salud de flota en el toolbar de Flota — barra
+   segmentada por estado (parqueado/en ruta/mantenimiento), tooltip nativo
+   por segmento (title) al pasar el mouse. */
+/* DC-070: un chip (badge + label) por estado, en vez de la barra fina —
+   mismo peso visual que los chips de notificación (DC-011). */
+.nws-flota-salud { display: flex; align-items: center; gap: var(--naotech-sizing-16); color: var(--naotech-app-color-900); }
+.nws-flota-salud__chip { display: flex; align-items: center; gap: var(--naotech-sizing-6); font-size: var(--naotech-smalltext-font-size); }
+
+/* DC-011: chips de notificación del toolbar de Operador (reemplazan el
+   "actualizado hace N s") y el resalte momentáneo de la sección al hacer
+   scroll hasta ella. */
+.nws-notif-chip { display: inline-flex; align-items: center; gap: var(--naotech-sizing-6); border: none; background: none; padding: var(--naotech-sizing-4) var(--naotech-sizing-8); border-radius: var(--naotech-radius-lg); cursor: pointer; font: inherit; color: var(--naotech-app-color-700); }
+.nws-notif-chip:hover { background: var(--naotech-app-color-100); }
+.nws-notif-resalte { animation: naotech-notif-resalte 1.6s var(--naotech-animation-standard); }
+/* DC-001 / DC-010: "· atrasada" en rojo dentro de la celda de Progreso —
+   comparte el mismo dato (rutaAtrasada) que el badge de operador-hub.js. */
+.nws-atraso { color: var(--naotech-negative-color-700); font-weight: 600; }
+@keyframes naotech-notif-resalte {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  15% { box-shadow: 0 0 0 3px var(--naotech-informative-color-300, var(--naotech-informative-color-600)); }
+}
+
+/* ===================================================================
+   Identidad de color de Supervisor (pedido directo, no un DC-XXX):
+   #0C9488 (≈ el --naotech-color-teal-700 que ya trae foundations,
+   0d9488, prácticamente el mismo hex) para TODO lo que usa theme="primary"
+   dentro de las pantallas de Supervisor — botones, badges, progreso,
+   bordes, focus ring — sin tocar el primary global (naranja) del resto
+   de roles. El mecanismo: [nwt-theme='primary'] mapea --naotech-theme-*
+   a var(--naotech-primary-color-*); redefiniendo esos --naotech-primary-*
+   ACÁ ARRIBA en el árbol, todo lo de abajo que ya referencia esas
+   variables (vía nwt-theme="primary") las hereda solo. Se completa la
+   escala 050→900 con color-mix desde los dos tonos reales que sí trae
+   foundations (teal-100 y teal-700), imitando la progresión de la escala
+   "default" (naranja) que reemplaza.
+   Lo del camión (el marcador del mapa, cámaras truck-cam-*) no usa
+   theme="primary" — son colores propios (morado el marcador, neutral las
+   cámaras) y no los toca este bloque. */
+.nws-tema-supervisor {
+  --naotech-primary-color-050: color-mix(in srgb, #0C9488 8%, white);
+  --naotech-primary-color-100: #d8f3ee;
+  --naotech-primary-color-200: color-mix(in srgb, #0C9488 30%, white);
+  --naotech-primary-color-300: color-mix(in srgb, #0C9488 45%, white);
+  --naotech-primary-color-400: color-mix(in srgb, #0C9488 65%, white);
+  --naotech-primary-color-500: color-mix(in srgb, #0C9488 85%, white);
+  --naotech-primary-color-600: color-mix(in srgb, #0C9488 93%, white);
+  --naotech-primary-color-700: #0C9488;
+  --naotech-primary-color-800: color-mix(in srgb, #0C9488 85%, black);
+  --naotech-primary-color-900: color-mix(in srgb, #0C9488 68%, black);
+  --naotech-primary-backdrop: rgba(12, 148, 136, .2);
+  --naotech-primary-focus-ring: #0C9488;
+  --naotech-primary-subtle-text: color-mix(in srgb, #0C9488 68%, black);
+}
+
+/* DC-099: #seg-lado (Camión/Actividad, operador-ruta.js) full width — el
+   track de NwtTagGroup es inline-flex por defecto, sizeado al contenido. */
+.nwt-tag-group--full-width { display: flex; width: 100%; }
+.nwt-tag-group--full-width .nwt-tag-group__track { width: 100%; }
+.nwt-tag-group--full-width .nwt-tag-group__tag { flex: 1; justify-content: center; }

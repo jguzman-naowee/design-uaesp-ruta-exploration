@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var S = window.SDK, D = window.UAESP_DATOS, P = window.PANTALLAS;
+  var S = window.SDK, D = window.UAESP_DATOS, P = window.PANTALLAS, N = window.NAOWEE;
   var app = document.getElementById('app');
   var limpiar = null;
 
@@ -19,7 +19,10 @@
       if (sesion.ultimoRol) { localStorage.setItem('uaesp.ultimoRol', sesion.ultimoRol); }
     } catch (e) { /* idem */ }
   }
-  function entrar(id) { var r = rolPorId(id); if (!r) { return; } sesion.rol = id; sesion.ultimoRol = id; guardar(); ir(r.inicio); }
+  /* Una entrada del selector puede ser un ATAJO y no un rol: "Flota" entra
+     como Operador y cae directo en su pantalla de flota. `sesion` dice con
+     qué rol se abre la sesión; sin él, el rol es el de la propia entrada. */
+  function entrar(id) { var r = rolPorId(id); if (!r) { return; } var real = r.sesion || r.id; sesion.rol = real; sesion.ultimoRol = real; guardar(); ir(r.inicio); }
   function salir() { sesion.rol = null; guardar(); ir('#/'); }
   function ir(hash) { if (location.hash === hash) { navegar(); } else { location.hash = hash; } }
 
@@ -35,9 +38,14 @@
     '#/admin':                { pantalla: 'admin-hub',           rol: 'admin' },
     '#/admin/entrega':        { pantalla: 'admin-entrega',       rol: 'admin' },
     '#/operador':             { pantalla: 'operador-hub',        rol: 'operador' },
-    '#/operador/ruta':        { pantalla: 'operador-ruta',       rol: 'operador' },
-    '#/operario':             { pantalla: 'operario-app',        rol: 'operario' },
-    '#/supervisor':           { pantalla: 'supervisor-tablero',  rol: 'supervisor' },
+    '#/operador/ruta':        { pantalla: 'operador-rutas',      rol: 'operador' },
+    '#/operador/ruta/vivo':   { pantalla: 'operador-ruta',       rol: 'operador' },
+    '#/operador/ruta/programada': { pantalla: 'operador-ruta',   rol: 'operador' },
+    '#/operador/control':     { pantalla: 'operador-control',    rol: 'operador' },
+    '#/operador/recursos':    { pantalla: 'operador-recursos',   rol: 'operador' },
+    '#/conductor':            { pantalla: 'conductor-app',       rol: 'conductor' },
+    '#/supervisor-ruta':      { pantalla: 'supervisor-ruta-app', rol: 'supervisor-ruta' },
+    '#/supervisor-dashboard': { pantalla: 'supervisor-tablero',  rol: 'supervisor' },
     '#/supervisor/revision':  { pantalla: 'supervisor-revision', rol: 'supervisor' }
   };
 
@@ -106,20 +114,27 @@
   /* ---------- indicadores animados de tabs y segmentado ----------
      En React los posiciona useTrackedIndicator midiendo el tab activo.
      Acá se hace lo mismo después de pintar. */
+  /* DC-086: getBoundingClientRect() mide en píxeles de PANTALLA (después del
+     transform:scale del escenario del teléfono en conductor-app.js/
+     supervisor-ruta-app.js), pero insetInlineStart se aplica en el espacio
+     LOCAL del elemento, antes de ese transform — con escala != 1 quedaba
+     desfasado (escalado dos veces). offsetLeft/offsetWidth son medidas de
+     layout, ajenas a cualquier transform de un ancestro, e igual de válidas
+     acá: tanto el tab activo como el tag activo tienen como offsetParent al
+     contenedor relative de al lado (.nwt-tabs__list / .nwt-tag-group__track),
+     que es exactamente el origen que insetInlineStart necesita. */
   function posicionarIndicadores(scope) {
     (scope || document).querySelectorAll('.nwt-tabs').forEach(function (tabs) {
-      var lista = tabs.querySelector('.nwt-tabs__list'), act = tabs.querySelector('.nwt-tabs__tab--active'), ind = tabs.querySelector('.nwt-tabs__indicator');
-      if (!lista || !ind) { return; }
+      var act = tabs.querySelector('.nwt-tabs__tab--active'), ind = tabs.querySelector('.nwt-tabs__indicator');
+      if (!ind) { return; }
       if (!act) { ind.style.width = '0px'; return; }
-      var a = act.getBoundingClientRect(), l = lista.getBoundingClientRect();
-      ind.style.insetInlineStart = (a.left - l.left + lista.scrollLeft) + 'px'; ind.style.width = a.width + 'px';
+      ind.style.insetInlineStart = act.offsetLeft + 'px'; ind.style.width = act.offsetWidth + 'px';
     });
     (scope || document).querySelectorAll('.nwt-tag-group').forEach(function (g) {
-      var track = g.querySelector('.nwt-tag-group__track'), act = g.querySelector('.nwt-tag-group__tag--active'), pill = g.querySelector('.nwt-tag-group__pill');
-      if (!track || !pill) { return; }
+      var act = g.querySelector('.nwt-tag-group__tag--active'), pill = g.querySelector('.nwt-tag-group__pill');
+      if (!pill) { return; }
       if (!act) { pill.style.width = '0px'; return; }
-      var a = act.getBoundingClientRect(), t = track.getBoundingClientRect();
-      pill.style.insetInlineStart = (a.left - t.left) + 'px'; pill.style.width = a.width + 'px';
+      pill.style.insetInlineStart = act.offsetLeft + 'px'; pill.style.width = act.offsetWidth + 'px';
     });
   }
 
@@ -172,25 +187,48 @@
   function shell(rol, hash, pantalla, ctx) {
     var tb = pantalla.toolbar ? pantalla.toolbar(ctx) : { body: S.title({ text: pantalla.titulo }), actions: '' };
     var colapsado = false; try { colapsado = localStorage.getItem('uaesp.nav') === 'colapsado'; } catch (e) { /* */ }
-    return S.h('div', { class: 'nwt-app', 'nwt-theme': rol.theme },
+    /* Identidad de color de Supervisor (pedido directo) — .nws-tema-
+       supervisor redefine las variables de theme="primary" acá arriba,
+       todo lo de abajo (sidebar-dashboard: supervisor-tablero.js) la
+       hereda. Los roles fullscreen (supervisor-ruta-app.js) no pasan por
+       shell(): se marcan en su propio render(). */
+    return S.h('div', { class: S.cls('nwt-app', (rol.id === 'supervisor' || rol.id === 'supervisor-ruta') && 'nws-tema-supervisor'), 'nwt-theme': rol.theme },
       S.h('div', { class: 'nwt-app__body' },
         S.sidebar({
           collapsed: colapsado,
           menus: menuDe(rol, hash),
           logoutLabel: 'Cambiar de perfil',
+          /* Pedido 21-sep: Naowee es la marca principal, UAESP convive
+             debajo (más chica) — lockup apilado en vez del avatar solo.
+             DC-351 fija el alto del toolbar en 88px (igual al principal) sin
+             padding vertical propio: con dos filas hay que achicar avatar,
+             texto y badge para que quede aire arriba/abajo, no solo ancho. */
+          /* DC-105: colapsado, el SDK esconde TODO nwt-sidebar__toolbar__logo
+             (display:none propio, vendor/components.css) — no hay dónde
+             mostrar nada ahí sin pisarlo. Se reabre con !important (app.css)
+             y adentro conviven dos logos: el horizontal completo (visible
+             expandido) y el isotipo solo (visible colapsado, CSS decide
+             cuál se ve — nada se recalcula al togglear). */
           logo: S.h('div', { class: 'nws-brand' },
-            S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'small', variant: 'quiet', theme: 'neutral' }),
-            S.h('div', { class: 'nws-col nws-brand__text' }, S.h('span', { class: 'nwt-body-font-semibold' }, S.esc(D.entidad.sigla)),
-              /* DC-349: "Portal del X" cambia por rol — badge con el color del
-                 rol en vez de texto muted, mismo tratamiento en los 4 portales. */
-              S.badge({ label: rol.portal, size: 'medium', theme: rol.theme }))),
+            S.h('div', { class: 'nws-brand__naowee' }, N.logo),
+            S.h('div', { class: 'nws-brand__naowee--compact' }, N.icono),
+            /* DC-115: era una fila de 2 columnas (avatar/monograma + texto) —
+               pasa a una sola columna alineada a la izquierda.
+               DC-118: el logo de la UAESP vuelve, ahora arriba del texto
+               dentro de esa misma columna. */
+            S.h('div', { class: 'nws-brand__tenant' },
+              S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'tiny', variant: 'quiet', theme: 'neutral' }),
+              S.h('div', { class: 'nws-row nws-row--sm nws-brand__text' }, S.h('span', { class: 'nwt-smalltext-font-semibold' }, S.esc(D.entidad.sigla)),
+                /* DC-349: "Portal del X" cambia por rol — badge con el color del
+                   rol en vez de texto muted, mismo tratamiento en los 4 portales. */
+                S.badge({ label: rol.portal, size: 'small', theme: rol.theme })))),
           /* DC-345/346: mismo avatar que el selector de rol (iniciales del ROL,
              loud, color del rol — no las de la persona/organización, que no
              coincidían con el nombre de al lado) y el rol como primera línea,
              debajo quién lo ocupa y dónde. */
           footer: S.h('div', { class: 'nws-owner' },
             S.h('div', { class: 'nws-row' },
-              S.avatar({ text: { admin: 'AD', operador: 'OD', operario: 'OP', supervisor: 'SU' }[rol.id] || rol.iniciales, size: 'small', variant: 'loud', color: rol.color }),
+              S.avatar({ text: { admin: 'AD', operador: 'OD', supervisor: 'SU' }[rol.id] || rol.iniciales, size: 'small', variant: 'loud', color: rol.color }),
               S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-smalltext-font-semibold nws-ink' }, S.esc(rol.rol)), S.h('span', { class: 'nwt-smalltext-font-regular nws-clip' }, S.esc(rol.nombre + ' · ' + rol.organizacion)))))
         }),
         S.h('div', { class: 'nwt-app__main' },
@@ -292,6 +330,23 @@
     if (t.closest('[data-logout]')) { ev.preventDefault(); salir(); return; }
     var ct = t.closest('[data-close-toast]'); if (ct) { cerrarToast(ct.closest('#toast-host, .nws-mob__toast')); return; }
     var ts = t.closest('[data-toast]'); if (ts) { var k = ts.getAttribute('data-toast'); proximamente(FUERA[k] || rotuloDe(ts) || k, ts); return; }
+    /* DC-011: chips de notificación del toolbar de Operador — scrollean a la
+       sección y la resaltan un instante, en vez de solo decir "hace N s". */
+    var nf = t.closest('[data-notif]');
+    if (nf) {
+      var idDestino = nf.getAttribute('data-notif');
+      var destino = document.getElementById(idDestino);
+      if (destino) {
+        destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        destino.classList.add('nws-notif-resalte');
+        setTimeout(function () { destino.classList.remove('nws-notif-resalte'); }, 1600);
+      }
+      /* DC-044: el toolbar está fuera de #view (root de cada pantalla), así
+         que la reacción de la propia pantalla (cambiar de tab, no solo
+         scrollear) va por evento — operador-hub.js escucha 'nao:notif'. */
+      document.dispatchEvent(new CustomEvent('nao:notif', { detail: { destino: idDestino } }));
+      return;
+    }
     if (t.closest('[data-toggle-nav]')) {
       var nav = document.getElementById('nav'), col = nav.classList.toggle('nwt-sidebar--collapsed');
       var b = nav.querySelector('[data-toggle-nav]'); b.setAttribute('aria-pressed', col ? 'true' : 'false'); b.setAttribute('aria-label', col ? 'Expandir menú' : 'Colapsar menú');

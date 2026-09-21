@@ -11,8 +11,8 @@ Las hojas de `vendor/` son copia literal de `dist/` de foundations. Lo único
 que se les tocó es la ruta del `@font-face` (`icons.css`, `fonts.css`), que en
 el paquete apunta a un especificador de npm que el navegador no resuelve.
 
-Pantallas: **7 de 7** + selector de rol. Entrada: login ficticio tipo Netflix
-con los cuatro perfiles; "Cerrar sesión" vuelve ahí.
+Pantallas: **8 de 8** + selector de rol. Entrada: login ficticio tipo Netflix
+con los perfiles; "Cerrar sesión" vuelve ahí.
 
 ---
 
@@ -54,7 +54,7 @@ midiendo el elemento activo igual que el hook.
 | `nws-stops` | NwtDatatable reparte con flex por fila; NwtTimeline no acepta contador ni estado | átomos |
 | `nws-kanban` | **No hay kanban** | columnas propias, tarjetas = NwtCard small clickable |
 | `nws-drawer` | El modo drawer de NwtSidebar es de navegación, no de detalle | panel + backdrop |
-| `nws-phone` | Marco de teléfono para la app del operario | — |
+| `nws-phone` | Marco de teléfono para la app móvil (Conductor, Supervisor en ruta) | — |
 | `nws-stat-hero` | No hay variante de StatCard en color del rol | override documentado |
 | `nws-spark` | No hay gráfica | barras `<i>` |
 | `nws-option`, `nws-check`, `nws-pick` | No hay opción grande seleccionable ni chip-checkbox | compuestos |

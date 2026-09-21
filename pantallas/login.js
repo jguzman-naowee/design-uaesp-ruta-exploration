@@ -1,7 +1,7 @@
 /**
  * Selector de rol · "¿Quién está operando?"
  *
- * Login ficticio tipo Netflix: los cuatro perfiles uno al lado del otro.
+ * Login ficticio tipo Netflix: los perfiles uno al lado del otro.
  * Elegir uno abre la sesión con ese rol; "Cerrar sesión" vuelve acá.
  * NO EXISTE EN EL SDK: cada perfil es un NwtCard clickable con un NwtAvatar
  * en el color del rol. Ver INVENTARIO.
@@ -12,7 +12,7 @@ window.PANTALLAS.login = {
   titulo: 'Elegir perfil',
 
   render: function (ctx) {
-    var S = ctx.S, D = ctx.D, e = S.esc;
+    var S = ctx.S, D = ctx.D, N = window.NAOWEE, e = S.esc;
     var ultimo = ctx.sesion.ultimoRol;
 
     /* El selector elige un ROL, no una persona: quien lo ocupe puede cambiar
@@ -20,35 +20,65 @@ window.PANTALLAS.login = {
        iniciales del rol, no de la persona, y el nombre propio no se muestra
        (DC-085/DC-086). El nombre de la persona sigue apareciendo una vez
        adentro del portal, donde sí representa a alguien puntual en sesión. */
-    var INICIALES_ROL = { admin: 'AD', operador: 'OD', operario: 'OP', supervisor: 'SU' };
-    var perfiles = D.roles.map(function (r, i) {
-      return S.card({
-        onClick: true, size: 'large', variant: 'quiet', theme: r.theme,
+    var INICIALES_ROL = { admin: 'AD', operador: 'OD', supervisor: 'SU', flota: 'FL' };
+    /* DC-023: "Flota" no es un rol propio (sesion:'operador', solo entra
+       directo a #/operador/recursos) — como card en la grilla competía
+       visualmente con los roles reales y rompía el ritmo de 5. Sale de la
+       grilla. DC-050: pero el atajo flotante quedaba suelto, sin relación
+       visual con nada — va debajo de la card de Operador (mismo slot del
+       carrusel, scrollea con ella) en vez de fijo al fondo de la pantalla. */
+    var rolesGrilla = D.roles.filter(function (r) { return r.id !== 'flota'; });
+    var flota = D.roles.filter(function (r) { return r.id === 'flota'; })[0];
+    var perfiles = rolesGrilla.map(function (r, i) {
+      var card = S.card({
+        onClick: true, size: 'medium', variant: 'quiet', theme: r.theme,
         cls: 'nws-reveal', style: '--nws-reveal-delay:' + (160 + i * 70) + 'ms',
         attrs: { 'data-rol': r.id, role: 'button', 'aria-label': 'Entrar como ' + r.rol },
-        /* DC-338/339: flotante sobre la card (nws-login__last, ya existía en
-           app.css sin usar) en vez de una fila propia en el header — así no
-           reserva alto cuando hay badge y no deja un div vacío cuando no. */
-        header: ultimo === r.id
-          ? S.h('div', { class: 'nws-login__last' }, S.badge({ label: 'Última visitada', size: 'medium', theme: r.theme }))
-          : '',
+        /* Card aligerada (21-sep): avatar, rol y una sola línea de
+           descripción. Se fueron la organización y el botón "Entrar" — la
+           card entera ya es el botón, y con seis perfiles en una fila el
+           peso visual de cada una tenía que bajar.
+           El badge de "última visitada" va DENTRO del content, absoluto
+           (.nws-login__last): en el header obligaba a pintar la franja de
+           cabecera con su divider, y esa card quedaba con el contenido más
+           abajo que las demás. Absoluto no toca el layout de nadie. */
         content:
+          (ultimo === r.id ? S.h('div', { class: 'nws-login__last' }, S.badge({ label: 'Última visitada', size: 'medium', theme: r.theme })) : '') +
           S.avatar({ text: INICIALES_ROL[r.id] || r.iniciales, size: 'large', variant: 'loud', color: r.color }) +
-          S.h('div', { class: 'nws-col', style: 'align-items:center;gap:var(--naotech-sizing-2)' },
-            S.h('span', { class: 'nwt-subtitle-font-bold' }, e(r.rol)),
-            S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, e(r.organizacion))) +
-          S.h('p', { class: 'nwt-smalltext-font-regular nws-muted', style: 'margin:0' }, e(r.descripcion)),
-        footer: S.h('div', { style: 'width:100%' },
-          S.button({ label: 'Entrar', size: 'medium', variant: 'quiet', theme: r.theme, cls: 'nws-mob__cta', attrs: { 'data-rol': r.id, style: 'width:100%' } }))
+          S.h('span', { class: 'nwt-body-font-bold' }, e(r.rol)) +
+          S.h('p', { class: 'nwt-smalltext-font-regular nws-muted nws-login__desc' }, e(r.descripcion))
       });
+      /* DC-082 (corrige DC-064/078): "Flota" no debe leerse suelta — una
+         cinta del ancho completo de la card, pegada a su borde inferior
+         (mismo radio), a caballo hacia afuera. Absoluta igual (no le suma
+         alto a la card), pero ahora se SIENTE parte de ella. La clase en
+         el wrapper deja encontrar la card real desde el click de la cinta,
+         para el mismo zoom-transition que las cards de rol (ver onClick). */
+      if (r.id !== 'operador' || !flota) { return card; }
+      return S.h('div', { class: 'nws-login__opcard', style: 'position:relative' }, card,
+        S.h('button', { type: 'button', class: 'nws-login__flota', 'data-rol': flota.id, 'aria-label': 'Entrar a Flota' },
+          /* DC-087: "Flota" a secas leía más a etiqueta que a acción — se
+             deja el verbo. */
+          S.icon('vehicles'), S.h('span', null, 'Gestión de Flota')));
     });
 
     return S.h('div', { class: 'nws-login' },
-      S.h('a', { class: 'nws-sticker nws-sticker--salmon nws-login__showroom nws-reveal', style: '--nws-reveal-delay:520ms', href: '#/showroom', 'data-ir': '#/showroom', 'aria-label': 'Ver el showroom del demo' },
-        S.icon('thunder'), S.h('span', null, 'Showroom')),
+      /* DC-065: franja superior en grid de 3 — vacío / logo Naowee centrado
+         / Showroom a la derecha. Reemplaza el logo y el Showroom sueltos,
+         cada uno posicionado a su manera (DC-045). */
+      S.h('div', { class: 'nws-login__topbar nws-reveal' },
+        S.h('div', null),
+        S.h('div', { class: 'nws-login__naowee' }, N.logo),
+        S.h('a', { class: 'nws-login__showroom', href: '#/showroom', 'data-ir': '#/showroom', 'aria-label': 'Ver el showroom del demo' },
+          S.icon('thunder'), S.h('span', null, 'Showroom'))),
       S.h('div', { class: 'nws-login__head nws-reveal' },
-        S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'medium', variant: 'quiet', theme: 'neutral' }),
-        S.h('h1', { class: 'nwt-subtitle-font-bold nws-login__title', style: 'margin:var(--naotech-sizing-8) 0 0;max-width:11ch;text-align:center;font-size:var(--naotech-sizing-56);line-height:1.05;font-weight:var(--naotech-font-weight-black)' }, '¿Quién está operando hoy?'),
+        S.h('div', { class: 'nws-row nws-row--sm nws-login__tenant' },
+          S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'small', variant: 'quiet', theme: 'neutral' }),
+          S.h('span', { class: 'nwt-smalltext-font-semibold nws-muted' }, e(D.entidad.sigla))),
+        /* DC-075: una sola línea — el max-width:11ch forzaba el corte a
+           propósito antes; ahora se saca y se agrega nowrap para que ni en
+           pantallas angostas parta en dos. */
+        S.h('h1', { class: 'nwt-subtitle-font-bold nws-login__title', style: 'margin:var(--naotech-sizing-8) 0 0;text-align:center;font-size:var(--naotech-sizing-56);line-height:1.05;font-weight:var(--naotech-font-weight-black);white-space:nowrap' }, '¿Quién está operando hoy?'),
         S.h('p', { class: 'nwt-body-font-regular nws-muted', style: 'margin:0' },
           'Exploración demo integral Módulo SAAS sobre Rutas Aseo y Recolección')),
       S.h('div', { class: 'nws-login__grid' }, perfiles),
@@ -119,7 +149,14 @@ window.PANTALLAS.login = {
       if (!el || enZoom) { return; }
       ev.preventDefault();
       var rolId = el.getAttribute('data-rol');
-      zoom(el.closest('.nwt-card') || el, rolId, nombreDe(rolId));
+      /* DC-082: la cinta de Flota no es ella misma la card — pero el zoom
+         debe verse "como viene" (el mismo crecer-hasta-cubrir-pantalla de
+         cualquier card), así que crece desde la card de Operador de al
+         lado (.nws-login__opcard contiene a las dos), no desde la cinta. */
+      var envoltorio = el.closest('.nws-login__opcard');
+      var origen = el.closest('.nwt-card') || (envoltorio && envoltorio.querySelector('.nwt-card'));
+      if (!origen) { ctx.entrar(rolId); return; }
+      zoom(origen, rolId, nombreDe(rolId));
     }
     function onKey(ev) {
       if (ev.key !== 'Enter' && ev.key !== ' ') { return; }

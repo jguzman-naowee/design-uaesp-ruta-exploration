@@ -29,7 +29,7 @@ window.UAESP_DATOS = {
       "portal": "Gestión de rutas",
       "theme": "primary",
       "color": "purple",
-      "descripcion": "Traza las rutas y las entrega a los operadores.",
+      "descripcion": "Traza y entrega las rutas.",
       "inicio": "#/admin"
     },
     {
@@ -41,20 +41,32 @@ window.UAESP_DATOS = {
       "portal": "Portal del operador",
       "theme": "primary",
       "color": "blue",
-      "descripcion": "Recibe las rutas, las asigna y sigue la operación en vivo.",
+      "descripcion": "Asigna, sigue y cierra las rutas.",
       "inicio": "#/operador"
     },
     {
-      "id": "operario",
-      "rol": "Operario",
+      "id": "conductor",
+      "rol": "Conductor",
       "nombre": "C. Mendoza",
       "iniciales": "CM",
       "organizacion": "Triple A · Camión 12",
       "portal": "App móvil",
       "theme": "primary",
       "color": "orange",
-      "descripcion": "Recorre la ruta y marca cada unidad con evidencia.",
-      "inicio": "#/operario"
+      "descripcion": "Recorre la ruta y marca cada punto.",
+      "inicio": "#/conductor"
+    },
+    {
+      "id": "supervisor-ruta",
+      "rol": "Supervisor en ruta",
+      "nombre": "L. Sarmiento",
+      "iniciales": "LS",
+      "organizacion": "UAESP · en campo",
+      "portal": "App móvil",
+      "theme": "primary",
+      "color": "teal",
+      "descripcion": "Verifica en campo, detrás del camión.",
+      "inicio": "#/supervisor-ruta"
     },
     {
       "id": "supervisor",
@@ -64,9 +76,22 @@ window.UAESP_DATOS = {
       "organizacion": "UAESP",
       "portal": "Supervisión y control",
       "theme": "primary",
-      "color": "green",
-      "descripcion": "Revisa la evidencia de las rutas ejecutadas y las observa.",
-      "inicio": "#/supervisor"
+      "color": "teal",
+      "descripcion": "Revisa la evidencia de lo ejecutado.",
+      "inicio": "#/supervisor-dashboard"
+    },
+    {
+      "id": "flota",
+      "rol": "Flota",
+      "sesion": "operador",
+      "nombre": "Coordinación",
+      "iniciales": "TA",
+      "organizacion": "Triple A S.A. E.S.P. · Zona Norte",
+      "portal": "Portal del operador",
+      "theme": "primary",
+      "color": "amber",
+      "descripcion": "Camiones: parqueo, ruta y lo que reportan.",
+      "inicio": "#/operador/recursos"
     }
   ],
 
@@ -74,20 +99,20 @@ window.UAESP_DATOS = {
     "admin": [
       { "section": "Operación", "id": "rutas", "label": "Rutas", "icon": "shipping", "route": "#/admin", "activa": ["#/admin", "#/admin/entrega"], "count": 24 },
       { "id": "operadores", "label": "Operadores", "icon": "official-stores", "route": "#/admin/operadores" },
-      { "id": "unidades", "label": "Unidades", "icon": "gps-pin", "route": "#/admin/unidades" },
+      { "id": "unidades", "label": "Puntos de recolección", "icon": "gps-pin", "route": "#/admin/unidades" },
       { "section": "Análisis", "id": "reportes", "label": "Reportes", "icon": "file", "route": "#/admin/reportes" }
     ],
     "operador": [
       { "section": "Operación", "id": "hoy", "label": "Hoy", "icon": "home", "route": "#/operador", "count": 3 },
-      { "id": "recibidas", "label": "Rutas recibidas", "icon": "shipping", "route": "#/operador/ruta", "activa": ["#/operador/ruta"], "count": 5 },
+      { "id": "rutas", "label": "Rutas", "icon": "shipping", "route": "#/operador/ruta", "activa": ["#/operador/ruta", "#/operador/ruta/vivo", "#/operador/ruta/programada", "#/operador/control"], "count": 5 },
+      { "id": "recursos", "label": "Flota", "icon": "vehicles", "route": "#/operador/recursos" },
       { "id": "operarios", "label": "Mis operarios", "icon": "user", "route": "#/operador/operarios" },
-      { "id": "recursos", "label": "Recursos y equipos", "icon": "vehicles", "route": "#/operador/recursos" },
       { "section": "Histórico", "id": "completadas", "label": "Completadas", "icon": "positive", "route": "#/operador/completadas" },
       { "id": "indicadores", "label": "Indicadores", "icon": "price-highest", "route": "#/operador/indicadores" }
     ],
     "supervisor": [
       { "section": "Control", "id": "inicio", "label": "Inicio", "icon": "home", "route": "#/supervisor/inicio" },
-      { "id": "supervision", "label": "Supervisión", "icon": "file", "route": "#/supervisor", "activa": ["#/supervisor", "#/supervisor/revision"], "count": 4 },
+      { "id": "supervision", "label": "Supervisión", "icon": "file", "route": "#/supervisor-dashboard", "activa": ["#/supervisor-dashboard", "#/supervisor/revision"], "count": 4 },
       { "id": "observaciones", "label": "Observaciones", "icon": "visibility-on", "route": "#/supervisor/observaciones" },
       { "section": "Histórico", "id": "cerradas", "label": "Cerradas", "icon": "positive", "route": "#/supervisor/cerradas" },
       { "id": "conformidad", "label": "Conformidad", "icon": "price-highest", "route": "#/supervisor/conformidad" }
@@ -129,7 +154,8 @@ window.UAESP_DATOS = {
     "observada": { "label": "Observada",    "theme": "primary" },
     "cerrada":   { "label": "Cerrada",      "theme": "positive" },
     "conforme":  { "label": "Conforme",     "theme": "positive" },
-    "hallazgos": { "label": "Con hallazgos","theme": "caution" }
+    "hallazgos": { "label": "Con hallazgos","theme": "caution" },
+    "mantenimiento": { "label": "En mantenimiento", "theme": "negative" }
   },
 
   "admin": {
@@ -212,6 +238,26 @@ window.UAESP_DATOS = {
       { "codigo": "R-2398 · Sector A", "operario": "M. Fontalvo", "horario": "hoy 05:50 — 08:32", "resumen": "31 de 31 unidades · 31 evidencias · 2h42 en calle. Pendiente de observación." },
       { "codigo": "R-2391 · Bahía",    "operario": "C. Mendoza",  "horario": "hoy 05:40 — 08:05", "resumen": "36 de 36 unidades · 36 evidencias · 2h25 en calle. Pendiente de observación." }
     ],
+    "actividadFlota": [
+      { "dia": "hoy",     "codigo": "R-2398 · Sector A", "operario": "M. Fontalvo", "horario": "05:50 — 08:32", "estado": "ejecutada" },
+      { "dia": "hoy",     "codigo": "R-2391 · Bahía",    "operario": "C. Mendoza",  "horario": "05:40 — 08:05", "estado": "ejecutada" },
+      { "dia": "hoy",     "codigo": "R-2433 · Sur 2",    "operario": "J. Barrios",  "horario": "06:05 — en curso", "estado": "curso" },
+      { "dia": "hoy",     "codigo": "R-2412 · Sector D", "operario": "D. Charris",  "horario": "sale 14:00",       "estado": "asignada" },
+      /* DC-102: filas de camiones que entraron a mantenimiento, no solo
+         rutas — Volqueta 21 es la única con mantenimiento:true en D.equipos. */
+      { "dia": "hoy",     "codigo": "Volqueta 21 · TAA-215", "operario": "Taller Triple A", "horario": "ingresó 09:15", "estado": "mantenimiento" },
+      { "dia": "ayer",    "codigo": "R-2388 · Sector B", "operario": "M. Fontalvo", "horario": "06:10 — 09:02", "estado": "cerrada" },
+      { "dia": "ayer",    "codigo": "R-2402 · Sector A", "operario": "C. Mendoza",  "horario": "06:40 — 09:12", "estado": "cerrada" },
+      { "dia": "dom 15",  "codigo": "R-2384 · Sector D", "operario": "R. Pertuz",   "horario": "05:55 — 08:40", "estado": "cerrada" },
+      { "dia": "sáb 14",  "codigo": "R-2379 · Bahía",    "operario": "J. Barrios",  "horario": "05:45 — 08:10", "estado": "cerrada" },
+      { "dia": "vie 13",  "codigo": "R-2371 · Sector B", "operario": "M. Fontalvo", "horario": "06:05 — 08:58", "estado": "cerrada" }
+    ],
+    "finalizadas": [
+      { "id": 1, "codigo": "R-2429 · Sur 1",    "zona": "Sur",    "operario": "R. Pertuz",   "camion": "Camión 07",   "fecha": "14 sep", "m": 44, "t": 44, "fotos": 44, "franja": "06:20 — 10:30", "estado": "lista",   "juicio": "hallazgos" },
+      { "id": 2, "codigo": "R-2396 · Centro",   "zona": "Centro", "operario": "M. Fontalvo", "camion": "Camión 19",   "fecha": "13 sep", "m": 29, "t": 30, "fotos": 29, "franja": "05:50 — 09:15", "estado": "lista",   "juicio": "conforme" },
+      { "id": 3, "codigo": "R-2388 · Sector A", "zona": "Norte",  "operario": "C. Mendoza",  "camion": "Camión 12",   "fecha": "12 sep", "m": 36, "t": 36, "fotos": 36, "franja": "06:05 — 09:40", "estado": "cerrada", "juicio": "conforme" },
+      { "id": 4, "codigo": "R-2379 · Bahía",    "zona": "Norte",  "operario": "C. Mendoza",  "camion": "Volqueta 21", "fecha": "14 sep", "m": 36, "t": 36, "fotos": 36, "franja": "05:45 — 08:10", "estado": "cerrada", "juicio": "conforme" }
+    ],
     "asignar": { "pasos": ["Operario", "Equipo", "Confirmar"] },
     "metricas": { "variacionHoy": "+8%", "sparkline": [44, 58, 50, 68, 62, 78, 70, 100] }
   },
@@ -233,6 +279,10 @@ window.UAESP_DATOS = {
 
   "operarioApp": {
     "ruta": { "codigo": "R-2406 · Sector B", "camion": "Camión 12", "zona": "Zona Norte" },
+    "cuadrilla": [
+      { "id": "r1", "nombre": "J. Ariza" },
+      { "id": "r2", "nombre": "D. Pérez" }
+    ],
     "jornada": { "desde": "06:00", "hasta": "14:00" },
     "programada": { "codigo": "R-2412 · Sector D", "unidades": 28, "zona": "Zona Norte", "cuando": "Hoy 13:30" },
     "completada": { "codigo": "R-2391 · Bahía", "horario": "05:40 — 08:05", "unidades": 36, "fotos": 36 },
@@ -267,10 +317,10 @@ window.UAESP_DATOS = {
   "supervision": {
     "metricas": { "fueraDePlazo": 2, "conformidadMes": "92%", "variacion": "+4 pts", "sparkline": [52, 60, 48, 72, 66, 84, 78, 100] },
     "columnas": [
-      { "id": 0, "titulo": "Por revisar", "theme": "neutral",     "accion": "Tomar",   "pista": "Tomala para que quede a tu nombre y poder revisarla.",         "cta": "Tomar la ruta" },
-      { "id": 1, "titulo": "En revisión", "theme": "primary", "accion": "Revisar", "pista": "Abre la revisión de ruta: evidencia parada por parada.",       "cta": "Revisar la ruta" },
-      { "id": 2, "titulo": "Observadas",  "theme": "primary",   "accion": "Cerrar",  "pista": "Ya tiene observación registrada. Cerrala para archivarla.",     "cta": "Cerrar la ruta" },
-      { "id": 3, "titulo": "Cerradas",    "theme": "positive",    "accion": "",        "pista": "Cerrada · queda en el histórico con su observación.",           "cta": "Ruta cerrada" }
+      { "id": 0, "titulo": "Pendiente de verificación", "theme": "neutral" },
+      { "id": 1, "titulo": "En verificación",           "theme": "informative" },
+      { "id": 2, "titulo": "Verificada",                "theme": "primary" },
+      { "id": 3, "titulo": "Cerrada por Operador",      "theme": "positive" }
     ],
     "cards": [
       { "id": 1, "col": 0, "codigo": "R-2409 · Sector C", "zona": "Norte",        "fecha": "16 sep", "ini": "JB", "operario": "J. Barrios",  "m": 47, "t": 47, "fotos": 47, "franja": "06:40 — 11:22", "dias": 1 },
@@ -282,6 +332,27 @@ window.UAESP_DATOS = {
       { "id": 7, "col": 2, "codigo": "R-2429 · Sur 1",    "zona": "Sur",          "fecha": "13 sep", "ini": "RP", "operario": "R. Pertuz",   "m": 44, "t": 44, "fotos": 44, "franja": "06:20 — 10:30", "dias": 4, "tomada": "ayer 16:05" },
       { "id": 8, "col": 2, "codigo": "R-2396 · Centro",   "zona": "Centro",       "fecha": "13 sep", "ini": "MF", "operario": "M. Fontalvo", "m": 29, "t": 30, "fotos": 29, "franja": "05:50 — 09:15", "dias": 4, "tomada": "ayer 16:30" },
       { "id": 9, "col": 3, "codigo": "R-2388 · Sector A", "zona": "Norte",        "fecha": "12 sep", "ini": "CM", "operario": "C. Mendoza",  "m": 36, "t": 36, "fotos": 36, "franja": "06:05 — 09:40", "dias": 5, "tomada": "12 sep 17:20" }
+    ]
+  },
+
+  /* Lo que reporta el camión recolector por ruta. Antes esto iba a ser un
+     portal propio; desde el 21-sep el camión no tiene UI y lo que reporta se
+     lee DENTRO del detalle de ruta —de Operador y de Supervisor—: quién es el
+     dispositivo, cuántas capturas entraron, su última posición y la
+     telemetría del recorrido. */
+  "camionReporte": {
+    "vehiculo": "Camión 07",
+    "placa": "TAA-074",
+    "dispositivo": "OBD-2291 · firmware 4.2.1",
+    "capturas": 46,
+    "esperadas": 47,
+    "camaras": ["truck-cam-left", "truck-cam-right"],
+    "ultima": { "hora": "11:22:04", "fecha": "hoy", "coord": "10.9892, −74.7858" },
+    "telemetria": [
+      { "k": "Km recorridos",        "v": "18,4 km" },
+      { "k": "Tiempo en ruta",       "v": "4h 42" },
+      { "k": "Paradas con captura",  "v": "46 de 47" },
+      { "k": "Carga fallida",        "v": "1 · sin señal en Cll 72 #45-03" }
     ]
   },
 

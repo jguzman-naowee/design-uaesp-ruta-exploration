@@ -50,9 +50,10 @@ window.PANTALLAS['admin-hub'] = {
     var S = ctx.S, rol = ctx.rol;
     return {
       body: S.title({ text: 'Rutas', subtitle: 'Todas las zonas · 6 operadores' }),
+      /* DC-114 (mismo criterio que DC-009/DC-070): el avatar del rol acá era
+         redundante, ya se ve en el pie del sidebar. */
       actions: S.searchbox({ placeholder: 'Buscar ruta u operador', size: 'medium', style: 'width:260px' }) +
-               S.button({ label: 'Nueva ruta', icon: 'add', size: 'medium', variant: 'loud', theme: rol.theme, attrs: { 'data-abrir-modal': 'nueva' } }) +
-               S.avatar({ text: rol.iniciales, size: 'small', variant: 'loud', theme: rol.theme })
+               S.button({ label: 'Nueva ruta', icon: 'add', size: 'medium', variant: 'loud', theme: rol.theme, attrs: { 'data-abrir-modal': 'nueva' } })
     };
   },
 
@@ -115,7 +116,7 @@ window.PANTALLAS['admin-hub'] = {
         S.h('div', { class: 'nws-modal__foot' },
           S.button({ label: 'Atrás', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-nr': 'atras' } }),
           S.h('div', { class: 'nws-grow nwt-body-font-medium nws-ink', style: 'text-align:center', 'data-bind': 'nrPista' }),
-          S.button({ label: 'Elegir operador', size: 'medium', variant: 'loud', theme: T, attrs: { 'data-nr': 'ok' } }))
+          S.button({ label: 'Asignar operador', size: 'medium', variant: 'loud', theme: T, attrs: { 'data-nr': 'ok' } }))
     });
 
     return stats + S.h('div', { class: 'nws-split', style: 'min-height:80vh;max-height:80vh' }, tabla, cerradas) + modal;
@@ -126,6 +127,11 @@ window.PANTALLAS['admin-hub'] = {
     var COLS = this.columnas;
     var st = { tab: 'todas', modal: false, paso: 1, modo: null, opId: null, q: '', creada: false, destacada: null };
     var opPorId = {}; D.operadores.forEach(function (o) { opPorId[o.id] = o; });
+    /* DC-001: esta tabla no trae inicio/última marca/ETA por ruta (solo
+       marcadas/unidades) — los tiempos reales viven en D.operador.enCalle.
+       Se cruza por código de ruta y se reusa rutaAtrasada (operador-hub.js,
+       mismo cálculo que usa Operador para "vista interna de flota", DC-010). */
+    var enCallePorCodigo = {}; D.operador.enCalle.forEach(function (o) { enCallePorCodigo[o.ruta] = o; });
 
     /* ---- tabla ---- */
     function pintarTabla() {
@@ -138,11 +144,13 @@ window.PANTALLAS['admin-hub'] = {
            Progreso trae el porcentaje y el contador juntos, y Estado queda
            solo con el badge. */
         /* DC-352: "17 de 41 - 41%" en una sola línea, no apiladas en dos. */
+        var conTiempos = enCallePorCodigo[r.codigo];
+        var atrasada = r.estado === 'curso' && conTiempos && rutaAtrasada(conTiempos);
         var progresoCell = r.estado === 'curso'
-          ? S.h('span', { class: 'nwt-caption-font-regular nws-tnum' },
-              r.marcadas + ' de ' + r.unidades + ' - ' + Math.round(r.marcadas / r.unidades * 100) + '%')
+          ? S.h('span', { class: S.cls('nwt-caption-font-regular nws-tnum', atrasada && 'nws-atraso') },
+              r.marcadas + ' de ' + r.unidades + ' - ' + Math.round(r.marcadas / r.unidades * 100) + '%' + (atrasada ? ' · atrasada' : ''))
           : S.h('span', { class: 'nwt-caption-font-regular nws-soft' }, '—');
-        return { cls: S.cls('nws-list__row--click', r.codigo === st.destacada && 'nws-list__row--nueva'), attrs: { 'data-ir': r.estado === 'curso' ? '#/operador/ruta' : '#/admin/entrega' }, cells: [
+        return { cls: S.cls('nws-list__row--click', r.codigo === st.destacada && 'nws-list__row--nueva'), attrs: { 'data-ir': r.estado === 'curso' ? '#/operador/ruta/vivo' : '#/admin/entrega' }, cells: [
           S.h('span', null, S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-caption-font-semibold' }, e(r.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, e(r.modo)))),
           S.h('span', null, S.h('div', { class: 'nws-row' }, S.avatar({ text: op.ini, size: 'tiny', variant: 'quiet', theme: 'neutral' }), S.h('span', { class: 'nwt-caption-font-regular nws-clip' }, e(op.nombre)))),
           S.h('span', { class: 'nwt-caption-font-regular' }, e(r.zona)),
@@ -180,7 +188,7 @@ window.PANTALLAS['admin-hub'] = {
 
       var okLabel = 'Continuar', okOk = false, pista = 'Elegí cómo se traza la ruta', html = '';
       if (st.paso === 1) {
-        okOk = !!st.modo; okLabel = 'Elegir operador';
+        okOk = !!st.modo; okLabel = 'Asignar operador';
         pista = tr ? 'El trazo cae en la zona ' + tr.zona + ' · ' + tr.unidades + ' unidades · ' + tr.km + ' km' : pista;
         html = S.h('div', { class: 'nws-row nws-row--md', style: 'align-items:stretch' },
             S.h('button', { type: 'button', class: S.cls('nws-option', st.modo === 'manual' && 'nws-option--on'), 'data-nr-modo': 'manual', 'nwt-theme': T },
@@ -225,7 +233,9 @@ window.PANTALLAS['admin-hub'] = {
           S.h('div', { class: 'nws-col', style: 'flex:0 0 372px;gap:var(--naotech-sizing-10)' },
             S.h('div', { class: 'nws-ticket' },
               S.h('div', { class: 'nws-ticket__head' }, S.icon('shipping'), S.h('span', { class: 'nwt-caption-font-semibold' }, 'Resumen')),
-              S.h('div', { class: 'nws-ticket__body' },
+              /* DC-090: mismo tratamiento que el ticket de operador-hub.js
+                 (Asignar ruta) — valores en monospace. */
+              S.h('div', { class: 'nws-ticket__body nws-ticket__body--mono' },
                 [['Modo', st.modo === 'auto' ? 'Automática' : 'Manual'], ['Zona', tr.zona], ['Operador', op.nombre], ['Rutas a crear', '1'],
                  ['Unidades', st.modo === 'auto' ? tr.unidades + ' · atraviesa Sectores A y B' : tr.unidades + ' · Sector A'], ['Recorrido', tr.km + ' km estimados'], ['Estado inicial', 'Trazada — editable hasta que la asignen']]
                   .map(function (kv) { return S.h('div', { class: 'nws-kv nwt-caption-font-regular' }, S.h('span', { class: 'nws-kv__k' }, kv[0]), S.h('span', { class: 'nws-kv__v nwt-caption-font-medium' }, e(kv[1]))); }))),

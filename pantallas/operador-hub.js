@@ -3,6 +3,22 @@
  * En calle ahora / próximos a salir, rutas recibidas por asignar (con el
  * asistente Operario → Equipo → Confirmar) y completadas de hoy.
  */
+/* DC-001 / DC-010: "atrasado" es una cosa aparte de "en progreso" — un
+   camión puede ir bien de porcentaje y aun así ir atrasado en el tiempo. Se
+   calcula comparando el avance real (hechas/total) contra el avance que
+   debería llevar según el reloj (inicio → última marca, sobre inicio → ETA),
+   con un margen antes de marcarlo: sin eso, cualquier ruta con paradas
+   grandes o desiguales dispararía el badge por ruido. admin-hub.js reusa
+   esta misma función (cruzando por código de ruta contra D.operador.enCalle,
+   que es donde viven los tiempos reales — la tabla del admin no los trae). */
+function minutosDe(hhmm) { var p = hhmm.split(':'); return (+p[0]) * 60 + (+p[1]); }
+function rutaAtrasada(o) {
+  var plan = minutosDe(o.eta) - minutosDe(o.inicio); if (plan <= 0) { return false; }
+  var avanceEsperado = Math.min(1, Math.max(0, (minutosDe(o.ultima) - minutosDe(o.inicio)) / plan));
+  var avanceReal = o.hechas / o.total;
+  return avanceReal < avanceEsperado - 0.12;
+}
+
 /* Fila de "Completadas hoy": la usa render y también mount cuando una ruta
    en calle termina y baja a esta lista (DC-348). */
 function filaCompletada(S, D, c) {
@@ -30,10 +46,20 @@ window.PANTALLAS['operador-hub'] = {
   ],
 
   toolbar: function (ctx) {
-    var S = ctx.S, rol = ctx.rol, D = ctx.D;
+    var S = ctx.S, rol = ctx.rol, D = ctx.D, O = D.operador;
+    /* DC-011: el "actualizado hace N s" no decía nada accionable. En su lugar,
+       dos chips de notificación (nuevas rutas recibidas / completadas hoy)
+       que al click scrollean y resaltan la sección correspondiente — ver
+       data-notif en mount(). */
+    function chip(n, label, destino, theme) {
+      return S.h('button', { type: 'button', class: 'nws-notif-chip', 'data-notif': destino, 'aria-label': 'Ir a ' + label },
+        S.badge({ label: n, size: 'small', theme: theme }), label);
+    }
     return {
       body: S.h('div', { class: 'nws-title-strong' }, S.title({ text: 'Operación del día', subtitle: 'Zona Norte · ' + D.entidad.fecha })),
-      actions: S.h('span', { class: 'nws-live nwt-smalltext-font-regular' }, S.h('span', { class: 'nws-live__dot' }), 'actualizado hace ', S.h('span', { 'data-bind': 'hace' }, '3'), ' s') +
+      actions: S.h('div', { class: 'nws-row nws-row--sm' },
+                 chip(O.porAsignar.length, 'Nuevas', 'card-recibidas', 'informative'),
+                 chip(O.completadasHoy.length, 'Finalizadas', 'card-completadas', 'positive')) +
                S.button({ label: 'Exportar', icon: 'download', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-toast': 'exportar' } })
     };
   },
@@ -61,9 +87,10 @@ window.PANTALLAS['operador-hub'] = {
        "actualizado hace N s", era redundante. */
     var calle = S.h('div', { class: 'nws-tabla', style: 'flex:none' },
       S.h('div', { class: 'nws-tabla__head' },
-        S.tagGroup({ id: 'seg-calle', size: 'large', theme: T, value: 'calle', items: [
-          { id: 'c', label: 'En calle ahora (' + O.enCalle.length + ')', value: 'calle' },
-          { id: 'p', label: 'Próximos a salir (' + O.proximos.length + ')', value: 'prox' }] })),
+        S.tagGroup({ id: 'seg-rutas', size: 'large', theme: T, value: 'calle', items: [
+          { id: 'c', label: 'En curso (' + O.enCalle.length + ')', value: 'calle' },
+          { id: 'p', label: 'Por salir (' + O.proximos.length + ')', value: 'prox' },
+          { id: 'f', label: 'Finalizadas (' + O.finalizadas.length + ')', value: 'fin' }] })),
       S.card({
         cls: 'nws-card--flush', attrs: { 'nwt-theme': T },
         /* La lista la llena pintarCalle desde mount, que en carga no corre. Tres
@@ -88,7 +115,7 @@ window.PANTALLAS['operador-hub'] = {
       }));
 
     var completadas = S.card({
-      cls: 'nws-card--fill nws-card--flush', style: 'flex:0 0 340px', attrs: { 'nwt-theme': T },
+      cls: 'nws-card--fill nws-card--flush', style: 'flex:0 0 340px', attrs: { 'nwt-theme': T, id: 'card-completadas' },
       header: S.h('div', { class: 'nws-card-head' },
         S.icon('positive', 'nws-soft'),
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Completadas hoy'),
@@ -120,7 +147,7 @@ window.PANTALLAS['operador-hub'] = {
     var opPorId = {}; D.operarios.forEach(function (o) { opPorId[o.id] = o; });
     var eqPorId = {}; D.equipos.forEach(function (q) { eqPorId[q.id] = q; });
     var st = {
-      hace: 3, vista: 'calle',
+      vista: 'calle',
       enCalle: O.enCalle.map(function (o) { return Object.assign({}, o); }),
       rutas: O.porAsignar.slice(),
       modal: false, paso: 1, rutaId: null, operarioId: null, recolectorIds: [], rolTab: 'conductor', equipoId: null, q: ''
@@ -130,15 +157,31 @@ window.PANTALLAS['operador-hub'] = {
     function pintarStats() {
       var h = 0, m = 0; st.enCalle.forEach(function (o) { h += o.hechas; m += o.total; });
       var total = O.base.hechas + h, meta = O.base.hechas + m + O.base.extraMeta, pct = Math.round(total / meta * 100);
-      bind('totalHechas', total); bind('heroHint', pct + '% de la meta del día · ' + meta + ' unidades · 3 rutas en calle'); bind('hace', st.hace);
+      bind('totalHechas', total); bind('heroHint', pct + '% de la meta del día · ' + meta + ' unidades · 3 rutas en calle');
       var bar = root.querySelector('[data-bind-progress="hero"]'); if (bar) { bar.setAttribute('aria-valuenow', pct); bar.querySelector('.nwt-progress-bar__fill').style.width = pct + '%'; }
     }
 
     function pintarCalle() {
-      var html = st.vista === 'calle'
+      var html = st.vista === 'fin'
+        ? (O.finalizadas.length ? O.finalizadas.map(function (r) {
+            var lista = r.estado === 'lista';
+            return S.h('div', { class: 'nws-list__row' },
+              S.avatar({ text: r.operario.split(' ').map(function (p) { return p[0]; }).join('').slice(0, 2), size: 'small', variant: 'quiet', theme: 'neutral' }),
+              S.h('div', { class: 'nws-col', style: 'flex:0 0 190px;min-width:0' }, S.h('span', { class: 'nwt-smalltext-font-semibold' }, e(r.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted nws-clip' }, e(r.zona + ' · ' + r.operario))),
+              S.h('div', { class: 'nws-grow nws-row nwt-smalltext-font-regular nws-muted', style: 'gap:var(--naotech-sizing-16)' },
+                S.h('span', null, r.m + ' / ' + r.t + ' marcadas'), S.h('span', null, r.fotos + ' evidencias'), S.h('span', null, r.franja)),
+              S.h('div', { class: 'nws-col-badge' }, S.badge({ label: r.juicio === 'hallazgos' ? 'Con hallazgos' : 'Conforme', size: 'medium', theme: r.juicio === 'hallazgos' ? 'caution' : 'positive' })),
+              /* Ranura de acción de ancho fijo: botón o badge ocupan lo
+                 mismo, así ninguna columna de la fila se corre (21-sep). */
+              S.h('div', { class: 'nws-row', style: 'flex:0 0 150px;justify-content:flex-end' },
+                lista
+                  ? S.button({ label: 'Revisar y cerrar', size: 'small', variant: 'loud', theme: T, attrs: { 'data-ir': '#/operador/control' } })
+                  : S.badge({ label: 'Cerrada', size: 'medium', theme: 'positive' })));
+          }).join('') : S.h('div', { class: 'nws-kanban__empty nwt-smalltext-font-regular' }, S.icon('positive'), 'no hay rutas finalizadas todavía'))
+        : st.vista === 'calle'
         ? st.enCalle.map(function (o) {
             var p = Math.round(o.hechas / o.total * 100);
-            var estado = p >= 100 ? ['Terminó', 'positive'] : p >= 60 ? ['Adelantado', 'positive'] : p <= 20 ? ['Arrancando', 'neutral'] : ['En ruta', 'informative'];
+            var estado = p >= 100 ? ['Terminó', 'positive'] : rutaAtrasada(o) ? ['Atrasado', 'negative'] : p >= 60 ? ['Adelantado', 'positive'] : p <= 20 ? ['Arrancando', 'neutral'] : ['En ruta', 'informative'];
             return S.h('div', { class: 'nws-list__row', 'data-o': o.id },
               S.avatar({ text: o.ini, size: 'small', variant: 'quiet', theme: T }),
               S.h('div', { class: 'nws-col', style: 'flex:0 0 170px;min-width:0' }, S.h('span', { class: 'nwt-smalltext-font-semibold' }, e(o.nombre)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted nws-clip' }, e(o.ruta + ' · ' + o.camion))),
@@ -149,7 +192,8 @@ window.PANTALLAS['operador-hub'] = {
                   S.h('span', { class: 'nwt-smalltext-font-semibold nws-dark nws-tnum', 'data-bind-hechas': o.id }, o.hechas + ' / ' + o.total)),
                 S.progress({ value: p, size: 'medium', theme: T }).replace('class="nwt-progress-bar', 'data-bind-progress="' + o.id + '" class="nwt-progress-bar')),
               S.h('div', { class: 'nws-col-badge' }, S.badge({ label: estado[0], size: 'medium', theme: estado[1] }).replace('class="nwt-badge', 'data-bind-estado="' + o.id + '" class="nwt-badge')),
-              S.button({ label: 'Seguir', size: 'small', variant: 'quiet', theme: T, attrs: { 'data-ir': '#/operador/ruta' } }));
+              S.h('div', { class: 'nws-row', style: 'flex:0 0 150px;justify-content:flex-end' },
+                S.button({ label: 'Seguir', size: 'small', variant: 'quiet', theme: T, attrs: { 'data-ir': '#/operador/ruta/vivo' } })));
           }).join('')
         : O.proximos.map(function (p) {
             return S.h('div', { class: 'nws-list__row' },
@@ -160,7 +204,8 @@ window.PANTALLAS['operador-hub'] = {
                 S.h('span', { class: 'nwt-caption-font-regular nws-nowrap' }, 'Sale ' + p.salida + ' · ' + p.unidades + ' unidades · ' + p.km)),
               S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, e(p.falta)),
               S.h('div', { class: 'nws-col-badge' }, S.badge({ label: D.estados.programada.label, size: 'medium', theme: D.estados.programada.theme })),
-              S.button({ label: 'Ver ruta', size: 'small', variant: 'quiet', theme: T, attrs: { 'data-toast': 'verruta' } }));
+              S.h('div', { class: 'nws-row', style: 'flex:0 0 150px;justify-content:flex-end' },
+                S.button({ label: 'Ver ruta', size: 'small', variant: 'quiet', theme: T, attrs: { 'data-ir': '#/operador/ruta/programada' } })));
           }).join('');
       S.repintar(root.querySelector('#lista-calle'), html);
     }
@@ -174,7 +219,7 @@ window.PANTALLAS['operador-hub'] = {
       st.enCalle.forEach(function (o) {
         var fila = root.querySelector('[data-o="' + o.id + '"]'); if (!fila) { return; }
         var p = Math.round(o.hechas / o.total * 100);
-        var estado = p >= 100 ? ['Terminó', 'positive'] : p >= 60 ? ['Adelantado', 'positive'] : p <= 20 ? ['Arrancando', 'neutral'] : ['En ruta', 'informative'];
+        var estado = p >= 100 ? ['Terminó', 'positive'] : rutaAtrasada(o) ? ['Atrasado', 'negative'] : p >= 60 ? ['Adelantado', 'positive'] : p <= 20 ? ['Arrancando', 'neutral'] : ['En ruta', 'informative'];
         var bar = fila.querySelector('[data-bind-progress="' + o.id + '"]');
         if (bar) { bar.setAttribute('aria-valuenow', p); bar.querySelector('.nwt-progress-bar__fill').style.width = p + '%'; }
         var cont = fila.querySelector('[data-bind-hechas="' + o.id + '"]'); if (cont) { cont.textContent = o.hechas + ' / ' + o.total; }
@@ -219,6 +264,8 @@ window.PANTALLAS['operador-hub'] = {
             S.h('span', { class: 'nwt-caption-font-regular nws-dark' }, ruta.unidades + ' unidades · ' + ruta.sector),
             S.h('div', { class: 'nws-grow' }),
             S.tagGroup({ id: 'as-rol', size: 'large', theme: T, value: st.rolTab, items: [{ id: 'conductor', label: 'Conductor', value: 'conductor' }, { id: 'recolector', label: 'Recolectores', value: 'recolector' }] })) +
+          /* DC-110: título dinámico arriba del grid según el rol activo. */
+          S.h('div', { class: 'nwt-body-font-semibold', style: 'padding-top:var(--naotech-sizing-12)' }, st.rolTab === 'conductor' ? 'Conductores' : 'Recolectores') +
           S.h('div', { class: 'nws-pick-grid' }, vis.map(function (o) {
             var on = st.rolTab === 'conductor' ? o.id === st.operarioId : st.recolectorIds.indexOf(o.id) >= 0;
             return S.card({ size: 'small', onClick: o.libre, cls: S.cls('nws-pick', on && 'nws-pick--on', !o.libre && 'nws-pick--off'), attrs: o.libre ? { 'data-as-op': o.id, 'nwt-theme': T } : { 'aria-disabled': 'true' },
@@ -277,9 +324,24 @@ window.PANTALLAS['operador-hub'] = {
       root.querySelector('[data-as="atras"]').disabled = st.paso === 1;
     }
 
+    /* DC-044: activar una pestaña del segmentor de arriba desde afuera (el
+       chip "Finalizadas" del toolbar, fuera de `root` — ver el listener de
+       'nao:notif' más abajo), con el mismo camino que un click en #seg-rutas. */
+    function activarVista(v) {
+      st.vista = v;
+      root.querySelectorAll('#seg-rutas [data-seg]').forEach(function (b) {
+        var on = b.getAttribute('data-seg') === v;
+        b.classList.toggle('nwt-tag-group__tag--active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      ctx.posicionarIndicadores(root); pintarCalle();
+    }
+    function onNotif(ev) { if (ev.detail && ev.detail.destino === 'card-completadas') { activarVista('fin'); } }
+    document.addEventListener('nao:notif', onNotif);
+
     function onClick(ev) {
       var t = ev.target;
-      var seg = t.closest('#seg-calle [data-seg]'); if (seg) { st.vista = seg.getAttribute('data-seg'); root.querySelectorAll('#seg-calle [data-seg]').forEach(function (b) { var on = b === seg; b.classList.toggle('nwt-tag-group__tag--active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }); ctx.posicionarIndicadores(root); pintarCalle(); return; }
+      var seg = t.closest('#seg-rutas [data-seg]'); if (seg) { activarVista(seg.getAttribute('data-seg')); return; }
       var asg = t.closest('[data-asignar]'); if (asg) { st = Object.assign(st, { modal: true, paso: 1, rutaId: +asg.getAttribute('data-asignar'), operarioId: null, recolectorIds: [], rolTab: 'conductor', equipoId: null, q: '' }); pintarModal(); return; }
       if (t.closest('[data-close-modal]')) { st.modal = false; pintarModal(); return; }
       var rolTab = t.closest('#as-rol [data-seg]'); if (rolTab) { st.rolTab = rolTab.getAttribute('data-seg'); pintarModal(); return; }
@@ -330,12 +392,11 @@ window.PANTALLAS['operador-hub'] = {
          pasa a otra en avance, la lista se reordena por % — nadie se va de la
          lista; al llegar al total queda en "Terminó". */
       st.enCalle.forEach(function (o) { if (o.hechas < o.total && Math.random() < 0.7) { o.hechas = Math.min(o.total, o.hechas + 1); } });
-      st.hace = (st.hace % 9) + 1;
       var orden = st.enCalle.slice().sort(function (a, b) { return (b.hechas / b.total) - (a.hechas / a.total); });
       var cambio = orden.some(function (o, i) { return o !== st.enCalle[i]; });
       if (cambio) { st.enCalle = orden; if (st.vista === 'calle') { pintarCalle(); } }
       pintarStats(); if (st.vista === 'calle') { actualizarProgresoCalle(); }
     }, 2200);
-    return function () { clearInterval(timer); root.removeEventListener('click', onClick); root.removeEventListener('input', onInput); document.removeEventListener('keydown', onKey); };
+    return function () { clearInterval(timer); root.removeEventListener('click', onClick); root.removeEventListener('input', onInput); document.removeEventListener('keydown', onKey); document.removeEventListener('nao:notif', onNotif); };
   }
 };

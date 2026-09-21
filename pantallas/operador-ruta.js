@@ -1,29 +1,71 @@
 /**
- * Operador · detalle de ruta en vivo.
- * El camión recorre el trazo solo (mapa.js → animarA): viaja hasta la
- * siguiente unidad, se detiene a marcarla y sigue. Al terminar la última
- * vuelve a la base por el retorno y queda ahí; el botón de reinicio arranca
- * de nuevo desde el patio.
+ * Operador · detalle de ruta (en vivo o programada).
+ * En vivo el camión recorre el trazo solo (mapa.js → animarA): viaja hasta
+ * la siguiente unidad, se detiene a marcarla y sigue; al terminar la última
+ * vuelve a la base. Programada es la MISMA vista con el mismo mapa, pero
+ * quieta: el trazo completo dibujado, el camión en el patio y los datos de
+ * salida en lugar de los de avance (pedido 21-sep — misma vista, sus
+ * diferencias de estado). Lo decide el hash: .../ruta/programada.
  */
+/* Apartado del camión recolector (21-sep): el vehículo no tiene portal, así
+   que lo que reporta —dispositivo, capturas, última posición y telemetría—
+   se lee acá dentro. Mismo bloque en operador-ruta y operador-control. */
+/* DC-093: la coordenada + hora era una sola línea de texto ("nws-note") —
+   pasa a 3 mini-cards: Lat, Lng (una fila) y Última captura (hora · fecha,
+   debajo, ancho completo). */
+function miniStat(S, label, valor, ancho) {
+  return S.h('div', { class: 'nws-camion-stat', style: ancho ? 'width:100%' : 'flex:1' },
+    S.h('span', { class: 'nwt-caption-font-regular nws-muted' }, label),
+    S.h('span', { class: 'nwt-smalltext-font-semibold nws-tnum' }, valor));
+}
+function camionCard(S, C, T, e) {
+  var completo = C.capturas >= C.esperadas;
+  var coords = C.ultima.coord.split(',');
+  var lat = coords[0].trim(), lng = (coords[1] || '').trim();
+  return S.card({
+    cls: 'nws-card--none', style: 'flex:none', attrs: { 'nwt-theme': T },
+    header: S.h('div', { class: 'nws-card-head' },
+      S.icon('vehicles', 'nws-soft'),
+      S.h('span', { class: 'nwt-body-font-semibold nws-grow' }, 'Camión recolector'),
+      S.badge({ label: completo ? 'Reporte completo' : 'Reporte parcial', size: 'medium', theme: completo ? 'positive' : 'caution' })),
+    content: S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-10)' },
+      S.h('div', { class: 'nws-row nws-row--sm nwt-smalltext-font-regular nws-muted' },
+        S.h('b', { class: 'nws-ink' }, e(C.vehiculo)), e(C.placa), S.h('div', { class: 'nws-grow' }), e(C.dispositivo)),
+      S.h('div', { class: 'nws-row', style: 'flex-wrap:wrap' }, C.camaras.map(function (cam) { return S.badge({ label: cam, size: 'small', theme: 'neutral' }); })),
+      S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-6)' },
+        S.h('div', { class: 'nws-row', style: 'gap:var(--naotech-sizing-6)' }, miniStat(S, 'Lat', e(lat)), miniStat(S, 'Lng', e(lng))),
+        miniStat(S, 'Última captura', e(C.ultima.hora) + ' · ' + e(C.ultima.fecha), true)),
+      /* DC-094: más espaciado entre filas de telemetría (4px → 8px). */
+      S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-8)' }, C.telemetria.map(function (kv) {
+        return S.h('div', { class: 'nws-kv nwt-smalltext-font-regular' },
+          S.h('span', { class: 'nws-kv__k' }, e(kv.k)), S.h('span', { class: 'nws-kv__v nwt-smalltext-font-semibold nws-tnum' }, e(kv.v)));
+      })))
+  });
+}
+
 window.PANTALLAS = window.PANTALLAS || {};
 window.PANTALLAS['operador-ruta'] = {
-  menu: 'recibidas',
+  menu: 'rutas',
   titulo: 'Detalle de ruta',
 
+  programada: function () { return location.hash.indexOf('/programada') >= 0; },
+
   toolbar: function (ctx) {
-    var S = ctx.S, R = ctx.D.rutaEnVivo, rol = ctx.rol;
+    var S = ctx.S, R = ctx.D.rutaEnVivo;
+    var PROG = this.programada();
     return {
-      body: S.iconButton({ icon: 'chevron-left', size: 'medium', variant: 'mute', theme: 'neutral', label: 'Volver a hoy', attrs: { 'data-ir': '#/operador' } }) +
-            S.title({ text: R.codigo + ' · ' + R.sector, subtitle: 'Rutas recibidas / Detalle de ruta' }),
-      actions: S.button({ label: 'Reasignar', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-toast': 'reasignar' } }) +
-               S.avatar({ text: rol.iniciales, size: 'small', variant: 'loud', theme: rol.theme })
+      body: S.iconButton({ icon: 'chevron-left', size: 'medium', variant: 'mute', theme: 'neutral', label: 'Volver a rutas', attrs: { 'data-ir': '#/operador/ruta' } }) +
+            S.title({ text: R.codigo + ' · ' + R.sector, subtitle: 'Rutas / ' + (PROG ? 'Ruta programada' : 'Detalle en vivo') }),
+      actions: S.button({ label: 'Reasignar', size: 'medium', variant: 'quiet', theme: 'neutral', attrs: { 'data-toast': 'reasignar' } })
     };
   },
 
   render: function (ctx) {
     var S = ctx.S, D = ctx.D, R = D.rutaEnVivo, T = ctx.rol.theme, e = S.esc;
     var k = ctx.cargando;
-    var est = D.estados[R.estado];
+    var PROG = this.programada();
+    var salida = (D.operador.proximos[0] || {}).salida || '13:30';
+    var est = PROG ? D.estados.programada : D.estados[R.estado];
     var eq = D.equipos.filter(function (q) { return q.nombre === R.conductor.vehiculo; })[0];
 
     var hero = S.card({
@@ -35,7 +77,9 @@ window.PANTALLAS['operador-ruta'] = {
             S.h('span', { class: 'nwt-subtitle-font-bold', style: 'font-size:var(--naotech-sizing-24);line-height:var(--naotech-sizing-28)' }, e(R.codigo + ' · ' + R.sector))),
           S.h('div', { class: 'nws-row', style: 'margin-top:var(--naotech-sizing-2);gap:var(--naotech-sizing-8)' },
             S.badge({ label: est.label, size: 'medium', theme: est.theme }),
-            S.h('span', { class: 'nws-live nws-live--strong nwt-smalltext-font-regular' }, S.h('span', { class: 'nws-live__dot' }), 'en vivo · hace ', S.h('span', { 'data-bind': 'hace' }, '—'), ' s')),
+            PROG
+              ? S.h('span', { class: 'nwt-smalltext-font-semibold nws-muted' }, 'sale hoy ' + salida + ' · todavía no arranca')
+              : S.h('span', { class: 'nws-live nws-live--strong nwt-smalltext-font-regular' }, S.h('span', { class: 'nws-live__dot' }), 'en vivo · hace ', S.h('span', { 'data-bind': 'hace' }, '—'), ' s')),
           S.h('span', { class: 'nwt-smalltext-font-regular nws-dark', style: 'margin-top:var(--naotech-sizing-8)' }, e(R.zona + ' · ' + R.sector + ' · trazada por la ' + R.trazadaPor + ' · ' + R.trazado))),
         S.h('div', { class: 'nws-divider-v' }),
         k ? S.h('div', { class: 'nws-row', style: 'flex:none;align-items:stretch;gap:var(--naotech-sizing-12)' },
@@ -64,16 +108,16 @@ window.PANTALLAS['operador-ruta'] = {
       content: S.h('div', { class: 'nws-stats nws-stats--5' },
         k ? S.statCard({ skeleton: true, theme: T })
           : S.h('div', { class: 'nwt-stat-card', style: 'position:relative' },
-            S.iconButton({ icon: 'refresh', size: 'small', variant: 'mute', theme: 'neutral', label: 'Reiniciar animación', cls: 'nws-stat-reset', attrs: { 'data-reset': 'avance' } }),
+            PROG ? '' : S.iconButton({ icon: 'refresh', size: 'small', variant: 'mute', theme: 'neutral', label: 'Reiniciar animación', cls: 'nws-stat-reset', attrs: { 'data-reset': 'avance' } }),
             S.h('div', { class: 'nwt-stat-card__content' },
               S.h('span', { class: 'nwt-stat-card__label' }, 'Avance'),
               S.h('span', { class: 'nwt-stat-card__value', 'data-bind': 'hechas' }, '—'),
               S.h('span', { class: 'nwt-stat-card__hint', 'data-bind': 'avanceHint' }),
               S.progress({ value: 0, size: 'medium', theme: T, cls: 'nws-stat-progress' }).replace('class="nwt-progress-bar', 'data-bind-progress="pct" class="nwt-progress-bar'))),
-        S.statCard({ skeleton: k, label: 'Ritmo', bindValue: 'ritmo', value: '—', hint: 'unidades por hora', icon: 'fast-shipping', theme: T }),
-        S.statCard({ skeleton: k, label: 'Próxima', bindValue: 'proxMin', bindHint: 'proxHint', value: '—', icon: 'gps-pin', theme: T }),
-        S.statCard({ skeleton: k, label: 'Última marca', bindValue: 'ultima', bindHint: 'ultimaHint', value: '—', icon: 'dispatch-time', theme: T }),
-        S.statCard({ skeleton: k, label: 'Fin estimado', value: R.finEstimado, bindHint: 'finHint', icon: 'calendar', theme: T }))
+        S.statCard({ skeleton: k, label: PROG ? 'Cuadrilla' : 'Ritmo', bindValue: PROG ? undefined : 'ritmo', value: PROG ? R.conductor.cuadrilla + ' personas' : '—', hint: PROG ? 'asignada a esta salida' : 'unidades por hora', icon: PROG ? 'user' : 'fast-shipping', theme: T }),
+        S.statCard({ skeleton: k, label: PROG ? 'Primera parada' : 'Próxima', bindValue: PROG ? undefined : 'proxMin', bindHint: PROG ? undefined : 'proxHint', value: PROG ? '—' : '—', hint: PROG ? 'se habilita al iniciar la ruta' : undefined, icon: 'gps-pin', theme: T }),
+        S.statCard({ skeleton: k, label: PROG ? 'Unidades' : 'Última marca', bindValue: PROG ? undefined : 'ultima', bindHint: PROG ? undefined : 'ultimaHint', value: PROG ? R.totalParadas : '—', hint: PROG ? 'a recolectar en la salida' : undefined, icon: 'dispatch-time', theme: T }),
+        S.statCard({ skeleton: k, label: PROG ? 'Sale' : 'Fin estimado', value: PROG ? salida : R.finEstimado, bindHint: PROG ? undefined : 'finHint', hint: PROG ? 'hora programada de salida' : undefined, icon: 'calendar', theme: T }))
     });
 
     var mapa = S.card({
@@ -87,6 +131,17 @@ window.PANTALLAS['operador-ruta'] = {
       content: S.h('div', { class: 'nws-map', id: 'mapa-vivo' }),
       attrs: { 'nwt-theme': T }
     });
+
+    var camion = camionCard(S, D.camionReporte, T, e);
+
+    /* DC-052: "Camión" y "Actividad de la ruta" combinados con un segmentor
+       en vez de apilados siempre — Actividad sigue viva de fondo (bind() y
+       pintarStops de mount no cambian, solo se esconde con CSS), así que
+       arrancar en cualquiera de las dos pestañas no pierde datos. */
+    /* DC-098: Actividad es la principal — arranca activa, no Camión. */
+    var segLado = S.tagGroup({ id: 'seg-lado', size: 'medium', theme: T, value: 'actividad', cls: 'nwt-tag-group--full-width', items: [
+      { id: 'sc', label: 'Camión', value: 'camion' },
+      { id: 'sa', label: 'Actividad', value: 'actividad' }] });
 
     var actividad = S.card({
       cls: 'nws-card--fill nws-card--flush nws-card--aside', attrs: { 'nwt-theme': T },
@@ -116,7 +171,11 @@ window.PANTALLAS['operador-ruta'] = {
     /* La fila mapa+actividad ocupa lo que queda de la vista (flex:1 sobre el
        contenido del shell), así el mapa nunca queda cortado por abajo; en
        pantallas bajas manda el mínimo y aparece scroll. */
-    return hero + S.h('div', { class: 'nws-split', style: 'min-height:80vh;max-height:80vh' }, mapa, actividad) + mapaModal;
+    return hero + S.h('div', { class: 'nws-split', style: 'min-height:80vh;max-height:80vh' }, mapa,
+      S.h('div', { class: 'nws-col nws-card--aside', style: 'gap:var(--naotech-sizing-10);min-height:0' },
+        segLado,
+        S.h('div', { id: 'panel-camion', class: 'nws-col nws-hidden', style: 'min-height:0' }, camion),
+        S.h('div', { id: 'panel-actividad', class: 'nws-col', style: 'min-height:0;flex:1' }, actividad))) + mapaModal;
   },
 
   mount: function (root, ctx) {
@@ -133,7 +192,8 @@ window.PANTALLAS['operador-ruta'] = {
         distancia: 30 + ((i * 17) % 120), camion: (i % 7) !== 5, fotos: i % 3 === 0 ? 2 : 1
       };
     });
-    var st = { hechas: R.avanceInicial, enBase: false, hace: 4, seguir: true, primer: true, scrollPropio: 0, vivo: true };
+    var PROG = this.programada();
+    var st = { hechas: PROG ? 0 : R.avanceInicial, enBase: false, hace: 4, seguir: true, primer: true, scrollPropio: 0, vivo: true };
     /* base, primera y última ya van rotuladas sobre el mapa; la leyenda
        explica solo los tres tipos de línea */
     var LEYENDA = ['recorrido', 'pendiente', 'traslado'];
@@ -175,7 +235,12 @@ window.PANTALLAS['operador-ruta'] = {
     function pintarIndicadores() {
       var faltan = total - st.hechas, pct = Math.round(st.hechas / total * 100);
       bind('hechas', st.hechas); bind('faltan', faltan); bind('total', total); bind('hace', st.hace);
-      bind('avanceHint', 'de ' + total + ' unidades · ' + pct + '%');
+      bind('avanceHint', PROG ? 'la ruta todavía no arrancó' : 'de ' + total + ' unidades · ' + pct + '%');
+      if (PROG) {
+        var bar0 = root.querySelector('[data-bind-progress="pct"]');
+        if (bar0) { bar0.setAttribute('aria-valuenow', 0); bar0.querySelector('.nwt-progress-bar__fill').style.width = '0%'; }
+        return;
+      }
       var bar = root.querySelector('[data-bind-progress="pct"]');
       if (bar) { bar.setAttribute('aria-valuenow', pct); bar.querySelector('.nwt-progress-bar__fill').style.width = pct + '%'; }
       bind('ritmo', String(Math.round(st.hechas / (0.4 + st.hechas * 0.1) * 6)));
@@ -211,10 +276,12 @@ window.PANTALLAS['operador-ruta'] = {
         Promise.all(mapas().map(function (m) { return m.animarA(total + 1); })).then(function () { st.enBase = true; llegada(); });
       }
     }
-    var reloj = setInterval(function () { st.hace++; bind('hace', st.hace); bind('ultimaHint', 'hace ' + st.hace + ' segundos'); }, 1000);
+    /* Programada: el mapa se dibuja igual (trazo completo, camión en el
+       patio) pero nada se mueve — ni el reloj de "hace N s" ni el avance. */
+    var reloj = PROG ? null : setInterval(function () { st.hace++; bind('hace', st.hace); bind('ultimaHint', 'hace ' + st.hace + ' segundos'); }, 1000);
 
     pintarIndicadores(); pintarParadas();
-    programar(1600);
+    if (!PROG) { programar(1600); }
 
     function reiniciar() {
       st.hechas = 0; st.enBase = false; st.hace = 0; st.seguir = true; st.primer = true;
@@ -232,6 +299,15 @@ window.PANTALLAS['operador-ruta'] = {
       if (mapaFull) { mapaFull.destruir(); mapaFull = null; }
     }
     function onClick(ev) {
+      var seg = ev.target.closest('#seg-lado [data-seg]');
+      if (seg) {
+        var v = seg.getAttribute('data-seg');
+        root.querySelectorAll('#seg-lado [data-seg]').forEach(function (b) { var on = b === seg; b.classList.toggle('nwt-tag-group__tag--active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+        root.querySelector('#panel-camion').classList.toggle('nws-hidden', v !== 'camion');
+        root.querySelector('#panel-actividad').classList.toggle('nws-hidden', v !== 'actividad');
+        ctx.posicionarIndicadores(root);
+        return;
+      }
       if (ev.target.closest('[data-reset="avance"]')) { reiniciar(); return; }
       if (ev.target.closest('[data-abrir-mapa]')) { abrirModal(); return; }
       if (ev.target.closest('#modal-mapa [data-close-modal]')) { cerrarModal(); }
@@ -245,7 +321,7 @@ window.PANTALLAS['operador-ruta'] = {
     lista.addEventListener('scroll', onScroll, { passive: true });
 
     return function () {
-      st.vivo = false; clearTimeout(timer); clearInterval(reloj);
+      st.vivo = false; clearTimeout(timer); if (reloj) { clearInterval(reloj); }
       mapas().forEach(function (m) { m.destruir(); });
       lista.removeEventListener('scroll', onScroll); root.removeEventListener('click', onClick); document.removeEventListener('keydown', onKey);
     };
