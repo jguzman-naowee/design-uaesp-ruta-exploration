@@ -13,6 +13,16 @@
  *
  * Copy en español neutro: sin vos/tú, sin género marcado ("quien supervisa",
  * "el personal en campo"). Los nombres de rol se mantienen: son del sistema.
+ *
+ * Navegación tipo slides (pedido 21-sep): cada sección grande es una
+ * diapositiva a pantalla completa; se avanza con tres mecanismos —
+ * teclado (flechas arriba/derecha o abajo/izquierda), botones en pantalla
+ * (arriba/abajo y a los costados) y clic del mouse (izquierdo avanza,
+ * derecho retrocede, sin abrir el menú contextual sobre el fondo de la
+ * diapositiva). El indicador de posición vive arriba (nav) y abajo (barra
+ * con puntos). El clic del mouse solo navega si no cayó sobre un elemento
+ * interactivo (link, botón, card de rol, fila de tabla), para no robarle
+ * el clic a esos controles.
  */
 window.PANTALLAS = window.PANTALLAS || {};
 window.PANTALLAS.showroom = {
@@ -38,15 +48,17 @@ window.PANTALLAS.showroom = {
     }
 
     /* ---------- 0 · nav ---------- */
-    var nav = S.h('div', { class: 'nws-show__nav nws-reveal' },
+    var nav = S.h('div', { class: 'nws-show__nav' },
       S.h('div', { class: 'nws-row' },
+        S.h('div', { class: 'nws-title__naowee' }, window.NAOWEE.icono),
         S.avatar({ img: D.entidad.logo, text: D.entidad.monograma, size: 'small', variant: 'quiet', theme: 'neutral' }),
         S.h('span', { class: 'nwt-body-font-semibold' }, e(D.entidad.sigla) + ' · Rutas')),
       S.h('div', { class: 'nws-show__nav-links nwt-smalltext-font-semibold' },
-        S.h('a', { href: '#evidencia', 'data-ir-ancla': 'evidencia' }, 'Evidencia'),
-        S.h('a', { href: '#auditoria', 'data-ir-ancla': 'auditoria' }, 'Auditoría'),
-        S.h('a', { href: '#funcionalidades', 'data-ir-ancla': 'funcionalidades' }, 'Funcionalidades'),
-        S.h('a', { href: '#roles', 'data-ir-ancla': 'roles' }, 'Roles')),
+        S.h('a', { href: '#evidencia', 'data-ir-slide': 'evidencia' }, 'Evidencia'),
+        S.h('a', { href: '#auditoria', 'data-ir-slide': 'auditoria' }, 'Auditoría'),
+        S.h('a', { href: '#funcionalidades', 'data-ir-slide': 'funcionalidades' }, 'Funcionalidades'),
+        S.h('a', { href: '#roles', 'data-ir-slide': 'roles' }, 'Roles')),
+      S.h('span', { class: 'nws-show__count nwt-smalltext-font-semibold nws-muted nws-tnum', 'data-bind': 'sr-count' }, ''),
       S.button({ label: 'Entrar al demo', size: 'medium', variant: 'loud', theme: 'primary', attrs: { 'data-ir': '#/' } }));
 
     /* ---------- 1 · solución + mapa real ---------- */
@@ -61,18 +73,18 @@ window.PANTALLAS.showroom = {
         S.h('div', null, S.h('b', { class: 'nws-ink nws-tnum' }, e(vivo.ultima)), 'última marca'),
         S.h('div', null, S.h('b', { class: 'nws-ink nws-tnum' }, e(vivo.eta)), 'llegada estimada')));
 
-    var hero = S.h('div', { class: 'nws-show__hero nws-reveal', style: '--nws-reveal-delay:80ms' },
+    var hero = S.h('div', { class: 'nws-show__hero' },
       S.h('div', { class: 'nws-show__hero-copy' },
         S.h('span', { class: 'nws-live nws-live--chip nwt-smalltext-font-semibold' }, S.h('span', { class: 'nws-live__dot' }), 'Demo interactivo · datos de muestra'),
         S.h('h1', { class: 'nws-show__title' }, 'Planear, ejecutar y verificar cada ruta de recolección. En un solo módulo.'),
         S.h('p', { class: 'nws-show__p nwt-body-font-regular', style: 'max-width:48ch' },
           'Desde que se traza la ruta hasta que se cierra con evidencia revisada, todo queda registrado en el mismo sistema — visible para la entidad y para cada operador contratado.'),
         S.h('div', { class: 'nws-row nws-row--md' },
-          S.button({ label: 'Ver demos', size: 'large', variant: 'loud', theme: 'primary', attrs: { 'data-ir-ancla': 'roles' } }),
-          S.button({ label: 'Ver una evidencia real', iconEnd: 'arrow-right', size: 'large', variant: 'mute', theme: 'neutral', attrs: { 'data-ir-ancla': 'evidencia' } }))),
+          S.button({ label: 'Ver demos', size: 'large', variant: 'loud', theme: 'primary', attrs: { 'data-ir-slide': 'roles' } }),
+          S.button({ label: 'Ver una evidencia real', iconEnd: 'arrow-right', size: 'large', variant: 'mute', theme: 'neutral', attrs: { 'data-ir-slide': 'evidencia' } }))),
       mapa);
 
-    var stats = S.h('div', { class: 'nws-stats nws-show__stats nws-show__stats--hype nws-reveal', style: '--nws-reveal-delay:200ms' },
+    var stats = S.h('div', { class: 'nws-stats nws-show__stats nws-show__stats--hype' },
       S.statCard({ label: 'Rutas activas hoy', value: AM.activas, hint: AM.zonas + ' zonas en simultáneo', icon: 'shipping', theme: 'primary' }),
       S.statCard({ label: 'Unidades marcadas hoy', value: AM.marcadasHoy.toLocaleString('es-CO'), hint: 'de ' + AM.metaHoy.toLocaleString('es-CO') + ' proyectadas', theme: 'primary',
         extra: S.progress({ value: AM.marcadasHoy / AM.metaHoy * 100, size: 'medium', cls: 'nws-stat-progress', theme: 'primary' }) }),
@@ -104,7 +116,7 @@ window.PANTALLAS.showroom = {
         S.h('div', { class: 'nws-thumbs-slider' },
           S.h('div', { class: 'nws-thumbs' }, thumbs,
             S.h('span', { class: 'nws-thumb nws-show__thumb-more nwt-smalltext-font-semibold' }, '…' + RM.total))) +
-        S.h('div', { class: 'nwt-divider nwt-divider--horizontal', style: 'margin:var(--naotech-sizing-16) 0' }) +
+        S.h('div', { class: 'nwt-divider nwt-divider--horizontal', style: 'margin:var(--naotech-sizing-10) 0' }) +
         S.h('div', { class: 'nws-ev' },
           S.h('div', { class: 'nws-ev__main nws-ev__photo', style: foto(0) }, S.h('span', { class: 'nws-ev__tag' }, S.badge({ label: 'operator-cam', size: 'small', theme: 'neutral' }))),
           S.h('div', { class: 'nws-ev__side' },
@@ -116,13 +128,13 @@ window.PANTALLAS.showroom = {
           }))
     });
 
-    var secEvidencia = S.h('div', { class: 'nws-show__sec nws-reveal', id: 'evidencia' },
+    var secEvidencia = S.h('div', { class: 'nws-show__sec' },
       lead('Lo central', 'Cada punto de recolección queda con hora, coordenada y fotografía.',
         'No es un reporte de confianza: quien supervisa puede verificar, unidad por unidad, que la ruta se cumplió — con la evidencia que el sistema capturó, no la que alguien contó.'),
       evidencia);
 
     /* ---------- 3a · cámara del camión ---------- */
-    var secCamara = S.h('div', { class: 'nws-show__sec nws-show__sec--tight nws-reveal' },
+    var secCamara = S.h('div', { class: 'nws-show__sec nws-show__sec--tight' },
       S.h('div', { class: 'nws-show__split' },
         S.h('div', { class: 'nws-show__split-media nws-show__split-media--l' },
           ph('Foto: cámara instalada en el compactador', 'camera', S.cls('nws-show__ph--fill', camion && camion.foto && 'nws-show__ph--foto'), camion && camion.foto ? 'background-image:url(' + camion.foto + ')' : ''),
@@ -161,7 +173,7 @@ window.PANTALLAS.showroom = {
               S.h('span', { class: 'nwt-caption-font-regular nws-muted nws-right nws-tnum' }, c.fotos + ' ev.')) });
         })));
     }));
-    var secAuditoria = S.h('div', { class: 'nws-show__sec nws-show__sec--tight nws-reveal', id: 'auditoria' },
+    var secAuditoria = S.h('div', { class: 'nws-show__sec nws-show__sec--tight' },
       S.h('div', { class: 'nws-show__split' },
         S.h('div', { class: 'nws-show__split-body' },
           S.h('div', null, S.badge({ label: 'Auditoría de la auditoría', size: 'medium', theme: 'informative' })),
@@ -203,7 +215,7 @@ window.PANTALLAS.showroom = {
               S.h('span', { class: 'nws-mob__sec nwt-caption-font-semibold' }, 'Causal'),
               S.h('div', { class: 'nws-row', style: 'flex-wrap:wrap' }, causales.map(function (c, i) { return S.tag({ label: c.txt, size: 'medium', active: i === 4, theme: 'primary' }); })),
               S.button({ label: 'Marcar como recolectada', size: 'large', variant: 'loud', theme: 'primary', disabled: true, cls: 'nws-mob__cta' }))))));
-    var secIntermedias = S.h('div', { class: 'nws-show__sec nws-reveal' },
+    var secIntermedias = S.h('div', { class: 'nws-show__sec' },
       lead(null, 'Lo que sostiene la operación diaria'),
       S.h('div', { class: 'nws-show__grid3' }, enVivo, multiOp, telefono));
 
@@ -218,7 +230,7 @@ window.PANTALLAS.showroom = {
         S.h('span', { class: 'nwt-caption-font-regular nws-muted' }, 'resultado'),
         S.badge({ label: D.estados.conforme.label, size: 'small', theme: D.estados.conforme.theme }),
         S.badge({ label: D.estados.hallazgos.label, size: 'small', theme: D.estados.hallazgos.theme })));
-    var secEstados = S.h('div', { class: 'nws-show__sec nws-reveal' },
+    var secEstados = S.h('div', { class: 'nws-show__sec' },
       S.h('div', { class: 'nws-show__lead', style: 'text-align:center;margin:0 auto var(--naotech-sizing-32)' },
         S.h('h2', { class: 'nws-show__h2' }, 'Cada ruta pasa por diez estados. Todos visibles, ninguno se salta.'),
         S.h('p', { class: 'nws-show__p nwt-body-font-regular' }, 'El mismo estado que ve la entidad es el que ve el operador contratado y el que ve el personal en campo.')),
@@ -233,8 +245,9 @@ window.PANTALLAS.showroom = {
     var ALIAS_LINK = {
       '?rol=admin#/admin': 'Admin · Rutas', '?rol=admin#/admin/entrega': 'Admin · Entrega de ruta',
       '?rol=operador#/operador': 'Operador · Hub', '?rol=operador#/operador/ruta': 'Operador · Ruta en vivo',
-      '?rol=operario#/operario': 'Operario · App móvil',
-      '?rol=supervisor#/supervisor': 'Supervisor · Tablero', '?rol=supervisor#/supervisor/revision': 'Supervisor · Revisión',
+      '?rol=conductor#/conductor': 'Conductor · App móvil',
+      '?rol=supervisor-ruta#/supervisor-ruta': 'Supervisor en ruta · App móvil',
+      '?rol=supervisor#/supervisor-dashboard': 'Supervisor · Tablero', '?rol=supervisor#/supervisor/revision': 'Supervisor · Revisión',
       '#/': 'Selector de perfil'
     };
     var FILAS = [
@@ -248,19 +261,24 @@ window.PANTALLAS.showroom = {
       ['oper', 'Asignación en 3 pasos', 'Conductor y hasta cinco recolectores, vehículo con fotografía, y resumen con la línea de tiempo de lo que sigue.', '?rol=operador#/operador'],
       ['oper', 'Detalle de ruta en vivo', 'Mapa con recorrido hecho y pendiente, camión en movimiento y cuadrilla; lista de paradas con conteo de fotos por unidad.', '?rol=operador#/operador/ruta'],
       ['oper', 'Mapa a pantalla completa', 'El recorrido en vivo se amplía en un modal para seguimiento en sala.', '?rol=operador#/operador/ruta'],
-      ['campo', 'Aplicación móvil del personal en campo', 'Flujo Hoy → Mi ruta → Marcar → Cerrada, pensado para uso con guantes y a plena luz.', '?rol=operario#/operario'],
-      ['campo', 'Indicaciones de giro', 'Mapa recortado con el siguiente giro y la lista de los próximos, al estilo de un navegador.', '?rol=operario#/operario'],
-      ['campo', 'Fotografía obligatoria por unidad', 'No se puede marcar una unidad sin evidencia; hora y coordenada se capturan solas.', '?rol=operario#/operario'],
-      ['campo', 'Causales tipificados', causales.map(function (c) { return c.txt; }).join(', ') + ' — con observación obligatoria según el caso.', '?rol=operario#/operario'],
-      ['campo', 'Ruta siguiente bloqueada', 'La ruta programada no se abre hasta cerrar la actual; evita marcar fuera de orden.', '?rol=operario#/operario'],
-      ['sup', 'Tablero de revisión Kanban / Tabla', 'Por revisar, En revisión, Observadas y Cerradas sobre el mismo conjunto de datos; vista intercambiable.', '?rol=supervisor#/supervisor'],
-      ['sup', 'Alerta de plazo', 'Rutas con más de 48 horas sin revisar o tres días de atraso quedan marcadas; los mensajes cambian según los días.', '?rol=supervisor#/supervisor'],
-      ['sup', 'Conformidad mensual', 'Porcentaje de rutas conformes con variación frente al mes anterior y tendencia.', '?rol=supervisor#/supervisor'],
+      ['campo', 'Aplicación móvil del conductor', 'Flujo Hoy → Mi ruta → Marcar → Cerrada, pensado para uso con guantes y a plena luz.', '?rol=conductor#/conductor'],
+      ['campo', 'Indicaciones de giro · Conductor', 'Mapa recortado con el siguiente giro y la lista de los próximos, al estilo de un navegador.', '?rol=conductor#/conductor'],
+      ['campo', 'Fotografía obligatoria por unidad · Conductor', 'No se puede marcar una unidad sin evidencia; hora y coordenada se capturan solas.', '?rol=conductor#/conductor'],
+      ['campo', 'Causales tipificados · Conductor', causales.map(function (c) { return c.txt; }).join(', ') + ' — con observación obligatoria según el caso.', '?rol=conductor#/conductor'],
+      ['campo', 'Ruta siguiente bloqueada · Conductor', 'La ruta programada no se abre hasta cerrar la actual; evita marcar fuera de orden.', '?rol=conductor#/conductor'],
+      ['campo', 'Aplicación móvil del supervisor en ruta', 'Flujo Hoy → Mi ruta → Marcar → Cerrada, pensado para uso con guantes y a plena luz.', '?rol=supervisor-ruta#/supervisor-ruta'],
+      ['campo', 'Indicaciones de giro · Supervisor en ruta', 'Mapa recortado con el siguiente giro y la lista de los próximos, al estilo de un navegador.', '?rol=supervisor-ruta#/supervisor-ruta'],
+      ['campo', 'Fotografía obligatoria por unidad · Supervisor en ruta', 'No se puede marcar una unidad sin evidencia; hora y coordenada se capturan solas.', '?rol=supervisor-ruta#/supervisor-ruta'],
+      ['campo', 'Causales tipificados · Supervisor en ruta', causales.map(function (c) { return c.txt; }).join(', ') + ' — con observación obligatoria según el caso.', '?rol=supervisor-ruta#/supervisor-ruta'],
+      ['campo', 'Ruta siguiente bloqueada · Supervisor en ruta', 'La ruta programada no se abre hasta cerrar la actual; evita marcar fuera de orden.', '?rol=supervisor-ruta#/supervisor-ruta'],
+      ['sup', 'Tablero de revisión Kanban / Tabla', 'Por revisar, En revisión, Observadas y Cerradas sobre el mismo conjunto de datos; vista intercambiable.', '?rol=supervisor#/supervisor-dashboard'],
+      ['sup', 'Alerta de plazo', 'Rutas con más de 48 horas sin revisar o tres días de atraso quedan marcadas; los mensajes cambian según los días.', '?rol=supervisor#/supervisor-dashboard'],
+      ['sup', 'Conformidad mensual', 'Porcentaje de rutas conformes con variación frente al mes anterior y tendencia.', '?rol=supervisor#/supervisor-dashboard'],
       ['sup', 'Evidencia dual por unidad', 'Fotografía de quien opera y dos vistas de la cámara del camión; se indica cuando el camión no reportó.', '?rol=supervisor#/supervisor/revision'],
       ['sup', 'Tira de evidencias completa', 'Las ' + RM.total + ' unidades de la ruta como miniaturas navegables, sin resúmenes del tipo "+N más".', '?rol=supervisor#/supervisor/revision'],
       ['sup', 'Juicio con hallazgos tipificados', 'Conforme o Con hallazgos; los hallazgos son fijos y la observación es obligatoria.', '?rol=supervisor#/supervisor/revision'],
       ['sup', 'Línea de tiempo de la ruta', 'Hitos desde el trazado hasta el cierre, en la misma pantalla de revisión.', '?rol=supervisor#/supervisor/revision'],
-      ['trans', 'Cuatro perfiles, una sesión', 'Administrador, Operador, Operario y Supervisor; se recuerda el último perfil usado.', '#/'],
+      ['trans', 'Cinco perfiles, una sesión', 'Administrador, Operador, Conductor, Supervisor en ruta y Supervisor; se recuerda el último perfil usado.', '#/'],
       ['trans', 'Enlaces directos por pantalla', 'Cualquier pantalla se puede compartir con su perfil ya activo mediante ?rol=.', '#/'],
       ['trans', 'Diez estados de ruta', ORDEN.map(function (k) { return D.estados[k].label; }).concat([D.estados.conforme.label, D.estados.hallazgos.label]).join(', ') + '.', '#/'],
       ['trans', 'Contraste AA en indicadores', 'Los indicadores de estado usan la variante que cumple accesibilidad; se midió antes de decidirlo.', '#/'],
@@ -281,14 +299,14 @@ window.PANTALLAS.showroom = {
         ];
       })
     });
-    var secTabla = S.h('div', { class: 'nws-show__sec nws-reveal', id: 'funcionalidades' },
+    var secTabla = S.h('div', { class: 'nws-show__sec' },
       S.h('div', { class: 'nws-show__sec-head' },
         lead(null, 'Todo lo que incluye el módulo', 'Para quien evalúa técnicamente: cada fila abre la pantalla del demo donde se ve.'),
         S.badge({ label: FILAS.length + ' funcionalidades', size: 'medium', theme: 'neutral' })),
       tabla);
 
     /* ---------- 7 · roles ---------- */
-    var INICIALES_ROL = { admin: 'AD', operador: 'OD', operario: 'OP', supervisor: 'SU' };
+    var INICIALES_ROL = { admin: 'AD', operador: 'OD', supervisor: 'SU' };
     var roles = S.h('div', { class: 'nws-show__roles' }, D.roles.map(function (r) {
       return S.card({
         onClick: true, size: 'large', variant: 'quiet',
@@ -302,7 +320,7 @@ window.PANTALLAS.showroom = {
         footer: S.h('div', { style: 'width:100%' }, S.button({ label: 'Entrar', size: 'medium', variant: 'quiet', theme: r.theme, cls: 'nws-mob__cta', attrs: { 'data-rol': r.id, style: 'width:100%' } }))
       });
     }));
-    var secRoles = S.h('div', { class: 'nws-show__sec nws-reveal', id: 'roles' },
+    var secRoles = S.h('div', { class: 'nws-show__sec' },
       lead(null, 'Elija un perfil para recorrer el flujo completo.', 'Es el mismo demo del módulo; cada perfil entra directo a su pantalla de inicio.'),
       roles);
 
@@ -310,8 +328,36 @@ window.PANTALLAS.showroom = {
       S.h('span', null, e(D.entidad.nombre) + ' · ' + e(D.entidad.gobierno) + ' · ' + e(D.entidad.plataforma)),
       S.h('span', null, 'Prototipo de demostración · datos de muestra · sesión ficticia'));
 
+    /* ---------- 8 · armado de las diapositivas ---------- */
+    var DIAPOS = [
+      { id: 'inicio', contenido: [hero, stats] },
+      { id: 'evidencia', contenido: [secEvidencia] },
+      { id: 'auditoria', contenido: [secAuditoria] },
+      { id: 'camara', contenido: [secCamara] },
+      { id: 'intermedias', contenido: [secIntermedias] },
+      { id: 'estados', contenido: [secEstados] },
+      { id: 'funcionalidades', contenido: [secTabla] },
+      { id: 'roles', contenido: [secRoles, foot] }
+    ];
+    var slides = DIAPOS.map(function (d, i) {
+      return S.h('section', { class: S.cls('nws-show__slide', i === 0 && 'nws-show__slide--on'), 'data-slide-id': d.id, 'data-slide-i': i, 'aria-hidden': i === 0 ? 'false' : 'true' },
+        S.h('div', { class: 'nws-show__slide-inner' }, d.contenido));
+    });
+    var dots = S.h('div', { class: 'nws-show__dots' }, DIAPOS.map(function (d, i) {
+      return S.h('button', { class: S.cls('nws-show__dot', i === 0 && 'nws-show__dot--on'), type: 'button', 'data-ir-slide-i': i, 'aria-label': 'Ir a la diapositiva ' + (i + 1) });
+    }));
+    var barra = S.h('div', { class: 'nws-show__bottombar' },
+      S.iconButton({ icon: 'chevron-left', size: 'small', variant: 'quiet', theme: 'neutral', label: 'Diapositiva anterior', cls: 'nws-show__nav-arrow', attrs: { 'data-nav': 'prev' } }),
+      dots,
+      S.h('span', { class: 'nwt-smalltext-font-semibold nws-muted nws-tnum', 'data-bind': 'sr-count-bottom' }, ''),
+      S.iconButton({ icon: 'chevron-right', size: 'small', variant: 'quiet', theme: 'neutral', label: 'Diapositiva siguiente', cls: 'nws-show__nav-arrow', attrs: { 'data-nav': 'next' } }));
+    var flechaIzq = S.iconButton({ icon: 'chevron-left', size: 'medium', variant: 'quiet', theme: 'neutral', label: 'Diapositiva anterior', cls: 'nws-show__edge nws-show__edge--l', attrs: { 'data-nav': 'prev' } });
+    var flechaDer = S.iconButton({ icon: 'chevron-right', size: 'medium', variant: 'quiet', theme: 'neutral', label: 'Diapositiva siguiente', cls: 'nws-show__edge nws-show__edge--r', attrs: { 'data-nav': 'next' } });
+
     return S.h('div', { class: 'nws-show' },
-      S.h('div', { class: 'nws-show__wrap' }, nav, hero, stats, secEvidencia, secAuditoria, secCamara, secIntermedias, secEstados, secTabla, secRoles, foot));
+      nav,
+      S.h('div', { class: 'nws-show__deck' }, flechaIzq, flechaDer, slides),
+      barra);
   },
 
   mount: function (root, ctx) {
@@ -344,31 +390,81 @@ window.PANTALLAS.showroom = {
     avance();
     programar(1400);
 
-    /* Entrada: lo de arriba (nav/hero/stats) al montar, con doble rAF para
-       que el navegador no funda el frame en opacity:0 con el de --in; las
-       secciones de abajo, la primera vez que entran en pantalla al hacer
-       scroll — es una página larga, no todo debería animar de una. */
-    requestAnimationFrame(function () { requestAnimationFrame(function () {
-      root.querySelectorAll('.nws-show__nav.nws-reveal, .nws-show__hero.nws-reveal, .nws-show__stats.nws-reveal')
-        .forEach(function (el) { el.classList.add('nws-reveal--in'); });
-    }); });
+    /* ---------- diapositivas: estado + los tres mecanismos de navegación ---------- */
+    var slideEls = Array.prototype.slice.call(root.querySelectorAll('.nws-show__slide'));
+    var dotEls = Array.prototype.slice.call(root.querySelectorAll('.nws-show__dot'));
+    var total = slideEls.length;
+    var idx = 0;
 
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (!en.isIntersecting) { return; }
-        en.target.classList.add('nws-reveal--in');
-        observer.unobserve(en.target);
+    function contador() { return (idx + 1) + ' / ' + total; }
+    function actualizarContador() {
+      root.querySelectorAll('[data-bind="sr-count"], [data-bind="sr-count-bottom"]').forEach(function (n) { n.textContent = contador(); });
+    }
+    function ir(n) {
+      n = Math.max(0, Math.min(total - 1, n));
+      if (n === idx) { return; }
+      idx = n;
+      slideEls.forEach(function (el, i) {
+        var on = i === idx;
+        el.classList.toggle('nws-show__slide--on', on);
+        el.setAttribute('aria-hidden', on ? 'false' : 'true');
+        if (on) { el.scrollTop = 0; }
       });
-    }, { threshold: 0.15 });
-    root.querySelectorAll('.nws-show__sec.nws-reveal').forEach(function (el) { observer.observe(el); });
+      dotEls.forEach(function (el, i) { el.classList.toggle('nws-show__dot--on', i === idx); });
+      actualizarContador();
+    }
+    function irPorId(id) { var i = slideEls.findIndex(function (el) { return el.getAttribute('data-slide-id') === id; }); if (i > -1) { ir(i); } }
+    function siguiente() { ir(idx + 1); }
+    function anterior() { ir(idx - 1); }
+    actualizarContador();
 
+    /* Mecanismo 1 · teclado: flechas arriba/derecha avanzan, abajo/izquierda retroceden. */
+    function onKey(ev) {
+      if (ev.key === 'ArrowRight' || ev.key === 'ArrowUp') { ev.preventDefault(); siguiente(); }
+      else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowDown') { ev.preventDefault(); anterior(); }
+    }
+    /* En document, no en root: root necesitaría foco explícito (tabindex +
+       .focus()) y cualquier clic dentro de un input/botón se lo robaría —
+       las flechas deben funcionar apenas se entra a /showroom. */
+    document.addEventListener('keydown', onKey);
+
+    /* Mecanismo 3 · clic del mouse sobre el fondo de la diapositiva: izquierdo
+       avanza, derecho retrocede. Si el clic cayó sobre un control (link,
+       botón, card de rol, fila de la tabla) se deja pasar tal cual. */
+    function esInteractivo(t) { return !!t.closest('a, button, input, textarea, select, [role="button"], .nwt-datatable'); }
+    function onMouseDown(ev) {
+      var deck = ev.target.closest('.nws-show__deck');
+      if (!deck || esInteractivo(ev.target)) { return; }
+      if (ev.button === 0) { siguiente(); }
+      else if (ev.button === 2) { ev.preventDefault(); anterior(); }
+    }
+    function onContextMenu(ev) {
+      var deck = ev.target.closest('.nws-show__deck');
+      if (deck && !esInteractivo(ev.target)) { ev.preventDefault(); }
+    }
+    root.addEventListener('mousedown', onMouseDown);
+    root.addEventListener('contextmenu', onContextMenu);
+
+    /* Mecanismo 2 · botones en pantalla: flechas de los costados y de la
+       barra inferior, más los puntos y los links del nav superior. */
     function onClick(ev) {
-      var a = ev.target.closest('[data-ir-ancla]');
-      if (a) { ev.preventDefault(); var t = root.querySelector('#' + a.getAttribute('data-ir-ancla')); if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
+      var nav = ev.target.closest('[data-nav]');
+      if (nav) { ev.preventDefault(); nav.getAttribute('data-nav') === 'next' ? siguiente() : anterior(); return; }
+      var dot = ev.target.closest('[data-ir-slide-i]');
+      if (dot) { ev.preventDefault(); ir(Number(dot.getAttribute('data-ir-slide-i'))); return; }
+      var a = ev.target.closest('[data-ir-slide]');
+      if (a) { ev.preventDefault(); irPorId(a.getAttribute('data-ir-slide')); return; }
       var rol = ev.target.closest('[data-rol]');
       if (rol) { ev.preventDefault(); ctx.entrar(rol.getAttribute('data-rol')); return; }
     }
     root.addEventListener('click', onClick);
-    return function () { st.vivo = false; clearTimeout(timer); mapa.destruir(); observer.disconnect(); root.removeEventListener('click', onClick); };
+
+    return function () {
+      st.vivo = false; clearTimeout(timer); mapa.destruir();
+      document.removeEventListener('keydown', onKey);
+      root.removeEventListener('mousedown', onMouseDown);
+      root.removeEventListener('contextmenu', onContextMenu);
+      root.removeEventListener('click', onClick);
+    };
   }
 };
