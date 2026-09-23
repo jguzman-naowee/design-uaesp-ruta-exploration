@@ -947,12 +947,24 @@ body {
    nws-login — selector de rol, tipo Netflix. NO EXISTE EN EL SDK.
    Cada perfil es un NwtCard clickable con un NwtAvatar.
    ------------------------------------------------------------------- */
+/* DC-360: .nws-login__topbar es position:absolute a propósito (no reserva
+   alto, no participa del centrado vertical — ver DC-076/083 más abajo),
+   pero eso significa que nada le avisa a este contenedor que el topbar
+   existe. Con viewport bajo (pantalla chica o zoom subido) el bloque
+   centrado (head/grid/foot) sube hasta pisar el logo/Showroom. El
+   padding-top de acá es el alto real del topbar (medido: ~94px) — reserva
+   ese espacio siempre, así el centrado nunca puede subir por encima. */
 .nws-login {
   min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: var(--naotech-sizing-16); padding: var(--naotech-sizing-16);
+  gap: var(--naotech-sizing-16); padding: var(--naotech-sizing-16); padding-top: 104px;
   background: var(--naotech-app-color-050);
   box-sizing: border-box;
   position: relative; overflow: hidden;
+}
+/* Si aun así no entra (viewport muy bajo o zoom muy alto), que scrollee en
+   vez de superponerse — mejor un scroll que un logo ilegible. */
+@media (max-height: 700px) {
+  .nws-login { overflow-y: auto; justify-content: flex-start; }
 }
 /* DC-221: fondo muy difuminado (foto real de recolección, pre-blureada a
    baja resolución con ffmpeg antes de embeber, no CSS blur en vivo) +
@@ -1095,6 +1107,14 @@ body {
 }
 @keyframes nws-brillo { 0% { background-position: 120% 0; } 100% { background-position: -20% 0; } }
 @media (prefers-reduced-motion: reduce) { .nws-login__title { animation: none; background: none; color: var(--naotech-app-color-900); } }
+/* DC-360: el font-size de 56px es inline (login.js) — a esta altura de
+   viewport es lo que más espacio se come, junto con el padding vertical
+   del slider de perfiles. Se achican los dos para que el scroll de
+   respaldo (arriba) sea la excepción, no la regla. */
+@media (max-height: 700px) {
+  .nws-login__title { font-size: var(--naotech-sizing-32) !important; }
+  .nws-login__grid { padding-top: var(--naotech-sizing-24); padding-bottom: var(--naotech-sizing-32); }
+}
 
 /* -------------------------------------------------------------------
    nws-phone — marco de teléfono para la app del operario (390×800).
