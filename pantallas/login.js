@@ -30,7 +30,13 @@ window.PANTALLAS.login = {
     var rolesGrilla = D.roles.filter(function (r) { return r.id !== 'flota'; });
     var flota = D.roles.filter(function (r) { return r.id === 'flota'; })[0];
     var perfiles = rolesGrilla.map(function (r, i) {
-      var card = S.card({
+      /* DC-362: "Gestión de Flota" no es un rol de la grilla (DC-023) — corre
+         dentro del párrafo de la descripción de Operador. */
+      var atajoFlota = (r.id === 'operador' && flota)
+        ? S.h('button', { type: 'button', class: 'nws-login__flota', 'data-rol': flota.id, 'aria-label': 'Entrar a Flota' },
+            S.h('span', null, 'Gestión de Flota'), S.icon('vehicles'))
+        : '';
+      return S.card({
         onClick: true, size: 'medium', variant: 'quiet', theme: r.theme,
         cls: 'nws-reveal', style: '--nws-reveal-delay:' + (160 + i * 70) + 'ms',
         attrs: { 'data-rol': r.id, role: 'button', 'aria-label': 'Entrar como ' + r.rol },
@@ -46,20 +52,8 @@ window.PANTALLAS.login = {
           (ultimo === r.id ? S.h('div', { class: 'nws-login__last' }, S.badge({ label: 'Última visitada', size: 'medium', theme: r.theme })) : '') +
           S.avatar({ text: INICIALES_ROL[r.id] || r.iniciales, size: 'large', variant: 'loud', color: r.color }) +
           S.h('span', { class: 'nwt-body-font-bold' }, e(r.rol)) +
-          S.h('p', { class: 'nwt-smalltext-font-regular nws-muted nws-login__desc' }, e(r.descripcion))
+          S.h('p', { class: 'nwt-smalltext-font-regular nws-muted nws-login__desc' }, e(r.descripcion) + atajoFlota)
       });
-      /* DC-082 (corrige DC-064/078): "Flota" no debe leerse suelta — una
-         cinta del ancho completo de la card, pegada a su borde inferior
-         (mismo radio), a caballo hacia afuera. Absoluta igual (no le suma
-         alto a la card), pero ahora se SIENTE parte de ella. La clase en
-         el wrapper deja encontrar la card real desde el click de la cinta,
-         para el mismo zoom-transition que las cards de rol (ver onClick). */
-      if (r.id !== 'operador' || !flota) { return card; }
-      return S.h('div', { class: 'nws-login__opcard', style: 'position:relative' }, card,
-        S.h('button', { type: 'button', class: 'nws-login__flota', 'data-rol': flota.id, 'aria-label': 'Entrar a Flota' },
-          /* DC-087: "Flota" a secas leía más a etiqueta que a acción — se
-             deja el verbo. */
-          S.icon('vehicles'), S.h('span', null, 'Gestión de Flota')));
     });
 
     return S.h('div', { class: 'nws-login' },
@@ -129,6 +123,8 @@ window.PANTALLAS.login = {
       contenido.appendChild(nombre);
       clon.appendChild(contenido);
       document.body.appendChild(clon);
+      /* Sin esta medición el navegador no pinta el tamaño inicial y la transición no corre: la tapa salía de golpe. */
+      void clon.offsetWidth;
       requestAnimationFrame(function () {
         clon.style.left = '0px'; clon.style.top = '0px';
         clon.style.width = window.innerWidth + 'px'; clon.style.height = window.innerHeight + 'px';
@@ -149,17 +145,17 @@ window.PANTALLAS.login = {
       if (!el || enZoom) { return; }
       ev.preventDefault();
       var rolId = el.getAttribute('data-rol');
-      /* DC-082: la cinta de Flota no es ella misma la card — pero el zoom
-         debe verse "como viene" (el mismo crecer-hasta-cubrir-pantalla de
-         cualquier card), así que crece desde la card de Operador de al
-         lado (.nws-login__opcard contiene a las dos), no desde la cinta. */
-      var envoltorio = el.closest('.nws-login__opcard');
-      var origen = el.closest('.nwt-card') || (envoltorio && envoltorio.querySelector('.nwt-card'));
+      /* DC-362: el label de Flota ya vive dentro de la card de Operador, así
+         que closest da esa card — el zoom sale de ahí, como cualquier rol. */
+      var origen = el.closest('.nwt-card');
       if (!origen) { ctx.entrar(rolId); return; }
       zoom(origen, rolId, nombreDe(rolId));
     }
     function onKey(ev) {
       if (ev.key !== 'Enter' && ev.key !== ' ') { return; }
+      /* DC-362: el label de Flota es un <button> dentro de la card; sin esto
+         su Enter subiría a la card y entraría como Operador. */
+      if (ev.target.closest('button')) { return; }
       var el = ev.target.closest('.nwt-card[data-rol]');
       if (!el || enZoom) { return; }
       ev.preventDefault();
