@@ -39,7 +39,7 @@ window.PANTALLAS['admin-hub'] = {
     { label: 'Ruta',     style: 'flex:1 1 0;min-width:128px' },
     { label: 'Operador', style: 'flex:1.6 1 0;min-width:168px' },
     { label: 'Zona',     style: 'flex:0 0 88px' },
-    { label: 'Unidades', style: 'flex:0 0 72px', cls: 'nws-col-center' },
+    { label: 'Puntos', style: 'flex:0 0 72px', cls: 'nws-col-center' },
     { label: 'Estado',   style: 'flex:0 0 116px', cls: 'nws-col-center' },
     /* DC-271 sube los captions de celda a 14px: "17 de 41 - 41%" mide ~104px ahí. */
     { label: 'Progreso', style: 'flex:0 0 120px' },
@@ -68,7 +68,7 @@ window.PANTALLAS['admin-hub'] = {
     var stats = S.h('div', { class: 'nws-stats nws-stats--hero' },
       S.statCard({ skeleton: k, label: 'Rutas activas', value: M.activas, hint: 'en ' + M.zonas + ' zonas · ' + M.operadoresVigentes + ' operadores con contrato vigente', cls: 'nws-stat-hero', theme: T }),
       S.statCard({ skeleton: k, label: 'Sin asignar', value: M.sinAsignar, hint: 'esperando que el operador reparta', icon: 'shipping', theme: T }),
-      S.statCard({ skeleton: k, label: 'En ejecución', value: M.enEjecucion, hint: M.marcadasHoy.toLocaleString('es-CO') + ' de ' + M.metaHoy.toLocaleString('es-CO') + ' unidades marcadas hoy', theme: T,
+      S.statCard({ skeleton: k, label: 'En ejecución', value: M.enEjecucion, hint: M.marcadasHoy.toLocaleString('es-CO') + ' de ' + M.metaHoy.toLocaleString('es-CO') + ' puntos marcados hoy', theme: T,
         extra: S.progress({ value: M.marcadasHoy / M.metaHoy * 100, size: 'medium', cls: 'nws-stat-progress' }) }),
       S.statCard({ skeleton: k, label: 'Completadas · septiembre', valueHtml: S.h('span', { class: 'nws-delta' }, e(M.completadasMes), S.badge({ label: M.variacionMes, size: 'small', theme: 'positive' })), theme: T,
         extra: S.h('div', { class: 'nws-spark' }, M.sparkline.map(function (v) { return '<i style="height:' + v + '%"></i>'; })) }));
@@ -125,7 +125,7 @@ window.PANTALLAS['admin-hub'] = {
   mount: function (root, ctx) {
     var S = ctx.S, D = ctx.D, A = D.admin, T = ctx.rol.theme, e = S.esc, M = window.MAPA;
     var COLS = this.columnas;
-    var st = { tab: 'todas', modal: false, paso: 1, modo: null, opId: null, q: '', creada: false, destacada: null };
+    var st = { tab: 'todas', modal: false, paso: 1, modo: null, opId: null, q: '', creada: false, destacadas: [] };
     var opPorId = {}; D.operadores.forEach(function (o) { opPorId[o.id] = o; });
     /* DC-001: esta tabla no trae inicio/última marca/ETA por ruta (solo
        marcadas/unidades) — los tiempos reales viven en D.operador.enCalle.
@@ -140,17 +140,19 @@ window.PANTALLAS['admin-hub'] = {
       var rows = filas.map(function (r) {
         var op = opPorId[r.operador], est = D.estados[r.estado];
         var estadoCell = S.badge({ label: est.label, size: 'medium', theme: est.theme });
-        /* DC-332: el contador (marcadas de unidades) vivía en Estado; ahora
-           Progreso trae el porcentaje y el contador juntos, y Estado queda
-           solo con el badge. */
-        /* DC-352: "17 de 41 - 41%" en una sola línea, no apiladas en dos. */
+        /* DC-364 (reemplaza DC-352): el porcentaje manda y el conteo baja a
+           badge. El atraso ya no se dice con texto — lo dice el rojo, que
+           sale del mismo rutaAtrasada de siempre (DC-001/DC-010). */
         var conTiempos = enCallePorCodigo[r.codigo];
         var atrasada = r.estado === 'curso' && conTiempos && rutaAtrasada(conTiempos);
         var progresoCell = r.estado === 'curso'
-          ? S.h('span', { class: S.cls('nwt-caption-font-regular nws-tnum', atrasada && 'nws-atraso') },
-              r.marcadas + ' de ' + r.unidades + ' - ' + Math.round(r.marcadas / r.unidades * 100) + '%' + (atrasada ? ' · atrasada' : ''))
+          ? S.h('div', { class: 'nws-row nws-row--sm' },
+              S.h('span', { class: S.cls('nwt-caption-font-semibold nws-tnum', atrasada && 'nws-atraso') },
+                Math.round(r.marcadas / r.unidades * 100) + '%'),
+              S.badge({ label: r.marcadas + '/' + r.unidades, size: 'small', variant: 'quiet',
+                        theme: atrasada ? 'negative' : 'neutral', cls: 'nws-tnum' }))
           : S.h('span', { class: 'nwt-caption-font-regular nws-soft' }, '—');
-        return { cls: S.cls('nws-list__row--click', r.codigo === st.destacada && 'nws-list__row--nueva'), attrs: { 'data-ir': r.estado === 'curso' ? '#/operador/ruta/vivo' : '#/admin/entrega' }, cells: [
+        return { cls: S.cls('nws-list__row--click', st.destacadas.indexOf(r.codigo) >= 0 && 'nws-list__row--nueva'), attrs: { 'data-ir': r.estado === 'curso' ? '#/operador/ruta/vivo' : '#/admin/entrega' }, cells: [
           S.h('span', null, S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-caption-font-semibold' }, e(r.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, e(r.modo)))),
           S.h('span', null, S.h('div', { class: 'nws-row' }, S.avatar({ text: op.ini, size: 'tiny', variant: 'quiet', theme: 'neutral' }), S.h('span', { class: 'nwt-caption-font-regular nws-clip' }, e(op.nombre)))),
           S.h('span', { class: 'nwt-caption-font-regular' }, e(r.zona)),
@@ -192,7 +194,7 @@ window.PANTALLAS['admin-hub'] = {
         pista = tr ? 'El trazo cae en la zona ' + tr.zona + ' · ' + tr.unidades + ' unidades · ' + tr.km + ' km' : pista;
         html = S.h('div', { class: 'nws-row nws-row--md', style: 'align-items:stretch' },
             S.h('button', { type: 'button', class: S.cls('nws-option', st.modo === 'manual' && 'nws-option--on'), 'data-nr-modo': 'manual', 'nwt-theme': T },
-              S.h('span', { class: 'nwt-body-font-semibold' }, 'Creación manual'), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Señalás las unidades en el orden en que se recorren. Control total, no escala.')),
+              S.h('span', { class: 'nwt-body-font-semibold' }, 'Creación manual'), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Señalás los puntos de recolección en el orden en que se recorren. Control total, no escala.')),
             S.h('button', { type: 'button', class: S.cls('nws-option', st.modo === 'auto' && 'nws-option--on'), 'data-nr-modo': 'auto', 'nwt-theme': T },
               S.h('span', { class: 'nwt-body-font-semibold' }, 'Creación automática'), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'El algoritmo resuelve el mejor recorrido y lo parte si no alcanza en una jornada.'))) +
           /* El trazo lo pinta MAPA.crear después de montar el HTML (ver abajo):
@@ -200,7 +202,7 @@ window.PANTALLAS['admin-hub'] = {
           S.h('div', { class: 'nws-map nws-map--modal', id: 'nr-mapa', 'nwt-theme': T });
       }
       if (st.paso === 2) {
-        okOk = !!st.opId; okLabel = 'Revisar';
+        okOk = !!st.opId; okLabel = 'Continuar';
         var q = st.q.toLowerCase();
         var visibles = D.operadores.filter(function (o) { return !q || o.nombre.toLowerCase().indexOf(q) >= 0; });
         var nDisp = D.operadores.filter(cubre).length;
@@ -217,29 +219,41 @@ window.PANTALLAS['admin-hub'] = {
                   S.h('div', { class: 'nws-grow nws-col' }, S.h('span', { class: 'nwt-smalltext-font-semibold nws-clip' }, e(o.nombre)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, ok ? 'cubre la zona del trazo' : 'opera en otra zona')),
                   S.badge({ label: ok ? 'Disponible' : 'Fuera de zona', size: 'small', theme: ok ? 'positive' : 'neutral' })) +
                 S.h('div', { class: 'nws-pick__stats' },
-                  S.h('div', { class: 'nws-pick__stat' }, S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, o.unidades), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Unidades')),
+                  S.h('div', { class: 'nws-pick__stat' }, S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, o.unidades), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Puntos')),
                   S.h('div', { class: 'nws-pick__stat' }, S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, o.operarios), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Operarios')),
                   S.h('div', { class: 'nws-pick__stat' }, S.badge({ label: o.carga, size: 'small', theme: carga }), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Carga'))) });
           })) : S.emptyState({ title: 'Ningún operador coincide', description: '«' + st.q + '» en la zona ' + tr.zona, actionLabel: '' }));
       }
       if (st.paso === 3) {
-        okLabel = st.creada ? 'Creadas' : 'Crear y enviar'; okOk = !st.creada;
+        okLabel = st.creada ? 'Creadas' : 'Trazar y revisar'; okOk = !st.creada;
         pista = st.creada ? 'Entregadas al operador' : 'Revisá antes de crear';
         var op = opPorId[st.opId];
+        var zonaCorta = tr.zona.split(' · ')[0];
+        /* Siempre una ruta; si cruza sectores, cada tarjeta dice cuántas paradas caen en cada uno. */
         html = S.h('div', { class: 'nws-split' },
           S.h('div', { class: 'nws-col nws-grow', style: 'gap:var(--naotech-sizing-8)' },
             S.h('span', { class: 'nwt-overline-font-semibold nws-muted' }, 'Trazado'),
             S.h('div', { class: 'nws-map nws-map--modal', id: 'nr-mapa', 'nwt-theme': T })),
-          S.h('div', { class: 'nws-col', style: 'flex:0 0 372px;gap:var(--naotech-sizing-10)' },
-            S.h('div', { class: 'nws-ticket' },
-              S.h('div', { class: 'nws-ticket__head' }, S.icon('shipping'), S.h('span', { class: 'nwt-caption-font-semibold' }, 'Resumen')),
-              /* DC-090: mismo tratamiento que el ticket de operador-hub.js
-                 (Asignar ruta) — valores en monospace. */
-              S.h('div', { class: 'nws-ticket__body nws-ticket__body--mono' },
-                [['Modo', st.modo === 'auto' ? 'Automática' : 'Manual'], ['Zona', tr.zona], ['Operador', op.nombre], ['Rutas a crear', '1'],
-                 ['Unidades', st.modo === 'auto' ? tr.unidades + ' · atraviesa Sectores A y B' : tr.unidades + ' · Sector A'], ['Recorrido', tr.km + ' km estimados'], ['Estado inicial', 'Trazada — editable hasta que la asignen']]
-                  .map(function (kv) { return S.h('div', { class: 'nws-kv nwt-caption-font-regular' }, S.h('span', { class: 'nws-kv__k' }, kv[0]), S.h('span', { class: 'nws-kv__v nwt-caption-font-medium' }, e(kv[1]))); }))),
-            st.creada ? S.alert({ theme: 'positive', icon: 'positive', html: S.h('b', null, 'Rutas creadas. ') + 'Ya están en la bandeja de ' + e(op.nombre) + '.' }) : ''));
+          S.h('div', { class: 'nws-col', style: 'flex:0 0 436px;gap:var(--naotech-sizing-10)' },
+            /* DC-366: mismo ticket que el modal de asignar (ctx.ticket). El
+               folio es ficticio pero derivado de la zona: la ruta todavía no
+               existe, así que se muestra como borrador. */
+            ctx.ticket({
+              doc: 'Resumen de trazado',
+              folio: tr.zona.slice(0, 3).toUpperCase() + '-2026-BRR',
+              hero: '1', heroUnidad: 'ruta',
+              cifras: [{ valor: String(tr.unidades), label: 'Puntos' }, { valor: tr.km, unidad: 'km', label: 'Recorrido' }, { valor: String(tr.requiere.length), label: 'Sectores' }],
+              /* DC-372: el tema neutral pinta el avatar en app-color-100, el mismo
+                 papel del ticket — se perdía. Va con el tema del rol. */
+              persona: { label: 'Operador', ini: op.ini, nombre: op.nombre, tema: T },
+              /* DC-369: zona y sectores separados; DC-368: el modo salió — ya lo
+                 dice el paso 1 y acá no cambiaba ninguna decisión. */
+              pares: [[['Zona', zonaCorta], ['Sectores', tr.requiere.join(' + ')]]]
+            }),
+            /* DC-371: el estado inicial es una advertencia del paso, no parte del
+               comprobante — sale del ticket y baja a un alert de la columna. */
+            S.alert({ theme: 'caution', icon: 'info', html: S.h('b', null, 'Estado inicial · Trazada. ') + 'Editable hasta que el operador la asigne. Después ya no se puede reasignar.' }),
+            st.creada ? S.alert({ theme: 'positive', icon: 'positive', html: S.h('b', null, 'Ruta creada. ') + 'Ya está en la bandeja de ' + e(op.nombre) + '.' }) : ''));
       }
       cuerpo.innerHTML = html;
       /* El mapa del asistente se crea sobre el DOM ya montado (necesita medir
@@ -281,14 +295,14 @@ window.PANTALLAS['admin-hub'] = {
                unos segundos — el feedback pasa a la lista, que es donde
                termina la ruta. */
             st.creada = true;
-            var trz = trazo();
-            var nueva = {
-              codigo: 'R-' + (2440 + Math.floor(Math.random() * 60)) + ' · ' + trz.zona.split(' · ')[0],
-              modo: st.modo === 'auto' ? 'automática' : 'manual',
-              operador: st.opId, zona: trz.zona.split(' · ')[0], unidades: trz.unidades, estado: 'trazada'
-            };
-            A.rutas.unshift(nueva);
-            st.destacada = nueva.codigo;
+            /* Siempre UNA ruta, aunque cruce sectores; código técnico, sin sector en el nombre.
+               La automática es la misma que después se revisa en Entrega. */
+            var trz = trazo(), zona = trz.zona.split(' · ')[0];
+            var nuevas = [st.modo === 'auto'
+              ? { codigo: D.entrega.rutas[0].codigo, modo: 'automática', operador: st.opId, zona: zona, unidades: trz.unidades, estado: 'trazada' }
+              : { codigo: 'R-' + (2450 + Math.floor(Math.random() * 40)), modo: 'manual', operador: st.opId, zona: zona, unidades: trz.unidades, estado: 'trazada' }];
+            A.rutas.unshift.apply(A.rutas, nuevas);
+            st.destacadas = nuevas.map(function (r) { return r.codigo; });
             /* La nueva ruta queda "trazada"; si la pestaña activa no la
                muestra (p.ej. "En ejecución"), no habría nada que resaltar. */
             st.tab = 'todas';
@@ -296,8 +310,8 @@ window.PANTALLAS['admin-hub'] = {
             ctx.posicionarIndicadores(root);
             st.modal = false; if (mapaNr) { mapaNr.destruir(); mapaNr = null; }
             pintarModal(); pintarTabla();
-            ctx.toast({ title: 'Rutas creadas', message: nueva.codigo + ' ya está en la bandeja de ' + opPorId[st.opId].nombre + '.', theme: 'positive', icon: 'positive' });
-            setTimeout(function () { st.destacada = null; pintarTabla(); }, 3000);
+            ctx.toast({ title: 'Ruta creada', message: nuevas[0].codigo + ' ya está en la bandeja de ' + opPorId[st.opId].nombre + '.', theme: 'positive', icon: 'positive' });
+            setTimeout(function () { st.destacadas = []; pintarTabla(); }, 3000);
           }
         }
       }
