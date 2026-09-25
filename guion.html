@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guion animado · UAESP</title>
+<!-- Escenario 1920×1080 para revisar y grabar los guiones por rol. No entra en publicar.py. -->
+<link rel="stylesheet" href="vendor/fonts.css">
+<link rel="stylesheet" href="vendor/foundations.css">
+<link rel="stylesheet" href="vendor/components.css">
+<link rel="stylesheet" href="vendor/icons.css">
+<style>
+  html, body { margin: 0; height: 100%; background: var(--naotech-app-color-900); overflow: hidden; font-family: var(--naotech-sdk-font-family); }
+  .ctl {
+    height: 56px; display: flex; align-items: center; gap: var(--naotech-sizing-16);
+    padding: 0 var(--naotech-sizing-24); color: var(--naotech-color-white-alpha-90);
+    background: var(--naotech-color-black-alpha-40); border-bottom: 1px solid var(--naotech-color-white-alpha-10);
+  }
+  .ctl select, .ctl button {
+    font: inherit; font-size: var(--naotech-smalltext-font-size); color: inherit; cursor: pointer;
+    background: var(--naotech-color-white-alpha-10); border: 1px solid var(--naotech-color-white-alpha-20);
+    border-radius: var(--naotech-radius-md); padding: var(--naotech-sizing-6) var(--naotech-sizing-12);
+  }
+  .ctl select option { color: var(--naotech-app-color-900); }
+  .ctl button:hover { background: var(--naotech-color-white-alpha-20); }
+  .ctl label { display: flex; align-items: center; gap: var(--naotech-sizing-6); font-size: var(--naotech-smalltext-font-size); cursor: pointer; }
+  .ctl .sep { flex: 1; }
+  .ctl .dato { font-size: var(--naotech-smalltext-font-size); color: var(--naotech-color-white-alpha-60); font-variant-numeric: tabular-nums; }
+  .escena { position: absolute; inset: 56px 0 0 0; display: grid; place-items: center; }
+  .marco { width: 1920px; height: 1080px; transform-origin: center; box-shadow: 0 24px 80px var(--naotech-color-black-alpha-60); background: var(--naotech-app-background); flex: none; }
+  .marco { background: var(--naotech-color-black-alpha-100); }
+  .marco iframe { width: 1920px; height: 1080px; border: 0; display: block; opacity: 0; }
+  .marco iframe.listo { opacity: 1; }
+  body.grabar .ctl { display: none; }
+  body.grabar .escena { inset: 0; display: block; }
+  body.grabar .marco { transform: none !important; box-shadow: none; }
+</style>
+</head>
+<body>
+<div class="ctl">
+  <select id="comp" aria-label="Composición"></select>
+  <button id="play" type="button">⏸ Pausa</button>
+  <button id="reiniciar" type="button">↺ Reiniciar</button>
+  <label><input type="checkbox" id="barra"> Barra</label>
+  <select id="pos" aria-label="Posición de la barra"><option value="abajo">Barra abajo</option><option value="arriba">Barra arriba</option></select>
+  <label><input type="checkbox" id="subs"> Subtítulos</label>
+  <label><input type="checkbox" id="puntero"> Puntero</label>
+  <label><input type="checkbox" id="intro"> Presentación</label>
+  <span class="sep"></span>
+  <span class="dato" id="estado">—</span>
+  <span class="dato" id="reloj">0:00</span>
+  <span class="dato" id="escala"></span>
+</div>
+<div class="escena"><div class="marco" id="marco"><iframe id="app" title="Prototipo"></iframe></div></div>
+
+<script src="guion/composiciones.js"></script>
+<script>
+(function () {
+  'use strict';
+  var G = window.GUION, qs = new URLSearchParams(location.search);
+  var grabar = qs.has('grabar');
+  var cfg = {
+    comp: G.composicion(qs.get('comp')).id,
+    barra: qs.get('barra') !== '0', subs: qs.get('subs') !== '0', puntero: qs.get('puntero') !== '0', intro: qs.get('intro') !== '0',
+    pos: qs.get('pos') === 'arriba' ? 'arriba' : 'abajo'
+  };
+  var $ = function (id) { return document.getElementById(id); };
+  var frame = $('app'), pausado = false, tInicio = 0, fin = false;
+  /* Lo que lee grabar.mjs: tiempos y subtítulos para cortar el video y armar el .srt. */
+  window.__guion = { listo: false, inicio: null, fin: null, error: null, subs: [], clics: [], escenas: [] };
+  if (grabar) { document.body.classList.add('grabar'); }
+
+  G.composiciones.forEach(function (c) {
+    var o = document.createElement('option'); o.value = c.id;
+    o.textContent = c.titulo + ' — ' + c.ancho + '×' + c.alto;
+    $('comp').appendChild(o);
+  });
+  ['barra', 'subs', 'puntero', 'intro'].forEach(function (k) {
+    $(k).checked = cfg[k];
+    $(k).addEventListener('change', function () { cfg[k] = $(k).checked; recordar(); enviar({ guion: 'cfg', cfg: cfg }); });
+  });
+  $('pos').value = cfg.pos;
+  $('pos').addEventListener('change', function () { cfg.pos = $('pos').value; recordar(); enviar({ guion: 'cfg', cfg: cfg }); });
+  $('comp').value = cfg.comp;
+  $('comp').addEventListener('change', function () { cfg.comp = $('comp').value; recordar(); cargar(); });
+  $('reiniciar').addEventListener('click', cargar);
+  $('play').addEventListener('click', function () { pausado = !pausado; enviar({ guion: 'pausa', valor: pausado }); $('play').textContent = pausado ? '▶ Seguir' : '⏸ Pausa'; });
+  addEventListener('keydown', function (e) { if (e.key === ' ') { e.preventDefault(); $('play').click(); } if (e.key === 'r') { cargar(); } });
+
+  function recordar() {
+    var p = new URLSearchParams({ comp: cfg.comp });
+    ['barra', 'subs', 'puntero', 'intro'].forEach(function (k) { if (!cfg[k]) { p.set(k, '0'); } });
+    if (cfg.pos === 'arriba') { p.set('pos', 'arriba'); }
+    history.replaceState(null, '', '?' + p);
+  }
+  function enviar(m) { if (frame.contentWindow) { frame.contentWindow.postMessage(m, '*'); } }
+
+  function escalar() {
+    if (grabar) { return; }
+    var e = document.querySelector('.escena').getBoundingClientRect();
+    var s = Math.min((e.width - 48) / 1920, (e.height - 48) / 1080, 1);
+    $('marco').style.transform = 'scale(' + s + ')';
+    $('marco').style.margin = (-(1080 * (1 - s)) / 2) + 'px ' + (-(1920 * (1 - s)) / 2) + 'px';
+    $('escala').textContent = '1920×1080 · ' + Math.round(s * 100) + '%';
+  }
+  addEventListener('resize', escalar); escalar();
+
+  /* Cada carga arranca limpia desde el selector de perfil (#/salir cierra la sesión). */
+  function cargar() {
+    pausado = false; fin = false; tInicio = 0; $('play').textContent = '⏸ Pausa';
+    window.__guion = { listo: false, inicio: null, fin: null, error: null, subs: [], clics: [], escenas: [] };
+    $('estado').textContent = 'cargando…';
+    frame.classList.remove('listo');
+    frame.onload = inyectar;
+    refrescar().then(function () { frame.src = 'dev.html?v=' + Date.now() + '#/salir'; });
+  }
+  /* El navegador guarda copia de app.css, sdk.js, pantallas/…: se piden de nuevo antes de cada carga para ver lo último editado. */
+  function refrescar() {
+    return fetch('dev.html', { cache: 'reload' }).then(function (r) { return r.text(); }).then(function (html) {
+      var urls = [];
+      html.replace(/(?:href|src)="([^"#:]+\.(?:css|js))"/g, function (_, u) { urls.push(u); });
+      return Promise.all(urls.map(function (u) { return fetch(u, { cache: 'reload' }); }));
+    }).catch(function () { /* sin red no se refresca: carga lo que haya */ });
+  }
+  function inyectar() {
+    var w = frame.contentWindow, d = w.document;
+    w.GUION_CFG = Object.assign({}, cfg, { demora: grabar ? 900 : 600 });
+    var css = d.createElement('link'); css.rel = 'stylesheet'; css.href = 'guion/guion.css?v=' + Date.now(); d.head.appendChild(css);
+    var c = G.composicion(cfg.comp), guion = c.guion ? [c.guion] : [];
+    ['guion/composiciones.js'].concat(guion, ['guion/director.js']).reduce(function (c, src) {
+      return c.then(function () { return new Promise(function (ok, mal) {
+        /* Un guion que todavía no existe no frena nada: el director corre la plantilla. */
+        var s = d.createElement('script'); s.src = src + '?v=' + Date.now(); s.onload = ok;
+        s.onerror = src.indexOf('guion/guiones/') === 0 ? ok : function () { mal(new Error(src)); }; d.body.appendChild(s);
+      }); });
+    }, Promise.resolve()).catch(function (e) { $('estado').textContent = 'no cargó ' + e.message; });
+  }
+
+  addEventListener('message', function (ev) {
+    var m = ev.data || {}, G_ = window.__guion;
+    if (!m.guion) { return; }
+    if (m.guion === 'listo') { G_.listo = true; frame.classList.add('listo'); $('estado').textContent = m.misiones + ' misiones'; }
+    if (m.guion === 'inicio') { G_.inicio = performance.now(); tInicio = G_.inicio; }
+    if (m.guion === 'mision') { $('estado').textContent = 'Misión ' + (m.i + 1) + ' · ' + m.titulo; }
+    if (m.guion === 'escena') { G_.escenas.push(m); }
+    if (m.guion === 'clic') { G_.clics.push(m); if (!m.ok) { console.warn('clic fuera del objetivo', m); } }
+    if (m.guion === 'sub') { G_.subs.push({ t: m.t, texto: m.texto }); }
+    if (m.guion === 'estado') { $('estado').textContent = m.pausado ? 'en pausa' : 'corriendo'; }
+    if (m.guion === 'fin') { G_.fin = m.t; fin = true; $('estado').textContent = 'terminó · R para repetir'; }
+    if (m.guion === 'error') { G_.error = m.mensaje; $('estado').textContent = '⚠ ' + m.mensaje; }
+  });
+  setInterval(function () {
+    if (!tInicio || fin) { return; }
+    var s = Math.floor((performance.now() - tInicio) / 1000);
+    $('reloj').textContent = Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2);
+  }, 250);
+
+  recordar(); cargar();
+})();
+</script>
+</body>
+</html>

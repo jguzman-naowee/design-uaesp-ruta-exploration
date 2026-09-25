@@ -1,0 +1,222 @@
+/* Capa del director: puntero y barra inferior de 120px con efecto vidrio. Todo en tokens. */
+
+.nws-guion { position: fixed; inset: 0; pointer-events: none; z-index: 2147483000; }
+/* Capas: barra < puntero < telones (portada, misión) < cierre. */
+.nws-guion-barra { z-index: 1; }
+.nws-guion-puntero { z-index: 2; }
+.nws-guion-telon { z-index: 3; }
+.nws-guion-final { z-index: 4; }
+
+/* La app deja libre el alto de la barra para que no tape contenido. */
+html.nws-guion--barra #app { height: calc(100% - 120px) !important; }
+html.nws-guion--barra body { background: var(--naotech-app-background); }
+/* Modales y avisos de la página viven en fixed sobre todo el viewport: se acotan al alto que deja la barra. */
+html.nws-guion--barra:not(.nws-guion--app-llena) .nwt-modal { height: calc(100% - 120px); }
+html.nws-guion--barra.nws-guion--arriba:not(.nws-guion--app-llena) .nwt-modal { top: 120px; }
+html.nws-guion--barra:not(.nws-guion--app-llena):not(.nws-guion--arriba) #toast-host .nwt-toast__content { bottom: 120px; }
+
+/* ---------- puntero ---------- */
+.nws-guion-puntero {
+  position: absolute; top: 0; left: 0; width: 88px; height: 88px;
+  margin: -6.3px 0 0 -44px; /* la punta (14,2 en el viewBox de 28) cae en el punto exacto */
+  filter: drop-shadow(0 4px 10px var(--naotech-color-black-alpha-40));
+  will-change: transform;
+}
+.nws-guion-puntero svg {
+  display: block; overflow: visible; transform-origin: 50% 7.1%; /* gira sobre la punta */
+  transition: transform 260ms var(--naotech-animation-standard);
+}
+/* Leyendo el paso: la flecha, a la derecha del texto, apunta a la izquierda hacia él. */
+.nws-guion-puntero.is-lector svg { transform: rotate(-60deg); }
+.nws-guion-puntero path {
+  fill: var(--naotech-primary-color-500, #ff7b24); stroke: var(--naotech-color-white-alpha-100);
+  stroke-width: 1.6; stroke-linejoin: round;
+}
+html.nws-guion--sin-puntero .nws-guion-puntero { display: none; }
+
+/* ---------- barra: vidrio oscuro (diseño del canvas "Barra de guion") ---------- */
+html.nws-guion--barra.nws-guion--arriba #app { margin-top: 120px; }
+html.nws-guion--barra, html.nws-guion--barra body { overflow: hidden; }
+
+.nws-guion-barra {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 120px; box-sizing: border-box;
+  display: none; align-items: center; gap: var(--naotech-sizing-36, 36px);
+  padding: 0 var(--naotech-sizing-40) 8px var(--naotech-sizing-20);
+  background: var(--naotech-color-black-alpha-100);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+  border-top: 1px solid var(--naotech-color-white-alpha-10);
+  box-shadow: 0 -16px 48px var(--naotech-color-black-alpha-20), inset 0 1px 0 var(--naotech-color-white-alpha-10);
+  color: var(--naotech-color-white-alpha-100); font-family: var(--naotech-sdk-font-family);
+}
+html.nws-guion--barra .nws-guion-barra { display: flex; transition: transform 800ms var(--naotech-animation-standard); }
+
+/* Antes de la primera misión: app a pantalla completa, barra escondida bajo el borde, puntero oculto. */
+html.nws-guion--app-llena #app { height: 100% !important; margin-top: 0 !important; }
+html.nws-guion--barra-fuera .nws-guion-barra { transform: translateY(calc(100% + 2px)); }
+html.nws-guion--barra-fuera.nws-guion--arriba .nws-guion-barra { transform: translateY(calc(-100% - 2px)); }
+.nws-guion-puntero { transition: opacity 500ms var(--naotech-animation-standard); }
+html.nws-guion--puntero-oculto .nws-guion-puntero { opacity: 0; }
+html.nws-guion--arriba .nws-guion-barra {
+  top: 0; bottom: auto; border-top: 0; border-bottom: 1px solid var(--naotech-color-white-alpha-10);
+  box-shadow: 0 16px 48px var(--naotech-color-black-alpha-20);
+}
+
+.nws-guion-barra__mision {
+  flex: 0 0 auto; max-width: 336px; align-self: stretch; margin: 14px 0; box-sizing: border-box; overflow: hidden;
+  border-radius: var(--naotech-radius-xl, 16px);
+  background: var(--naotech-theme-color-600, var(--naotech-app-color-700));
+  box-shadow: inset 0 1px 0 var(--naotech-color-white-alpha-20), 0 8px 24px var(--naotech-color-black-alpha-30);
+}
+.nws-guion-barra__mision-in { height: 100%; display: flex; align-items: center; gap: var(--naotech-sizing-20); padding: 0 var(--naotech-sizing-24); }
+.nws-guion-barra__num {
+  font-size: 52px; line-height: 1; font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums;
+}
+.nws-guion-barra__div { align-self: stretch; margin: 18px 0; width: 1px; flex: none; background: var(--naotech-color-white-alpha-40); }
+.nws-guion-barra__titulo {
+  min-width: 0; font-size: 24px; line-height: 28px; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+}
+
+.nws-guion-barra__texto { flex: 1; min-width: 0; }
+.nws-guion-barra__sub {
+  position: relative; display: inline-block; max-width: 100%; vertical-align: top; font-size: 28px; line-height: 44px; font-weight: 600; letter-spacing: -0.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Karaoke: la base arranca apagada y la capa llena (color del rol) se destapa encima. */
+.nws-guion-barra__sub-base { color: var(--naotech-color-white-alpha-40); }
+.nws-guion-barra__sub-lleno {
+  position: absolute; inset: 0; overflow: hidden; text-overflow: ellipsis; clip-path: inset(0 100% 0 0);
+  color: var(--naotech-theme-color-400, #ff9d47);
+}
+html.nws-guion--sin-subs .nws-guion-barra__sub { display: none; }
+
+.nws-guion-barra__fin { flex: none; }
+.nws-guion-viendo { display: flex; flex-direction: column; align-items: flex-end; gap: var(--naotech-sizing-12); }
+.nws-guion-viendo__pill {
+  display: inline-flex; align-items: center; gap: var(--naotech-sizing-10, 10px);
+  padding: var(--naotech-sizing-8) var(--naotech-sizing-16) var(--naotech-sizing-8) var(--naotech-sizing-12);
+  border-radius: var(--naotech-radius-pill);
+  background: color-mix(in srgb, var(--naotech-theme-color-500, #ff7b24) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--naotech-theme-color-400, #ff9d47) 45%, transparent);
+  font-size: 16px; line-height: 20px; font-weight: 500; color: var(--naotech-theme-color-100, #ffedc7);
+}
+.nws-guion-viendo__pill svg { width: 20px; height: 20px; fill: none; stroke: var(--naotech-theme-color-400, #ff9d47); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nws-guion-viendo__rol { font-size: 24px; line-height: 24px; font-weight: 700; }
+
+.nws-guion-barra__avance { --avance: 0%; position: absolute; left: 0; right: 0; bottom: 0; height: 8px; background: var(--naotech-color-white-alpha-10); }
+.nws-guion-barra__avance b {
+  position: absolute; inset: 0 auto 0 0; width: var(--avance);
+  background: linear-gradient(90deg, var(--naotech-theme-color-700, #d74009), var(--naotech-theme-color-600, #f05705));
+  transition: width 700ms var(--naotech-animation-standard);
+}
+.nws-guion-barra__avance i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; z-index: 1; background: var(--naotech-color-black-alpha-70); }
+
+/* ---------- telones a pantalla completa: portada, rol y tarjeta de misión ---------- */
+.nws-guion-telon {
+  position: absolute; inset: 0; display: none; box-sizing: border-box;
+  flex-direction: column; justify-content: center; padding: 0 200px;
+  background: color-mix(in srgb, var(--naotech-color-black-alpha-100) 94%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(140%); backdrop-filter: blur(20px) saturate(140%);
+  color: var(--naotech-color-white-alpha-100); font-family: var(--naotech-sdk-font-family);
+}
+.nws-guion-telon.is-visible { display: flex; }
+.nws-guion-portada { background: var(--naotech-color-black-alpha-100); }
+
+.nws-guion-portada__escena { position: absolute; inset: 0; box-sizing: border-box; padding: 0 200px; display: flex; flex-direction: column; justify-content: center; }
+.nws-guion-portada__modulo { gap: var(--naotech-sizing-40); }
+.nws-guion-portada__logos { display: flex; align-items: center; gap: var(--naotech-sizing-32); }
+.nws-guion-portada__naowee svg { display: block; height: 64px; width: auto; }
+.nws-guion-portada__div { width: 2px; height: 72px; background: var(--naotech-color-white-alpha-20); }
+.nws-guion-portada__entidad { display: flex; align-items: center; gap: var(--naotech-sizing-20); font-size: 44px; line-height: 1; font-weight: 800; letter-spacing: -0.02em; }
+.nws-guion-portada__entidad img {
+  width: 96px; height: 96px; object-fit: contain; border-radius: var(--naotech-radius-circle);
+  background: var(--naotech-color-white-alpha-100); padding: 12px; box-sizing: border-box;
+  box-shadow: 0 0 0 4px var(--naotech-color-white-alpha-20);
+}
+.nws-guion-portada__titulo { font-size: 128px; line-height: 1; font-weight: 800; letter-spacing: -0.045em; margin-top: var(--naotech-sizing-24); }
+.nws-guion-portada__bajada { font-size: 32px; line-height: 1.4; font-weight: 500; color: var(--naotech-color-white-alpha-70); }
+
+.nws-guion-portada__rol { align-items: center; opacity: 0; }
+/* Hasta que arranca la animación de entrada, la portada es solo el fondo: nada se ve antes de tiempo. */
+.nws-guion-portada.is-previa .nws-guion-portada__escena > * { opacity: 0; }
+.nws-guion-viendo--portada { flex-direction: column; align-items: center; gap: var(--naotech-sizing-32); }
+.nws-guion-viendo--portada .nws-guion-viendo__pill { font-size: 28px; line-height: 32px; gap: 14px; padding: 14px 28px 14px 22px; }
+.nws-guion-viendo--portada .nws-guion-viendo__pill svg { width: 30px; height: 30px; }
+.nws-guion-viendo--portada .nws-guion-viendo__rol { font-size: 140px; line-height: 1; font-weight: 800; letter-spacing: -0.045em; }
+.nws-guion-intro__caja { max-width: 1320px; display: flex; flex-direction: column; align-items: flex-start; gap: var(--naotech-sizing-32); }
+.nws-guion-intro__num {
+  font-size: 160px; line-height: 0.9; font-weight: 800; letter-spacing: -0.06em; font-variant-numeric: tabular-nums;
+  color: var(--naotech-theme-color-500, #ff7b24);
+}
+.nws-guion-intro__titulo { font-size: 84px; line-height: 1.02; font-weight: 800; letter-spacing: -0.035em; text-wrap: balance; }
+.nws-guion-intro__historia {
+  max-width: 1180px; font-size: 38px; line-height: 1.35; font-weight: 500; font-style: italic;
+  color: var(--naotech-color-white-alpha-80); text-wrap: pretty;
+}
+.nws-guion-viendo--grande { flex-direction: row; align-items: center; gap: var(--naotech-sizing-16); margin-top: var(--naotech-sizing-8); }
+.nws-guion-viendo--grande .nws-guion-viendo__pill { font-size: 20px; line-height: 24px; padding: var(--naotech-sizing-10, 10px) var(--naotech-sizing-20) var(--naotech-sizing-10, 10px) var(--naotech-sizing-16); }
+.nws-guion-viendo--grande .nws-guion-viendo__rol { font-size: 32px; line-height: 32px; }
+
+/* ---------- cierre: fundido al azul Naowee (#002B5B) ---------- */
+.nws-guion-final { position: absolute; inset: 0; display: none; opacity: 0; background: var(--naotech-color-dark-blue-050, #002b5b); }
+.nws-guion-final.is-visible { display: block; }
+
+/* ---------- spot ---------- */
+.nws-guion-final__logo { display: none; }
+.nws-guion-final.is-spot { display: grid; place-items: center; }
+.nws-guion-final.is-spot .nws-guion-final__logo { display: block; width: 52%; }
+.nws-guion-final__logo svg { display: block; width: 100%; height: auto; }
+
+.nws-guion-portada__texto, .nws-guion-portada__presenta { opacity: 0; }
+.nws-guion-portada__texto { gap: var(--naotech-sizing-24); align-items: center; text-align: center; }
+.nws-guion-portada__linea { font-size: 96px; line-height: 1.04; font-weight: 800; letter-spacing: -0.04em; max-width: 1400px; text-wrap: balance; }
+
+/* Marca: el logo arranca solo y centrado; "presenta" debajo; después sube chico y entra el bloque UAESP. */
+.nws-guion-presenta__logo { position: absolute; left: 50%; top: 50%; width: 720px; transform: translate(-50%, -50%); opacity: 0; }
+.nws-guion-presenta__logo svg { display: block; width: 100%; height: auto; }
+.nws-guion-presenta__label {
+  position: absolute; left: 50%; top: calc(50% + 120px); transform: translateX(-50%); opacity: 0;
+  font-size: 30px; font-weight: 600; letter-spacing: 0.32em; text-transform: uppercase; color: var(--naotech-color-white-alpha-70);
+}
+.nws-guion-presenta__bloque {
+  position: absolute; left: 50%; top: calc(50% - 100px); transform: translateX(-50%); width: 1500px;
+  display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-24); text-align: center; opacity: 0;
+}
+.nws-guion-presenta__bloque .nws-guion-portada__titulo { margin-top: 0; }
+
+/* Capa de presentación: la app enmarcada sobre fondo oscuro, con su nombre arriba. */
+html.nws-guion--marco body { background: var(--naotech-color-black-alpha-100); }
+html.nws-guion--marco #app {
+  border-radius: 20px; overflow: hidden; box-shadow: 0 40px 120px var(--naotech-color-black-alpha-60), 0 0 0 1px var(--naotech-color-white-alpha-10);
+}
+.nws-guion-titular--marco { left: 0; right: 0; top: 0; height: 160px; align-items: center; justify-content: center; }
+.nws-guion-titular--marco p { font-size: 48px; letter-spacing: -0.02em; }
+.nws-guion-portada__linea + .nws-guion-portada__linea { color: var(--naotech-primary-color-500, #ff7b24); }
+
+.nws-guion-titular {
+  position: absolute; display: none; z-index: 1; box-sizing: border-box; pointer-events: none;
+  color: var(--naotech-color-white-alpha-100); font-family: var(--naotech-sdk-font-family);
+}
+.nws-guion-titular.is-visible { display: flex; }
+.nws-guion-titular p { margin: 0; font-size: 60px; line-height: 1.06; font-weight: 800; letter-spacing: -0.035em; text-wrap: balance; }
+.nws-guion-titular span { display: inline-block; text-shadow: 0 4px 24px var(--naotech-color-black-alpha-40); }
+/* El velo vive en ::before para poder aclararlo cuando el puntero ya está actuando. */
+.nws-guion-titular::before { content: ''; position: absolute; inset: 0; z-index: -1; transition: opacity 700ms var(--naotech-animation-standard); }
+.nws-guion-titular.is-leve::before { opacity: 0.4; }
+.nws-guion-titular p { position: relative; }
+/* Spot: el escenario de las apps móviles se reencuadra sin su barra superior ni los controles de zoom. */
+html.nws-guion--spot .nws-tema-supervisor > .nwt-toolbar,
+html.nws-guion--spot .nws-phone-zoom { display: none !important; }
+/* Abajo: sobre la UI, con un velo oscuro que sube desde el borde para que se lea. */
+.nws-guion-titular--abajo {
+  left: 0; right: 0; bottom: 0; height: 280px; align-items: flex-end; justify-content: center; padding: 0 120px 56px; text-align: center;
+}
+.nws-guion-titular--abajo::before { background: linear-gradient(0deg, var(--naotech-color-black-alpha-80), var(--naotech-color-black-alpha-40) 45%, transparent); }
+.nws-guion-titular--abajo p { max-width: 1300px; }
+/* Izquierda: junto al teléfono, que queda centrado. */
+.nws-guion-titular--izq {
+  top: 0; bottom: 0; left: 0; width: 820px; align-items: flex-end; padding: 0 0 120px 120px;
+}
+.nws-guion-titular--izq::before { background: linear-gradient(90deg, var(--naotech-color-black-alpha-80), var(--naotech-color-black-alpha-40) 60%, transparent); }
+.nws-guion-titular--izq p { max-width: 560px; }

@@ -1,0 +1,8 @@
+{
+  "name": "uaesp-guion-grabar",
+  "private": true,
+  "type": "module",
+  "description": "Solo para exportar los videos. El prototipo sigue sin npm.",
+  "scripts": { "grabar": "node grabar.mjs" },
+  "devDependencies": { "playwright": "1.63.0" }
+}
