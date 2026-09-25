@@ -165,7 +165,7 @@ window.PANTALLAS['operador-control'] = {
               S.h('div', { class: 'nws-ev__cam nws-ev__photo', style: foto(st.ev * 3 + 2) }, S.h('span', { class: 'nws-ev__tag' }, S.badge({ label: 'truck-cam-right', size: 'small', theme: 'neutral' })))
             : S.h('div', { class: 'nws-ev__na nwt-smalltext-font-regular' }, S.icon('vehicles'), S.badge({ label: 'truck-cam-not-available', size: 'small', theme: 'negative' }), 'el camión no reportó en esta parada · queda solo la evidencia del operario'))) +
         S.h('div', { class: 'nws-ev__meta' },
-          [['Hora', x.hora], ['Coordenada', x.coord], ['Unidad', x.uid + ' · ' + x.tipo], ['Dirección', x.dir], ['Cámaras', x.camion ? '3 de 3' : '1 de 3 · camión sin señal']].map(function (kv) {
+          [['Hora', x.hora], ['Coordenada', x.coord], ['Punto', x.uid + ' · ' + x.tipo], ['Dirección', x.dir], ['Cámaras', x.camion ? '3 de 3' : '1 de 3 · camión sin señal']].map(function (kv) {
             return S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-stat-card__label' }, kv[0]), S.h('span', { class: 'nwt-caption-font-semibold nws-tnum' }, e(kv[1])));
           })));
       var activo = root.querySelector('.nws-thumb--on');

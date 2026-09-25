@@ -237,7 +237,7 @@ window.PANTALLAS['conductor-app'] = (function () {
                    pedido explícito, para que todos los bloques del hero se
                    vean consistentes. */
                 S.h('div', { class: 'nws-mob__stat', style: 'flex-direction:row;justify-content:space-between;align-items:center;width:100%' },
-                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'max-width:14ch;text-align:left' }, 'Unidades por recolectar'),
+                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'max-width:14ch;text-align:left' }, 'Puntos por recolectar'),
                   S.h('span', { class: 'nwt-stat-card__value', style: 'font-size:var(--naotech-sizing-40);line-height:var(--naotech-sizing-40)' }, total)),
                 S.h('div', { class: 'nws-row nws-row--md' },
                   S.h('div', { class: 'nws-mob__stat' }, S.h('span', { class: 'nwt-smalltext-font-bold nws-clip', style: 'color:inherit;display:block;width:100%;text-align:center' }, A.ruta.camion)),
@@ -272,19 +272,19 @@ window.PANTALLAS['conductor-app'] = (function () {
             S.card({ size: 'small', cls: 'nws-card--none', attrs: { 'nwt-theme': T }, content:
               S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-12)' },
                 S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-body-font-bold nws-grow' }, e(A.ruta.codigo)), S.badge({ label: hechas ? 'En curso' : 'Por iniciar', size: 'small', theme: hechas ? 'informative' : 'neutral' })),
-                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, total + ' unidades · ' + A.ruta.zona + ' · ' + A.ruta.camion),
+                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, total + ' puntos · ' + A.ruta.zona + ' · ' + A.ruta.camion),
                 S.progress({ value: pct, size: 'small', theme: T }),
                 nxt, hint,
                 S.button({ label: hechas === 0 ? 'Iniciar ruta' : completa ? 'Cerrar ruta' : 'Continuar ruta', size: 'large', variant: 'loud', theme: T, loading: completa && st.cerrando, attrs: { 'data-m': completa ? 'cerrar' : 'ruta' } })) }) +
             S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold' }, 'Después, hoy') +
             S.card({ size: 'small', cls: 'nws-card--none', content:
               S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-body-font-bold nws-grow' }, e(A.programada.codigo)), S.badge({ label: A.programada.cuando, size: 'medium', theme: 'neutral' })) +
-              S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, A.programada.unidades + ' unidades · ' + A.programada.zona) +
+              S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, A.programada.unidades + ' puntos · ' + A.programada.zona) +
               S.h('div', { class: 'nws-mob__lock nwt-smalltext-font-regular', style: 'margin-top:var(--naotech-sizing-6)' }, S.icon('padlock-close'), 'Se habilita cuando cierres la ' + A.ruta.codigo.split(' ')[0]) }) +
             S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold' }, 'Completadas hoy') +
             S.card({ size: 'small', cls: 'nws-card--none', content:
               S.h('div', { class: 'nws-row' }, S.h('div', { class: 'nws-mob__avatar-icon' }, S.avatarIcon({ icon: 'positive', theme: 'positive' })),
-                S.h('div', { class: 'nws-grow nws-col' }, S.h('span', { class: 'nwt-body-font-bold' }, e(A.completada.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, A.completada.horario + ' · ' + A.completada.unidades + ' unidades · ' + A.completada.fotos + ' fotos'))) });
+                S.h('div', { class: 'nws-grow nws-col' }, S.h('span', { class: 'nwt-body-font-bold' }, e(A.completada.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, A.completada.horario + ' · ' + A.completada.unidades + ' puntos · ' + A.completada.fotos + ' fotos'))) });
         }
 
         if (st.v === 'ruta') {
@@ -373,7 +373,7 @@ window.PANTALLAS['conductor-app'] = (function () {
               S.h('span', { class: 'nwt-subtitle-font-bold' }, e(p.dir)),
               /* DC-026/DC-059: "más alto el texto" / mínimo 14px en esta
                  vista — 'medium' se quedaba en 12px, 'large' da 14px. */
-              S.h('div', { class: 'nws-row' }, S.badge({ label: p.tipo, size: 'large', theme: 'neutral' }), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Unidad ' + p.uid))) +
+              S.h('div', { class: 'nws-row' }, S.badge({ label: p.tipo, size: 'large', theme: 'neutral' }), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Punto ' + p.uid))) +
             opts +
             involucrado +
             /* DC-027: "Enviar" ya no vive acá — pintarCta() lo pone en el
@@ -397,10 +397,10 @@ window.PANTALLAS['conductor-app'] = (function () {
               S.h('div', { class: 'nws-mob__fin-ic', 'nwt-motion': 'scale', 'nwt-motion-intent': 'enter', 'nwt-motion-duration': 'slow', 'nwt-motion-easing': 'deceleration' }, S.icon('positive')),
               S.h('div', { class: 'nws-col', 'nwt-motion': 'fade', 'nwt-motion-intent': 'enter', style: 'align-items:center;gap:var(--naotech-sizing-4);animation-delay:var(--naotech-duration-fast)' },
                 S.h('span', { class: 'nwt-subtitle-font-bold' }, 'Ruta ejecutada'),
-                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted', style: 'padding:0 var(--naotech-sizing-24)' }, e(A.ruta.codigo) + ' · las ' + total + ' unidades quedaron marcadas con evidencia y ya viajan al supervisor.'))) +
+                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted', style: 'padding:0 var(--naotech-sizing-24)' }, e(A.ruta.codigo) + ' · las ' + total + ' puntos de recolección quedaron marcados con evidencia y ya viajan al supervisor.'))) +
             S.h('div', { class: 'nws-map nws-map--mini', id: 'mmap-fin', 'nwt-motion': 'fade', 'nwt-motion-intent': 'enter', style: 'width:100%;animation-delay:var(--naotech-duration-base)' }) +
             S.card({ size: 'small', cls: 'nws-card--none nws-card--flush', attrs: { 'nwt-motion': 'slide', 'nwt-motion-direction': 'up', 'nwt-motion-intent': 'enter', style: 'animation-delay:var(--naotech-duration-base)' }, content: S.h('div', { class: 'nws-row', style: 'gap:0' },
-              [['Unidades', total], ['Evidencias', total], ['Duración', '2h34']].map(function (kv, i) {
+              [['Puntos', total], ['Evidencias', total], ['Duración', '2h34']].map(function (kv, i) {
                 return S.h('div', { class: 'nws-col nws-grow', style: 'padding:var(--naotech-sizing-12) var(--naotech-sizing-14);' + (i < 2 ? 'border-right:1px solid var(--naotech-app-color-200)' : '') },
                   S.h('span', { class: 'nwt-stat-card__label' }, kv[0]), S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, kv[1]));
               })) }) +
@@ -408,7 +408,7 @@ window.PANTALLAS['conductor-app'] = (function () {
               S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold', style: 'margin:0' }, 'Después, hoy'),
               S.card({ size: 'small', cls: 'nws-card--none', content:
                 S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-body-font-bold nws-grow' }, e(A.programada.codigo)), S.badge({ label: A.programada.cuando, size: 'medium', theme: 'neutral' })) +
-                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, A.programada.unidades + ' unidades · ' + A.programada.zona) })) +
+                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, A.programada.unidades + ' puntos · ' + A.programada.zona) })) +
             S.button({ label: 'Volver a hoy', size: 'large', variant: 'loud', theme: T, attrs: { 'data-m': 'reiniciar', 'nwt-motion': 'fade', 'nwt-motion-intent': 'enter', style: 'animation-delay:var(--naotech-duration-slow)' } });
         }
 
@@ -429,7 +429,7 @@ window.PANTALLAS['conductor-app'] = (function () {
           };
           body =
             S.card({ size: 'small', cls: 'nws-card--none nws-card--flush', content: S.h('div', { class: 'nws-row', style: 'gap:0' },
-              [['Rutas', HIST.length], ['Unidades', unidades], ['Novedades', novedades]].map(function (kv, i) {
+              [['Rutas', HIST.length], ['Puntos', unidades], ['Novedades', novedades]].map(function (kv, i) {
                 return S.h('div', { class: 'nws-col nws-grow', style: 'padding:var(--naotech-sizing-12) var(--naotech-sizing-14);' + (i < 2 ? 'border-right:1px solid var(--naotech-app-color-200)' : '') },
                   S.h('span', { class: 'nwt-stat-card__label' }, kv[0]), S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, kv[1]));
               })) }) +

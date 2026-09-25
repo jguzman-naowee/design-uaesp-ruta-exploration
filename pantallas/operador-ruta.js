@@ -114,9 +114,9 @@ window.PANTALLAS['operador-ruta'] = {
               S.h('span', { class: 'nwt-stat-card__value', 'data-bind': 'hechas' }, '—'),
               S.h('span', { class: 'nwt-stat-card__hint', 'data-bind': 'avanceHint' }),
               S.progress({ value: 0, size: 'medium', theme: T, cls: 'nws-stat-progress' }).replace('class="nwt-progress-bar', 'data-bind-progress="pct" class="nwt-progress-bar'))),
-        S.statCard({ skeleton: k, label: PROG ? 'Cuadrilla' : 'Ritmo', bindValue: PROG ? undefined : 'ritmo', value: PROG ? R.conductor.cuadrilla + ' personas' : '—', hint: PROG ? 'asignada a esta salida' : 'unidades por hora', icon: PROG ? 'user' : 'fast-shipping', theme: T }),
+        S.statCard({ skeleton: k, label: PROG ? 'Cuadrilla' : 'Ritmo', bindValue: PROG ? undefined : 'ritmo', value: PROG ? R.conductor.cuadrilla + ' personas' : '—', hint: PROG ? 'asignada a esta salida' : 'puntos por hora', icon: PROG ? 'user' : 'fast-shipping', theme: T }),
         S.statCard({ skeleton: k, label: PROG ? 'Primera parada' : 'Próxima', bindValue: PROG ? undefined : 'proxMin', bindHint: PROG ? undefined : 'proxHint', value: PROG ? '—' : '—', hint: PROG ? 'se habilita al iniciar la ruta' : undefined, icon: 'gps-pin', theme: T }),
-        S.statCard({ skeleton: k, label: PROG ? 'Unidades' : 'Última marca', bindValue: PROG ? undefined : 'ultima', bindHint: PROG ? undefined : 'ultimaHint', value: PROG ? R.totalParadas : '—', hint: PROG ? 'a recolectar en la salida' : undefined, icon: 'dispatch-time', theme: T }),
+        S.statCard({ skeleton: k, label: PROG ? 'Puntos' : 'Última marca', bindValue: PROG ? undefined : 'ultima', bindHint: PROG ? undefined : 'ultimaHint', value: PROG ? R.totalParadas : '—', hint: PROG ? 'a recolectar en la salida' : undefined, icon: 'dispatch-time', theme: T }),
         S.statCard({ skeleton: k, label: PROG ? 'Sale' : 'Fin estimado', value: PROG ? salida : R.finEstimado, bindHint: PROG ? undefined : 'finHint', hint: PROG ? 'hora programada de salida' : undefined, icon: 'calendar', theme: T }))
     });
 
@@ -235,7 +235,7 @@ window.PANTALLAS['operador-ruta'] = {
     function pintarIndicadores() {
       var faltan = total - st.hechas, pct = Math.round(st.hechas / total * 100);
       bind('hechas', st.hechas); bind('faltan', faltan); bind('total', total); bind('hace', st.hace);
-      bind('avanceHint', PROG ? 'la ruta todavía no arrancó' : 'de ' + total + ' unidades · ' + pct + '%');
+      bind('avanceHint', PROG ? 'la ruta todavía no arrancó' : 'de ' + total + ' puntos · ' + pct + '%');
       if (PROG) {
         var bar0 = root.querySelector('[data-bind-progress="pct"]');
         if (bar0) { bar0.setAttribute('aria-valuenow', 0); bar0.querySelector('.nwt-progress-bar__fill').style.width = '0%'; }
@@ -249,7 +249,7 @@ window.PANTALLAS['operador-ruta'] = {
       bind('proxHint', st.enBase ? 'camión en la base' : prox ? prox.distancia + ' m · ' + prox.direccion : 'última marcada · volviendo a la base');
       var ult = paradas[st.hechas - 1];
       bind('ultima', ult ? ult.hora : '—'); bind('ultimaHint', 'hace ' + st.hace + ' segundos');
-      bind('finHint', st.enBase ? 'ruta terminada' : 'faltan ' + faltan + ' unidades');
+      bind('finHint', st.enBase ? 'ruta terminada' : 'faltan ' + faltan + ' puntos');
     }
 
     /* ---- el ritmo de la ruta ----

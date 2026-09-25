@@ -69,7 +69,7 @@ window.PANTALLAS.showroom = {
       /* El mismo mapa del detalle de ruta (mapa.js), pintado desde mount. */
       S.h('div', { class: 'nws-map nws-show__map', id: 'sr-mapa' }),
       S.h('div', { class: 'nws-show__map-kpis nwt-smalltext-font-regular nws-muted' },
-        S.h('div', null, S.h('b', { class: 'nws-ink nws-tnum', 'data-bind': 'sr-avance' }, vivo.hechas + ' / ' + vivo.total), 'unidades marcadas'),
+        S.h('div', null, S.h('b', { class: 'nws-ink nws-tnum', 'data-bind': 'sr-avance' }, vivo.hechas + ' / ' + vivo.total), 'puntos marcados'),
         S.h('div', null, S.h('b', { class: 'nws-ink nws-tnum' }, e(vivo.ultima)), 'última marca'),
         S.h('div', null, S.h('b', { class: 'nws-ink nws-tnum' }, e(vivo.eta)), 'llegada estimada')));
 
@@ -86,7 +86,7 @@ window.PANTALLAS.showroom = {
 
     var stats = S.h('div', { class: 'nws-stats nws-show__stats nws-show__stats--hype' },
       S.statCard({ label: 'Rutas activas hoy', value: AM.activas, hint: AM.zonas + ' zonas en simultáneo', icon: 'shipping', theme: 'primary' }),
-      S.statCard({ label: 'Unidades marcadas hoy', value: AM.marcadasHoy.toLocaleString('es-CO'), hint: 'de ' + AM.metaHoy.toLocaleString('es-CO') + ' proyectadas', theme: 'primary',
+      S.statCard({ label: 'Puntos marcados hoy', value: AM.marcadasHoy.toLocaleString('es-CO'), hint: 'de ' + AM.metaHoy.toLocaleString('es-CO') + ' proyectadas', theme: 'primary',
         extra: S.progress({ value: AM.marcadasHoy / AM.metaHoy * 100, size: 'medium', cls: 'nws-stat-progress', theme: 'primary' }) }),
       S.statCard({ label: 'Evidencias validadas', value: RM.evidencias, hint: 'ruta ' + R.ruta.codigo.split(' ·')[0] + ' · ' + RM.sinCamion + ' sin cámara del camión', icon: 'camera', theme: 'primary' }),
       S.statCard({ label: 'Conformidad del mes', valueHtml: S.h('span', { class: 'nws-delta' }, e(SUP.metricas.conformidadMes), S.badge({ label: SUP.metricas.variacion, size: 'small', theme: 'positive' })),
@@ -123,14 +123,14 @@ window.PANTALLAS.showroom = {
             S.h('div', { class: 'nws-ev__cam nws-ev__photo', style: foto(1) }, S.h('span', { class: 'nws-ev__tag' }, S.badge({ label: 'truck-cam-left', size: 'small', theme: 'positive' }))),
             S.h('div', { class: 'nws-ev__cam nws-ev__photo', style: foto(2) }, S.h('span', { class: 'nws-ev__tag' }, S.badge({ label: 'truck-cam-right', size: 'small', theme: 'positive' }))))) +
         S.h('div', { class: 'nws-ev__meta' },
-          [['Hora', x.hora], ['Coordenada', x.coord], ['Unidad', x.uid + ' · ' + x.tipo], ['Dirección', x.dir], ['Cámaras', x.camion ? '3 de 3' : '1 de 3']].map(function (kv) {
+          [['Hora', x.hora], ['Coordenada', x.coord], ['Punto', x.uid + ' · ' + x.tipo], ['Dirección', x.dir], ['Cámaras', x.camion ? '3 de 3' : '1 de 3']].map(function (kv) {
             return S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-stat-card__label' }, kv[0]), S.h('span', { class: 'nwt-caption-font-semibold nws-tnum' }, e(kv[1])));
           }))
     });
 
     var secEvidencia = S.h('div', { class: 'nws-show__sec' },
       lead('Lo central', 'Cada punto de recolección queda con hora, coordenada y fotografía.',
-        'No es un reporte de confianza: quien supervisa puede verificar, unidad por unidad, que la ruta se cumplió — con la evidencia que el sistema capturó, no la que alguien contó.'),
+        'No es un reporte de confianza: quien supervisa puede verificar, punto por punto, que la ruta se cumplió — con la evidencia que el sistema capturó, no la que alguien contó.'),
       evidencia);
 
     /* ---------- 3a · cámara del camión ---------- */
@@ -143,11 +143,11 @@ window.PANTALLAS.showroom = {
           S.h('div', null, S.badge({ label: 'Proceso asistido con hardware asociado', size: 'medium', theme: 'primary', icon: 'thunder' })),
           S.h('h2', { class: 'nws-show__h2' }, 'La fotografía no depende de quien opera la ruta.'),
           S.h('p', { class: 'nws-show__p nwt-body-font-regular' },
-            'Cada unidad queda registrada dos veces: la que reporta el personal en campo y la que captura la cámara instalada en el compactador. Cuando la pregunta es "¿y si la foto se inventó?", la respuesta ya está en el sistema — y queda marcado de qué fuente viene cada evidencia.'),
+            'Cada punto de recolección queda registrado dos veces: la que reporta el personal en campo y la que captura la cámara instalada en el compactador. Cuando la pregunta es "¿y si la foto se inventó?", la respuesta ya está en el sistema — y queda marcado de qué fuente viene cada evidencia.'),
           S.h('div', { class: 'nws-show__pasos' },
-            [['camera', 'Cámara del camión', 'Dispara sola al pasar por la unidad — no depende de que alguien la accione.'],
+            [['camera', 'Cámara del camión', 'Dispara sola al pasar por el punto — no depende de que alguien la accione.'],
              ['user', 'Personal en campo', 'Toma la foto de evidencia con el teléfono, desde el punto de recolección.'],
-             ['positive', 'Dos fuentes, un registro', 'Ambas quedan marcadas por unidad y listas para comparar en la revisión.']]
+             ['positive', 'Dos fuentes, un registro', 'Ambas quedan marcadas por punto y listas para comparar en la revisión.']]
               .map(function (p, i) {
                 return S.h('div', { class: 'nws-show__paso' },
                   S.h('div', { class: 'nws-show__paso-ic' }, S.icon(p[0])),
@@ -186,7 +186,7 @@ window.PANTALLAS.showroom = {
     /* ---------- 4 · intermedias ---------- */
     var enVivo = S.h('div', { class: 'nws-show__card' },
       S.h('h3', { class: 'nws-show__h3' }, 'Dónde va cada camión, ahora'),
-      S.h('p', { class: 'nws-show__p nwt-smalltext-font-regular' }, 'Hora de inicio, última unidad marcada y hora estimada de llegada, por camión — la pregunta que hoy se resuelve con una llamada, aquí se responde sola.'),
+      S.h('p', { class: 'nws-show__p nwt-smalltext-font-regular' }, 'Hora de inicio, último punto marcado y hora estimada de llegada, por camión — la pregunta que hoy se resuelve con una llamada, aquí se responde sola.'),
       S.h('div', { class: 'nws-show__card-foot' }, D.operador.enCalle.map(function (r) {
         return S.h('div', { class: 'nws-show__row' },
           S.avatar({ text: r.ini, size: 'tiny', variant: 'quiet', theme: 'neutral' }),
@@ -253,29 +253,29 @@ window.PANTALLAS.showroom = {
     var FILAS = [
       ['plan', 'Tablero de rutas', 'Indicadores de rutas activas, sin asignar, en ejecución (con avance) y completadas del mes con variación.', '?rol=admin#/admin'],
       ['plan', 'Asistente de nueva ruta en 3 pasos', 'Trazado manual o automático sobre el mapa, elección del operador por cobertura de zona y resumen tipo ticket antes de confirmar.', '?rol=admin#/admin'],
-      ['plan', 'Trazado automático', 'Propone el recorrido y las unidades a partir de la zona; el trazado manual permite ajustarlo tramo a tramo.', '?rol=admin#/admin'],
+      ['plan', 'Trazado automático', 'Propone el recorrido y los puntos de recolección a partir de la zona; el trazado manual permite ajustarlo tramo a tramo.', '?rol=admin#/admin'],
       ['plan', 'Entrega de ruta al operador', 'Cobertura, recorrido, duración y modo visibles antes de entregar; confirmación explícita y cambio de estado a Trazada.', '?rol=admin#/admin/entrega'],
-      ['plan', 'Lista de paradas numeradas', 'Cada ruta muestra sus unidades en orden de recorrido, con el tramo correspondiente resaltado en el mapa.', '?rol=admin#/admin/entrega'],
-      ['oper', 'Operación en vivo', 'Camiones en calle con hora de inicio, última unidad marcada y llegada estimada; se actualiza sin recargar.', '?rol=operador#/operador'],
+      ['plan', 'Lista de paradas numeradas', 'Cada ruta muestra sus puntos de recolección en orden de recorrido, con el tramo correspondiente resaltado en el mapa.', '?rol=admin#/admin/entrega'],
+      ['oper', 'Operación en vivo', 'Camiones en calle con hora de inicio, último punto marcado y llegada estimada; se actualiza sin recargar.', '?rol=operador#/operador'],
       ['oper', 'Próximos a salir', 'Rutas programadas con su cuadrilla y vehículo, listas para arrancar.', '?rol=operador#/operador'],
       ['oper', 'Asignación en 3 pasos', 'Conductor y hasta cinco recolectores, vehículo con fotografía, y resumen con la línea de tiempo de lo que sigue.', '?rol=operador#/operador'],
-      ['oper', 'Detalle de ruta en vivo', 'Mapa con recorrido hecho y pendiente, camión en movimiento y cuadrilla; lista de paradas con conteo de fotos por unidad.', '?rol=operador#/operador/ruta'],
+      ['oper', 'Detalle de ruta en vivo', 'Mapa con recorrido hecho y pendiente, camión en movimiento y cuadrilla; lista de paradas con conteo de fotos por punto.', '?rol=operador#/operador/ruta'],
       ['oper', 'Mapa a pantalla completa', 'El recorrido en vivo se amplía en un modal para seguimiento en sala.', '?rol=operador#/operador/ruta'],
       ['campo', 'Aplicación móvil del conductor', 'Flujo Hoy → Mi ruta → Marcar → Cerrada, pensado para uso con guantes y a plena luz.', '?rol=conductor#/conductor'],
       ['campo', 'Indicaciones de giro · Conductor', 'Mapa recortado con el siguiente giro y la lista de los próximos, al estilo de un navegador.', '?rol=conductor#/conductor'],
-      ['campo', 'Fotografía obligatoria por unidad · Conductor', 'No se puede marcar una unidad sin evidencia; hora y coordenada se capturan solas.', '?rol=conductor#/conductor'],
+      ['campo', 'Fotografía obligatoria por punto · Conductor', 'No se puede marcar un punto sin evidencia; hora y coordenada se capturan solas.', '?rol=conductor#/conductor'],
       ['campo', 'Causales tipificados · Conductor', causales.map(function (c) { return c.txt; }).join(', ') + ' — con observación obligatoria según el caso.', '?rol=conductor#/conductor'],
       ['campo', 'Ruta siguiente bloqueada · Conductor', 'La ruta programada no se abre hasta cerrar la actual; evita marcar fuera de orden.', '?rol=conductor#/conductor'],
       ['campo', 'Aplicación móvil del supervisor en ruta', 'Flujo Hoy → Mi ruta → Marcar → Cerrada, pensado para uso con guantes y a plena luz.', '?rol=supervisor-ruta#/supervisor-ruta'],
       ['campo', 'Indicaciones de giro · Supervisor en ruta', 'Mapa recortado con el siguiente giro y la lista de los próximos, al estilo de un navegador.', '?rol=supervisor-ruta#/supervisor-ruta'],
-      ['campo', 'Fotografía obligatoria por unidad · Supervisor en ruta', 'No se puede marcar una unidad sin evidencia; hora y coordenada se capturan solas.', '?rol=supervisor-ruta#/supervisor-ruta'],
+      ['campo', 'Fotografía obligatoria por punto · Supervisor en ruta', 'No se puede marcar un punto sin evidencia; hora y coordenada se capturan solas.', '?rol=supervisor-ruta#/supervisor-ruta'],
       ['campo', 'Causales tipificados · Supervisor en ruta', causales.map(function (c) { return c.txt; }).join(', ') + ' — con observación obligatoria según el caso.', '?rol=supervisor-ruta#/supervisor-ruta'],
       ['campo', 'Ruta siguiente bloqueada · Supervisor en ruta', 'La ruta programada no se abre hasta cerrar la actual; evita marcar fuera de orden.', '?rol=supervisor-ruta#/supervisor-ruta'],
       ['sup', 'Tablero de revisión Kanban / Tabla', 'Por revisar, En revisión, Observadas y Cerradas sobre el mismo conjunto de datos; vista intercambiable.', '?rol=supervisor#/supervisor-dashboard'],
       ['sup', 'Alerta de plazo', 'Rutas con más de 48 horas sin revisar o tres días de atraso quedan marcadas; los mensajes cambian según los días.', '?rol=supervisor#/supervisor-dashboard'],
       ['sup', 'Conformidad mensual', 'Porcentaje de rutas conformes con variación frente al mes anterior y tendencia.', '?rol=supervisor#/supervisor-dashboard'],
-      ['sup', 'Evidencia dual por unidad', 'Fotografía de quien opera y dos vistas de la cámara del camión; se indica cuando el camión no reportó.', '?rol=supervisor#/supervisor/revision'],
-      ['sup', 'Tira de evidencias completa', 'Las ' + RM.total + ' unidades de la ruta como miniaturas navegables, sin resúmenes del tipo "+N más".', '?rol=supervisor#/supervisor/revision'],
+      ['sup', 'Evidencia dual por punto', 'Fotografía de quien opera y dos vistas de la cámara del camión; se indica cuando el camión no reportó.', '?rol=supervisor#/supervisor/revision'],
+      ['sup', 'Tira de evidencias completa', 'Las ' + RM.total + ' puntos de recolección de la ruta como miniaturas navegables, sin resúmenes del tipo "+N más".', '?rol=supervisor#/supervisor/revision'],
       ['sup', 'Juicio con hallazgos tipificados', 'Conforme o Con hallazgos; los hallazgos son fijos y la observación es obligatoria.', '?rol=supervisor#/supervisor/revision'],
       ['sup', 'Línea de tiempo de la ruta', 'Hitos desde el trazado hasta el cierre, en la misma pantalla de revisión.', '?rol=supervisor#/supervisor/revision'],
       ['trans', 'Cinco perfiles, una sesión', 'Administrador, Operador, Conductor, Supervisor en ruta y Supervisor; se recuerda el último perfil usado.', '#/'],

@@ -58,10 +58,10 @@ window.PANTALLAS['supervisor-revision'] = {
                     S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-smalltext-font-semibold' }, e(c.nombre)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, c.rol)));
                 })))),
       content: S.h('div', { class: 'nws-stats nws-stats--5' },
-        S.statCard({ skeleton: k, label: 'Unidades marcadas', value: M.marcadas, hint: 'de ' + M.total + ' · recolección completa', theme: T, extra: S.progress({ value: 100, size: 'medium', cls: 'nws-stat-progress' }) }),
+        S.statCard({ skeleton: k, label: 'Puntos marcados', value: M.marcadas, hint: 'de ' + M.total + ' · recolección completa', theme: T, extra: S.progress({ value: 100, size: 'medium', cls: 'nws-stat-progress' }) }),
         S.statCard({ skeleton: k, label: 'Evidencias', value: M.evidencias, hint: M.sinCamion + ' sin cámaras del camión', icon: 'camera', theme: T }),
         S.statCard({ skeleton: k, label: 'Franja', valueHtml: S.h('div', { class: 'nws-col', style: 'gap:1px' }, S.h('span', null, franjaAmPm[0]), S.h('span', null, franjaAmPm[1])), small: true, hint: M.enCalle + ' en calle', icon: 'dispatch-time', theme: T }),
-        S.statCard({ skeleton: k, label: 'Ritmo', value: M.ritmo, hint: 'unidades por hora', theme: T, extra: S.h('div', { class: 'nws-spark' }, M.ritmoSerie.map(function (v) { return '<i style="height:' + v + '%"></i>'; })) }),
+        S.statCard({ skeleton: k, label: 'Ritmo', value: M.ritmo, hint: 'puntos por hora', theme: T, extra: S.h('div', { class: 'nws-spark' }, M.ritmoSerie.map(function (v) { return '<i style="height:' + v + '%"></i>'; })) }),
         S.statCard({ skeleton: k, label: 'Plazo', value: R.ruta.plazo, hint: 'desde la ejecución', icon: 'calendar', theme: T }))
     });
 
@@ -136,7 +136,7 @@ window.PANTALLAS['supervisor-revision'] = {
               S.h('div', { class: 'nws-ev__cam nws-ev__photo', style: foto(st.ev * 3 + 2) }, S.h('span', { class: 'nws-ev__tag' }, S.badge({ label: 'truck-cam-right', size: 'small', theme: 'neutral' })))
             : S.h('div', { class: 'nws-ev__na nwt-smalltext-font-regular' }, S.icon('vehicles'), S.badge({ label: 'truck-cam-not-available', size: 'small', theme: 'negative' }), 'el camión no reportó en esta parada · queda solo la evidencia del operario'))) +
         S.h('div', { class: 'nws-ev__meta' },
-          [['Hora', x.hora], ['Coordenada', x.coord], ['Unidad', x.uid + ' · ' + x.tipo], ['Dirección', x.dir], ['Cámaras', x.camion ? '3 de 3' : '1 de 3 · camión sin señal']].map(function (kv) {
+          [['Hora', x.hora], ['Coordenada', x.coord], ['Punto', x.uid + ' · ' + x.tipo], ['Dirección', x.dir], ['Cámaras', x.camion ? '3 de 3' : '1 de 3 · camión sin señal']].map(function (kv) {
             return S.h('div', { class: 'nws-col' }, S.h('span', { class: 'nwt-stat-card__label' }, kv[0]), S.h('span', { class: 'nwt-caption-font-semibold nws-tnum' }, e(kv[1])));
           })));
       var activo = root.querySelector('.nws-thumb--on');
