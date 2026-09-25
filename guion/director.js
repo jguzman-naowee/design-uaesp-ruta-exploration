@@ -27,8 +27,12 @@
   capa.innerHTML =
     '<div class="nws-guion-puntero" aria-hidden="true"><svg viewBox="0 0 28 28" width="88" height="88">' +
       '<path transform="rotate(-30 14 2)" d="M14 2 L23 15 L16.6 14 L16.6 20.5 L11.4 20.5 L11.4 14 L5 15 Z"/></svg></div>' +
-    '<div class="nws-guion-final"><span class="nws-guion-final__logo">' + window.NAOWEE.logo + '</span></div>' +
+    '<div class="nws-guion-final"><div class="nws-guion-final__marca"><span class="nws-guion-final__logo">' + window.NAOWEE.logo + '</span>' +
+      '<span class="nws-guion-final__eslogan">¡Listos para hacerlo bien!</span></div></div>' +
     '<div class="nws-guion-titular" aria-hidden="true"></div>' +
+    '<div class="nws-guion-esquina" aria-hidden="true">' + window.NAOWEE.logo + '</div>' +
+    '<div class="nws-guion-aro" aria-hidden="true"></div>' +
+    '<div class="nws-guion-destacado" aria-hidden="true"></div>' +
     '<div class="nws-guion-barra">' +
       '<div class="nws-guion-barra__mision"><div class="nws-guion-barra__mision-in">' +
         '<span class="nws-guion-barra__num"></span><span class="nws-guion-barra__div"></span>' +
@@ -418,13 +422,18 @@
     var an = appEl.animate([{ transform: de }, { transform: a }], { duration: ms, easing: EASE, fill: 'forwards' });
     return Promise.all([an.finished.then(function () { appEl.style.transform = a; an.cancel(); }), mover(p, ms)]);
   }
+  var movil = null;
+  /* Con texto en pantalla el teléfono se corre a la derecha; sin texto vuelve al centro. */
+  function reencuadrar() { return movil ? camara({ foco: movil.foco, n: movil.n, zoom: movil.zoom, en: true, ms: 900 }) : Promise.resolve(); }
   function camara(c) {
     var W = innerWidth, H = innerHeight;
-    if (c === 'reset') { return cam.z === 1 && !cam.x && !cam.y ? Promise.resolve() : ir(1, 0, 0, 1100).then(function () { document.body.style.background = ''; }); }
+    if (c === 'reset') { movil = null; q('.nws-guion-esquina').classList.remove('is-visible'); return cam.z === 1 && !cam.x && !cam.y ? Promise.resolve() : ir(1, 0, 0, 1100).then(function () { document.body.style.background = ''; }); }
     /* `en`: fracción del ancho donde queda el foco (0,66 = a la derecha, texto a la izquierda). Fuera de
        los bordes se ve el fondo del escenario, así que el body toma ese color. */
     return buscar(c.foco, c.n).then(function (el) {
-      var r = el.getBoundingClientRect(), z = c.zoom || 1.6, fx = c.en || 0.5;
+      var r = el.getBoundingClientRect(), z = c.zoom || 1.6, fx = c.en ? (titular.classList.contains('is-visible') || destacado.classList.contains('is-visible') ? 0.66 : 0.5) : 0.5;
+      movil = c.en ? { foco: c.foco, n: c.n, zoom: z } : null;
+      q('.nws-guion-esquina').classList.toggle('is-visible', !!movil);
       var cx = (r.left + r.width / 2 - cam.x) / cam.z, cy = (r.top + r.height / 2 - cam.y) / cam.z;
       var x = W * fx - z * cx, y = Math.min(0, Math.max(H - z * H, H / 2 - z * cy));
       if (c.en) { document.body.style.background = fondoDe(el); } else { x = Math.min(0, Math.max(W - z * W, x)); }
@@ -464,21 +473,55 @@
   function titulo(txt, lado) {
     if (!txt) { return Promise.resolve(); }
     titular.className = 'nws-guion-titular is-visible nws-guion-titular--' + (lado || 'abajo');
+    if (lado === 'izq') { reencuadrar(); }
     titular.innerHTML = '<p>' + txt.split(' ').map(function (w) { return '<span>' + S.esc(w) + '</span>'; }).join(' ') + '</p>';
     avisar('sub', { texto: txt });
     fundir(titular, 0, 1, 450);
-    /* Entra suave desde la izquierda; karaoke palabra por palabra en naranja, todo pasa a blanco y se oculta. */
-    var ws = titular.querySelectorAll('span'), OUT = 'cubic-bezier(0.16, 1, 0.3, 1)', n = ws.length;
-    var k0 = 650 + n * 60, blanco = k0 + n * 150 + 250, tok = ++tituloTok;
+    /* Entra con un fundido; karaoke palabra por palabra de gris claro a blanco, y se oculta hasta el próximo. */
+    var ws = titular.querySelectorAll('span'), n = ws.length, k0 = 750, fin = k0 + n * 150 + 250, tok = ++tituloTok;
+    titular.firstChild.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: EASE, fill: 'backwards' });
     [].forEach.call(ws, function (w, k) {
-      w.animate([{ opacity: 0, transform: 'translateX(-22px)' }, { opacity: 1, transform: 'none' }], { duration: 900, delay: 80 + k * 60, easing: OUT, fill: 'backwards' });
-      w.animate([{ color: 'rgba(255,255,255,.62)' }, { color: NARANJA }], { duration: 220, delay: k0 + k * 150, easing: EASE, fill: 'both' });
-      w.animate([{ color: NARANJA }, { color: '#fff' }], { duration: 380, delay: blanco, easing: EASE, fill: 'forwards' });
+      w.animate([{ color: GRIS }, { color: '#fff' }], { duration: 240, delay: k0 + k * 150, easing: EASE, fill: 'both' });
     });
-    setTimeout(function () { if (tok === tituloTok) { sinTitulo(); } }, blanco + 1100);
+    setTimeout(function () { if (tok === tituloTok) { sinTitulo(); } }, fin + 1100);
     return esperar(400);
   }
-  var tituloTok = 0, NARANJA = getComputedStyle(raiz).getPropertyValue('--naotech-primary-color-500').trim() || '#ff7b24';
+  /* Destacado: una tarjeta que resalta sobre la UI (no un paso más), con un aro sobre lo que explica. */
+  var destacado = q('.nws-guion-destacado'), aro = q('.nws-guion-aro');
+  function mostrarDestacado(d) {
+    destacado.innerHTML =
+      '<div class="nws-guion-destacado__sobre"><i></i>' + S.esc(d.sobre) + '</div>' +
+      '<div class="nws-guion-destacado__titulo">' + S.esc(d.titulo) + '</div>' +
+      '<ul>' + d.filas.map(function (f) { return '<li>' + S.icon(f[0]) + '<span>' + S.esc(f[1]) + '</span></li>'; }).join('') + '</ul>';
+    destacado.classList.add('is-visible');
+    avisar('sub', { texto: d.titulo + ' — ' + d.filas.map(function (f) { return f[1]; }).join(' · ') });
+    return reencuadrar().then(function () {
+      if (d.aro) {
+        var rs = [].map.call(document.querySelectorAll(d.aro), function (el) { return el.getBoundingClientRect(); });
+        if (rs.length) {
+          var x0 = Math.min.apply(null, rs.map(function (r) { return r.left; })), y0 = Math.min.apply(null, rs.map(function (r) { return r.top; }));
+          var x1 = Math.max.apply(null, rs.map(function (r) { return r.right; })), y1 = Math.max.apply(null, rs.map(function (r) { return r.bottom; }));
+          aro.style.cssText = 'left:' + (x0 - 10) + 'px;top:' + (y0 - 10) + 'px;width:' + (x1 - x0 + 20) + 'px;height:' + (y1 - y0 + 20) + 'px';
+          aro.classList.add('is-visible');
+          aro.animate([{ opacity: 0, transform: 'scale(1.06)' }, { opacity: 1, transform: 'none' }], { duration: 600, easing: EASE, fill: 'both' });
+        }
+      }
+      destacado.animate([{ opacity: 0, transform: 'translateY(-50%) translateX(-24px) scale(.97)' }, { opacity: 1, transform: 'translateY(-50%)' }], { duration: 700, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'both' });
+      [].forEach.call(destacado.querySelectorAll('li'), function (li, k) {
+        li.animate([{ opacity: 0, transform: 'translateX(-12px)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: 450 + k * 160, easing: EASE, fill: 'backwards' });
+      });
+    });
+  }
+  function sinDestacado() {
+    if (!destacado.classList.contains('is-visible')) { return Promise.resolve(); }
+    aro.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+    return destacado.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: EASE, fill: 'forwards' }).finished.then(function () {
+      destacado.classList.remove('is-visible'); aro.classList.remove('is-visible');
+      destacado.getAnimations().forEach(function (a) { a.cancel(); }); aro.getAnimations().forEach(function (a) { a.cancel(); });
+    });
+  }
+
+  var SALIENDO = false, tituloTok = 0, GRIS = getComputedStyle(raiz).getPropertyValue('--naotech-color-gray-300').trim() || '#d0d3e6';
   /* Cuando el puntero empieza a actuar, el velo baja para que la UI se lea. */
   function aclarar() { titular.classList.add('is-leve'); }
   function sinTitulo() {
@@ -486,7 +529,7 @@
     if (!titular.classList.contains('is-visible')) { return Promise.resolve(); }
     var p = titular.firstChild;
     if (p) { p.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(-24px)' }], { duration: 320, easing: EASE, fill: 'forwards' }); }
-    return fundir(titular, 1, 0, 360).then(function () { titular.classList.remove('is-visible', 'is-leve'); });
+    return fundir(titular, 1, 0, 360).then(function () { titular.classList.remove('is-visible', 'is-leve'); if (!SALIENDO) { reencuadrar(); } });
   }
 
   function escenaPortada(cual) {
@@ -525,7 +568,7 @@
       .then(function () { return esperar(1000); })
       .then(function () { return label.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: EASE, fill: 'forwards' }).finished; })
       .then(function () {
-        logo.animate([{ transform: 'translate(-50%,-50%)' }, { transform: 'translate(-50%, calc(-50% - 250px)) scale(.4)' }], { duration: 900, easing: EASE, fill: 'forwards' });
+        logo.animate([{ transform: 'translate(-50%,-50%)' }, { transform: 'translate(-50%, calc(-50% - 270px)) scale(.56)' }], { duration: 900, easing: EASE, fill: 'forwards' });
         bloque.style.opacity = 1;
         entrarPiezas(bloque, '.nws-guion-portada__entidad, .nws-guion-portada__titulo, .nws-guion-portada__bajada', 380);
         return esperar(900);
@@ -576,13 +619,18 @@
   function presentarPantalla(texto) {
     var W = innerWidth, H = innerHeight, z = 0.76;
     raiz.classList.add('nws-guion--marco');
-    titular.className = 'nws-guion-titular is-visible nws-guion-titular--marco';
+    /* Nada pendiente de titulares anteriores, y el nombre invisible desde el primer cuadro: sin parpadeo. */
+    tituloTok++;
+    titular.getAnimations().forEach(function (an) { an.cancel(); });
     titular.innerHTML = '<p>' + S.esc(texto) + '</p>';
+    titular.className = 'nws-guion-titular is-visible nws-guion-titular--marco';
+    var entra = titular.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 800, easing: EASE, fill: 'both' });
     avisar('sub', { texto: texto });
     return ir(z, Math.round(W * (1 - z) / 2), Math.round(H * (1 - z) / 2 + 30), 800)
-      .then(function () { fundir(titular, 0, 1, 450); return esperar(1800); })
-      .then(function () { return fundir(titular, 1, 0, 300); })
-      .then(function () { titular.classList.remove('is-visible'); return ir(1, 0, 0, 1100); })
+      .then(function () { return entra.finished; })
+      .then(function () { return esperar(1800); })
+      .then(function () { return titular.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, easing: EASE, fill: 'forwards' }).finished; })
+      .then(function () { titular.classList.remove('is-visible'); titular.getAnimations().forEach(function (an) { an.cancel(); }); return ir(1, 0, 0, 1100); })
       .then(function () { raiz.classList.remove('nws-guion--marco'); });
   }
 
@@ -604,14 +652,23 @@
     if (e.telon) { hacer = spotTelon(e.telon); }
     else if (e.marca) { hacer = spotMarca(); }
     else if (e.rol) { hacer = sinTitulo().then(function () { return spotRol(e.rol, e.presenta); }); }
-    else if (e.cierre) { hacer = sinTitulo().then(function () { raiz.classList.add('nws-guion--puntero-oculto'); var f = q('.nws-guion-final'); f.classList.add('is-visible', 'is-spot');
-      fundir(f, 0, 1, 900); q('.nws-guion-final__logo').animate([{ opacity: 0, transform: 'scale(.92)' }, { opacity: 1, transform: 'none' }], { duration: 1100, delay: 450, easing: EASE, fill: 'backwards' }); }); }
+    else if (e.cierre) { hacer = sinTitulo().then(function () { raiz.classList.add('nws-guion--puntero-oculto'); q('.nws-guion-esquina').classList.remove('is-visible'); var f = q('.nws-guion-final'); f.classList.add('is-visible', 'is-spot');
+      fundir(f, 0, 1, 900); q('.nws-guion-final__logo').animate([{ opacity: 0, transform: 'scale(.92)' }, { opacity: 1, transform: 'none' }], { duration: 1100, delay: 450, easing: EASE, fill: 'backwards' });
+      q('.nws-guion-final__eslogan').animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 800, delay: 1500, easing: EASE, fill: 'backwards' });
+      avisar('sub', { texto: '¡Listos para hacerlo bien!' }); }); }
+    else if (e.destacado) {
+      hacer = sinTitulo().then(function () { return (e.pasos || []).reduce(function (c, p) { return c.then(function () { return pasoSpot(p); }); }, Promise.resolve()); })
+        .then(function () { return mostrarDestacado(e.destacado); });
+    }
     else {
-      hacer = (titular.textContent === e.titular ? Promise.resolve() : sinTitulo().then(function () { return titulo(e.titular, e.lado); }))
+      /* Entre dos titulares seguidos el teléfono no vuelve al centro: el nuevo texto ya lo corre. */
+      SALIENDO = true;
+      hacer = (titular.textContent === e.titular ? Promise.resolve() : sinTitulo().then(function () { SALIENDO = false; return titulo(e.titular, e.lado); }))
         .then(function () { return (e.pasos || []).reduce(function (c, p) { return c.then(function () { return pasoSpot(p); }); }, Promise.resolve()); });
     }
     return hacer.then(function () {
       var real = performance.now() - ini;
+      if (e.destacado) { return esperar(Math.max(0, (e.dur || MIN) - real)).then(sinDestacado).then(function () { avisar('escena', { i: i, dur: e.dur || 0, real: Math.round(real) }); }); }
       avisar('escena', { i: i, dur: e.dur || 0, real: Math.round(real) });
       return esperar(Math.max(0, (e.dur || MIN) - real));
     });

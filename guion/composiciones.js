@@ -12,7 +12,9 @@ window.GUION.composiciones = [
   { id: 'supervisor-ruta', rol: 'supervisor-ruta', titulo: 'Supervisor en ruta', quien: 'supervisor en ruta' },
   { id: 'supervisor',      rol: 'supervisor',      titulo: 'Supervisor',         quien: 'supervisor' },
   { id: 'flota',           rol: 'flota',           titulo: 'Flota',              quien: 'coordinador de flota' },
-  { id: 'spot',            rol: 'admin',           titulo: 'Spot · Admin → Supervisor en ruta', quien: 'administrador' }
+  /* audio.desfase (ms): positivo = la música entra más tarde; negativo = entra adelantada, desde ese punto del tema. */
+  { id: 'spot',            rol: 'admin',           titulo: 'Spot · Admin → Supervisor en ruta', quien: 'administrador',
+    audio: { src: 'guion/audio/aylex-born-to-win.mp3', desfase: 0, volumen: 0.35, salida: 2500, credito: 'Aylex - Born to Win (freetouse.com)' } }
 ].map(function (c) { c.ancho = 1920; c.alto = 1080; c.fps = 30; c.guion = 'guion/guiones/' + c.id + '.js'; return c; });
 
 window.GUION.composicion = function (id) {

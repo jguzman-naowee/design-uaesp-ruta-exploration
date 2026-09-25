@@ -126,13 +126,12 @@ html.nws-guion--sin-subs .nws-guion-barra__sub { display: none; }
 .nws-guion-portada__escena { position: absolute; inset: 0; box-sizing: border-box; padding: 0 200px; display: flex; flex-direction: column; justify-content: center; }
 .nws-guion-portada__modulo { gap: var(--naotech-sizing-40); }
 .nws-guion-portada__logos { display: flex; align-items: center; gap: var(--naotech-sizing-32); }
-.nws-guion-portada__naowee svg { display: block; height: 64px; width: auto; }
+.nws-guion-portada__naowee svg { display: block; height: 96px; width: auto; }
 .nws-guion-portada__div { width: 2px; height: 72px; background: var(--naotech-color-white-alpha-20); }
 .nws-guion-portada__entidad { display: flex; align-items: center; gap: var(--naotech-sizing-20); font-size: 44px; line-height: 1; font-weight: 800; letter-spacing: -0.02em; }
 .nws-guion-portada__entidad img {
   width: 96px; height: 96px; object-fit: contain; border-radius: var(--naotech-radius-circle);
-  background: var(--naotech-color-white-alpha-100); padding: 12px; box-sizing: border-box;
-  box-shadow: 0 0 0 4px var(--naotech-color-white-alpha-20);
+  background: var(--naotech-color-white-alpha-100); padding: 3px; box-sizing: border-box;
 }
 .nws-guion-portada__titulo { font-size: 128px; line-height: 1; font-weight: 800; letter-spacing: -0.045em; margin-top: var(--naotech-sizing-24); }
 .nws-guion-portada__bajada { font-size: 32px; line-height: 1.4; font-weight: 500; color: var(--naotech-color-white-alpha-70); }
@@ -165,7 +164,10 @@ html.nws-guion--sin-subs .nws-guion-barra__sub { display: none; }
 /* ---------- spot ---------- */
 .nws-guion-final__logo { display: none; }
 .nws-guion-final.is-spot { display: grid; place-items: center; }
-.nws-guion-final.is-spot .nws-guion-final__logo { display: block; width: 52%; }
+.nws-guion-final__marca { display: none; }
+.nws-guion-final.is-spot .nws-guion-final__marca { display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-40); width: 52%; }
+.nws-guion-final.is-spot .nws-guion-final__logo { display: block; width: 100%; }
+.nws-guion-final__eslogan { font-size: 56px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; color: var(--naotech-color-white-alpha-100); }
 .nws-guion-final__logo svg { display: block; width: 100%; height: auto; }
 
 .nws-guion-portada__texto, .nws-guion-portada__presenta { opacity: 0; }
@@ -208,6 +210,8 @@ html.nws-guion--marco #app {
 /* Spot: el escenario de las apps móviles se reencuadra sin su barra superior ni los controles de zoom. */
 html.nws-guion--spot .nws-tema-supervisor > .nwt-toolbar,
 html.nws-guion--spot .nws-phone-zoom { display: none !important; }
+/* En el spot los avisos de la página no escalan con la cámara y tapan la vista: la historia la cuentan los titulares. */
+html.nws-guion--spot #toast-host { display: none !important; }
 /* Abajo: sobre la UI, con un velo oscuro que sube desde el borde para que se lea. */
 .nws-guion-titular--abajo {
   left: 0; right: 0; bottom: 0; height: 280px; align-items: flex-end; justify-content: center; padding: 0 120px 56px; text-align: center;
@@ -220,3 +224,43 @@ html.nws-guion--spot .nws-phone-zoom { display: none !important; }
 }
 .nws-guion-titular--izq::before { background: linear-gradient(90deg, var(--naotech-color-black-alpha-80), var(--naotech-color-black-alpha-40) 60%, transparent); }
 .nws-guion-titular--izq p { max-width: 560px; }
+
+/* Escenas móviles del spot: el logo de Naowee arriba a la izquierda llena el escenario vacío. */
+.nws-guion-esquina {
+  position: absolute; top: 56px; left: 64px; width: 260px; z-index: 2; opacity: 0;
+  transition: opacity 700ms var(--naotech-animation-standard);
+}
+.nws-guion-esquina.is-visible { opacity: 1; }
+.nws-guion-esquina svg { display: block; width: 100%; height: auto; }
+
+/* ---------- destacado: resalta sobre la UI ---------- */
+.nws-guion-destacado {
+  position: absolute; left: 120px; top: 50%; width: 600px; z-index: 2; display: none; box-sizing: border-box;
+  padding: 36px 40px 40px; border-radius: 28px; color: var(--naotech-color-white-alpha-100); font-family: var(--naotech-sdk-font-family);
+  background: color-mix(in srgb, var(--naotech-color-black-alpha-100) 88%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: 0 30px 90px var(--naotech-color-black-alpha-50), inset 0 1px 0 var(--naotech-color-white-alpha-10);
+  transform: translateY(-50%);
+}
+.nws-guion-destacado.is-visible { display: block; }
+.nws-guion-destacado__sobre {
+  display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--naotech-color-default-300, #ffbf75);
+}
+.nws-guion-destacado__sobre i {
+  width: 12px; height: 12px; border-radius: 50%; background: var(--naotech-positive-color-500, #1f8923);
+  box-shadow: 0 0 0 0 var(--naotech-positive-color-500, #1f8923); animation: nws-guion-latido 1.6s ease-out infinite;
+}
+@keyframes nws-guion-latido { 0% { box-shadow: 0 0 0 0 rgba(31, 137, 35, .6); } 100% { box-shadow: 0 0 0 14px rgba(31, 137, 35, 0); } }
+.nws-guion-destacado__titulo { margin-top: 14px; font-size: 44px; line-height: 1.08; font-weight: 800; letter-spacing: -0.03em; text-wrap: balance; }
+.nws-guion-destacado ul { list-style: none; margin: 28px 0 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.nws-guion-destacado li { display: flex; align-items: center; gap: 16px; font-size: 24px; line-height: 1.25; font-weight: 500; color: var(--naotech-color-white-alpha-90); }
+.nws-guion-destacado li .nwt-icon {
+  flex: none; width: 48px; height: 48px; display: grid; place-items: center; font-size: 28px !important; border-radius: 12px;
+  background: var(--naotech-color-white-alpha-10); color: var(--naotech-color-default-300, #ffbf75);
+}
+.nws-guion-aro {
+  position: absolute; z-index: 2; display: none; box-sizing: border-box; border-radius: 18px; pointer-events: none;
+  border: 3px solid var(--naotech-color-default-300, #ffbf75); box-shadow: 0 0 0 8px rgba(255, 191, 117, .18);
+}
+.nws-guion-aro.is-visible { display: block; }

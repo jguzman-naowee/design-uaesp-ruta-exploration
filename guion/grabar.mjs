@@ -1,5 +1,5 @@
 // Exporta una composición a mp4 1920×1080 (+ .srt con los subtítulos).
-// Uso: node guion/grabar.mjs admin [--arriba] [--sin-barra] [--sin-subs] [--sin-puntero] [--sin-intro] | todas
+// Uso: node guion/grabar.mjs admin [--arriba] [--sin-barra] [--sin-subs] [--sin-puntero] [--sin-intro] [--sin-musica] [--desfase=ms] | todas
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
 import { readFile, mkdir, writeFile, rm } from 'node:fs/promises';
@@ -12,7 +12,8 @@ const SALIDA = join(RAIZ, 'videos');
 const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
 
 const args = process.argv.slice(2);
-const flags = new Set(args.filter((a) => a.startsWith('--')));
+const flags = new Set(args.filter((a) => a.startsWith('--') && !a.includes('=')));
+const valor = (k) => { const a = args.find((x) => x.startsWith(`--${k}=`)); return a ? a.split('=')[1] : null; };
 const pedido = args.find((a) => !a.startsWith('--')) || 'admin';
 const opciones = { barra: !flags.has('--sin-barra'), subs: !flags.has('--sin-subs'), puntero: !flags.has('--sin-puntero'), intro: !flags.has('--sin-intro'), arriba: flags.has('--arriba') };
 const TODAS = ['admin', 'operador', 'conductor', 'supervisor-ruta', 'supervisor', 'flota'];
@@ -54,8 +55,19 @@ async function grabar(comp, base) {
 
   const corte = Math.max(0, (inicio - t0) / 1000 - 0.3);
   const mp4 = join(SALIDA, nombre + '.mp4');
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', corte.toFixed(3), '-i', await video.path(),
-    '-t', ((g.fin + 700) / 1000).toFixed(3), '-r', '30', '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', mp4]);
+  const largo = (g.fin + 700) / 1000;
+  const pista = flags.has('--sin-musica') ? null : await pistaDe(comp);
+  const entrada = ['-y', '-loglevel', 'error', '-ss', corte.toFixed(3), '-i', await video.path()];
+  const salida = ['-t', largo.toFixed(3), '-r', '30', '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', mp4];
+  if (pista) {
+    // El video arranca 0,3 s antes del inicio del director: la música se corre lo mismo, más su desfase.
+    const d = Number(valor('desfase') ?? pista.desfase ?? 0) + 300, sal = (pista.salida || 2000) / 1000;
+    const filtro = (d >= 0 ? `adelay=${d}|${d}` : `atrim=start=${(-d / 1000).toFixed(3)},asetpts=PTS-STARTPTS`) +
+      `,volume=${pista.volumen ?? 1},afade=t=out:st=${Math.max(0, largo - sal).toFixed(3)}:d=${sal.toFixed(3)}`;
+    execFileSync('ffmpeg', [...entrada, '-i', join(RAIZ, pista.src), '-filter_complex', `[1:a]${filtro}[a]`, '-map', '0:v', '-map', '[a]', '-c:a', 'aac', '-b:a', '192k', ...salida]);
+  } else {
+    execFileSync('ffmpeg', [...entrada, ...salida]);
+  }
   await rm(tmp, { recursive: true, force: true });
 
   const lineas = g.subs.map((s, i) => {
@@ -64,6 +76,15 @@ async function grabar(comp, base) {
   });
   await writeFile(join(SALIDA, nombre + '.srt'), lineas.join('\n'));
   console.log(`✓ ${mp4}  (${(g.fin / 1000).toFixed(1)} s, ${g.subs.length} subtítulos)`);
+}
+
+// Lee la pista de la composición desde composiciones.js, sin navegador.
+async function pistaDe(comp) {
+  const js = await readFile(join(RAIZ, 'guion/composiciones.js'), 'utf8');
+  const window = { GUION: {} };
+  new Function('window', js)(window);
+  const c = window.GUION.composiciones.find((x) => x.id === comp);
+  return c && c.audio ? c.audio : null;
 }
 
 await mkdir(SALIDA, { recursive: true });

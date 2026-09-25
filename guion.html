@@ -46,6 +46,8 @@
   <label><input type="checkbox" id="subs"> Subtítulos</label>
   <label><input type="checkbox" id="puntero"> Puntero</label>
   <label><input type="checkbox" id="intro"> Presentación</label>
+  <span id="ctl-audio" hidden><label><input type="checkbox" id="musica"> Música</label>
+    <label>desfase <input type="number" id="desfase" step="100" style="width:84px"> ms</label></span>
   <span class="sep"></span>
   <span class="dato" id="estado">—</span>
   <span class="dato" id="reloj">0:00</span>
@@ -61,7 +63,7 @@
   var grabar = qs.has('grabar');
   var cfg = {
     comp: G.composicion(qs.get('comp')).id,
-    barra: qs.get('barra') !== '0', subs: qs.get('subs') !== '0', puntero: qs.get('puntero') !== '0', intro: qs.get('intro') !== '0',
+    barra: qs.get('barra') !== '0', subs: qs.get('subs') !== '0', puntero: qs.get('puntero') !== '0', intro: qs.get('intro') !== '0', musica: qs.get('musica') !== '0', desfase: qs.get('desfase'),
     pos: qs.get('pos') === 'arriba' ? 'arriba' : 'abajo'
   };
   var $ = function (id) { return document.getElementById(id); };
@@ -84,13 +86,59 @@
   $('comp').value = cfg.comp;
   $('comp').addEventListener('change', function () { cfg.comp = $('comp').value; recordar(); cargar(); });
   $('reiniciar').addEventListener('click', cargar);
-  $('play').addEventListener('click', function () { pausado = !pausado; enviar({ guion: 'pausa', valor: pausado }); $('play').textContent = pausado ? '▶ Seguir' : '⏸ Pausa'; });
+  $('play').addEventListener('click', function () { pausado = !pausado; enviar({ guion: 'pausa', valor: pausado }); $('play').textContent = pausado ? '▶ Seguir' : '⏸ Pausa'; musica.pausa(pausado); });
+
+  /* Música de la composición: arranca con el director, corrida por el desfase, y se funde al terminar. */
+  var musica = (function () {
+    var el = window.__audio = new Audio(), c = null, timer = null, fundido = null;
+    el.preload = 'auto';
+    function desfase() { var v = parseInt($('desfase').value, 10); return isNaN(v) ? 0 : v; }
+    return {
+      preparar: function (comp) {
+        c = comp.audio || null; this.parar();
+        $('ctl-audio').hidden = !c;
+        if (!c) { return; }
+        /* Se carga entera en memoria: el servidor local no sirve rangos y sin eso no se puede saltar dentro del tema. */
+        if (el.dataset.src !== c.src) {
+          el.dataset.src = c.src;
+          fetch(c.src).then(function (r) { return r.blob(); }).then(function (b) { el.src = URL.createObjectURL(b); });
+        }
+        if (cfg.desfase == null || cfg.desfase === '') { $('desfase').value = c.desfase || 0; } else { $('desfase').value = cfg.desfase; }
+        $('musica').checked = cfg.musica;
+      },
+      iniciar: function () {
+        if (!c || !$('musica').checked || grabar) { return; }
+        var d = desfase(), inicio = performance.now(); el.volume = c.volumen || 1;
+        /* El salto al punto del tema solo vale con la pista cargada; se compensa lo que tardó en cargar. */
+        var tocar = function () {
+          var ir = function () {
+            el.currentTime = Math.max(0, (d < 0 ? -d : 0) + (d < 0 ? performance.now() - inicio : 0)) / 1000;
+            el.play().catch(function () { $('estado').textContent = 'audio bloqueado por el navegador · presioná R'; });
+          };
+          if (el.readyState >= 1) { ir(); } else { el.addEventListener('loadedmetadata', ir, { once: true }); el.load(); }
+        };
+        if (d > 0) { timer = setTimeout(tocar, d); } else { tocar(); }
+      },
+      pausa: function (p) { if (!c) { return; } if (p) { el.pause(); } else if (el.currentTime > 0 && !el.ended) { el.play().catch(function () {}); } },
+      terminar: function () {
+        if (!c || el.paused) { return; }
+        var v0 = el.volume, ms = c.salida || 2000, t = performance.now();
+        clearInterval(fundido);
+        fundido = setInterval(function () { var k = Math.min(1, (performance.now() - t) / ms); el.volume = v0 * (1 - k); if (k >= 1) { clearInterval(fundido); el.pause(); } }, 50);
+      },
+      parar: function () { clearTimeout(timer); clearInterval(fundido); el.pause(); }
+    };
+  })();
+  $('musica').addEventListener('change', function () { cfg.musica = $('musica').checked; recordar(); if (!cfg.musica) { musica.parar(); } });
+  $('desfase').addEventListener('change', function () { cfg.desfase = $('desfase').value; recordar(); });
   addEventListener('keydown', function (e) { if (e.key === ' ') { e.preventDefault(); $('play').click(); } if (e.key === 'r') { cargar(); } });
 
   function recordar() {
     var p = new URLSearchParams({ comp: cfg.comp });
     ['barra', 'subs', 'puntero', 'intro'].forEach(function (k) { if (!cfg[k]) { p.set(k, '0'); } });
     if (cfg.pos === 'arriba') { p.set('pos', 'arriba'); }
+    if (!cfg.musica) { p.set('musica', '0'); }
+    if (cfg.desfase != null && cfg.desfase !== '') { p.set('desfase', cfg.desfase); }
     history.replaceState(null, '', '?' + p);
   }
   function enviar(m) { if (frame.contentWindow) { frame.contentWindow.postMessage(m, '*'); } }
@@ -107,6 +155,7 @@
 
   /* Cada carga arranca limpia desde el selector de perfil (#/salir cierra la sesión). */
   function cargar() {
+    musica.preparar(G.composicion(cfg.comp));
     pausado = false; fin = false; tInicio = 0; $('play').textContent = '⏸ Pausa';
     window.__guion = { listo: false, inicio: null, fin: null, error: null, subs: [], clics: [], escenas: [] };
     $('estado').textContent = 'cargando…';
@@ -140,13 +189,13 @@
     var m = ev.data || {}, G_ = window.__guion;
     if (!m.guion) { return; }
     if (m.guion === 'listo') { G_.listo = true; frame.classList.add('listo'); $('estado').textContent = m.misiones + ' misiones'; }
-    if (m.guion === 'inicio') { G_.inicio = performance.now(); tInicio = G_.inicio; }
+    if (m.guion === 'inicio') { G_.inicio = performance.now(); tInicio = G_.inicio; musica.iniciar(); }
     if (m.guion === 'mision') { $('estado').textContent = 'Misión ' + (m.i + 1) + ' · ' + m.titulo; }
     if (m.guion === 'escena') { G_.escenas.push(m); }
     if (m.guion === 'clic') { G_.clics.push(m); if (!m.ok) { console.warn('clic fuera del objetivo', m); } }
     if (m.guion === 'sub') { G_.subs.push({ t: m.t, texto: m.texto }); }
     if (m.guion === 'estado') { $('estado').textContent = m.pausado ? 'en pausa' : 'corriendo'; }
-    if (m.guion === 'fin') { G_.fin = m.t; fin = true; $('estado').textContent = 'terminó · R para repetir'; }
+    if (m.guion === 'fin') { musica.terminar(); G_.fin = m.t; fin = true; $('estado').textContent = 'terminó · R para repetir'; }
     if (m.guion === 'error') { G_.error = m.mensaje; $('estado').textContent = '⚠ ' + m.mensaje; }
   });
   setInterval(function () {
