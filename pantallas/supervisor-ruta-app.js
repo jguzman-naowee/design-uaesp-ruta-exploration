@@ -2,7 +2,7 @@
  * Supervisor en ruta · app móvil (390×800) dentro de un marco de teléfono.
  * Va detrás del camión en tiempo y distancia: cuando abre un punto, las
  * fotos del camión ya deberían estar. Vistas: hoy → mi ruta (mapa cuadrado
- * + giro) → verificar parada (fotos del camión + foto propia opcional +
+ * + giro) → verificar parada (fotos del camión + foto propia obligatoria +
  * juicio: conforme/hallazgo/no verificable) → ruta cerrada. Y historial.
  * Sin sidebar: la sesión se cierra desde la barra superior del escenario.
  *
@@ -168,6 +168,8 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
       var FOTOS = (D.revision && D.revision.evidenciaFotos) || [];
       function foto(n) { return FOTOS.length ? 'background-image:url(' + FOTOS[n % FOTOS.length] + ');background-size:cover;background-position:center' : ''; }
       var HALLAZGOS = (D.revision && D.revision.hallazgos) || [];
+      /* Quien está en sesión es el supervisor en ruta, no el conductor del que se duplicó esta app. */
+      var YO = D.roles.filter(function (r) { return r.id === 'supervisor-ruta'; })[0];
       var total = A.paradas.length;
       var HIST = A.historial || [];
       var CUADRILLA = A.cuadrilla || [];
@@ -176,7 +178,7 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
       function estadoInicial() {
         /* DC-063 (mismo pedido que DC-013 en conductor-app.js): el
            acordeón de juicio arranca abierto. */
-        return { v: 'hub', marcadas: [], idx: 0, foto: false, fotoCargando: false, fotoRecien: false, juicio: null, hallazgosSel: [], nota: '', opt: true, turnMore: false,
+        return { v: 'hub', marcadas: [], hallazgoEn: {}, idx: 0, foto: false, fotoCargando: false, fotoRecien: false, juicio: null, hallazgosSel: [], nota: '', opt: true, turnMore: false,
           pos: 0, enBase: false, cargando: false, vistas: {}, enviando: false, cerrando: false, recien: null };
       }
 
@@ -212,7 +214,7 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
       function barra() {
         var hechas = st.marcadas.length, completa = hechas === total;
         var sigIdx = Math.min(hechas, total - 1), GS = A.paradas[sigIdx];
-        var titulo = 'Hoy', sub = D.entidad.fecha.replace('martes 17 de septiembre', 'martes 17') + ' · ' + D.roles[2].nombre;
+        var titulo = 'Hoy', sub = D.entidad.fecha.replace('martes 17 de septiembre', 'martes 17') + ' · ' + YO.nombre;
         if (st.v === 'ruta')   { titulo = A.ruta.codigo; sub = completa ? 'todas las paradas marcadas' : 'siguiente · ' + GS.dir; }
         if (st.v === 'marcar') { titulo = 'Parada ' + (st.idx + 1) + ' de ' + total; sub = A.ruta.codigo; }
         if (st.v === 'fin')    { titulo = 'Ruta cerrada'; sub = A.ruta.codigo; }
@@ -223,7 +225,7 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
             S.h('span', { class: 'nwt-body-font-bold nws-clip', style: 'font-size:var(--naotech-sizing-18);line-height:var(--naotech-sizing-24)' }, e(titulo)),
             S.h('span', { class: 'nwt-smalltext-font-regular nws-muted nws-clip' }, e(sub))) +
           (st.v === 'hub' ? S.iconButton({ icon: 'refresh', size: 'small', variant: 'mute', theme: 'neutral', label: 'Actualizar jornada', attrs: { 'data-m': 'refrescar' } }) : '') +
-          (st.v === 'hub' || st.v === 'hist' ? S.avatar({ text: D.roles[2].iniciales, size: 'small', variant: 'loud', theme: T }) : '');
+          (st.v === 'hub' || st.v === 'hist' ? S.avatar({ text: YO.iniciales, size: 'small', variant: 'loud', theme: T }) : '');
       }
 
       /* ---------- cuerpo de cada vista ---------- */
@@ -264,7 +266,7 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
                    los bloques del hero se vean consistentes (conductor y
                    supervisor comparten el mismo tratamiento). */
                 S.h('div', { class: 'nws-mob__stat', style: 'flex-direction:row;justify-content:space-between;align-items:center;width:100%' },
-                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'max-width:14ch;text-align:left' }, 'Unidades por verificar'),
+                  S.h('span', { class: 'nwt-smalltext-font-bold', style: 'max-width:14ch;text-align:left' }, 'Puntos por verificar'),
                   S.h('span', { class: 'nwt-stat-card__value', style: 'font-size:var(--naotech-sizing-40);line-height:var(--naotech-sizing-40)' }, total)),
                 /* DC-019: acá vivía "camión · zona · km de recorrido" — la
                    misma fila que Conductor, pero el kilometraje es de quien
@@ -300,19 +302,19 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
             S.card({ size: 'small', cls: 'nws-card--none', attrs: { 'nwt-theme': T }, content:
               S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-12)' },
                 S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-body-font-bold nws-grow' }, e(A.ruta.codigo)), S.badge({ label: hechas ? 'En curso' : 'Por iniciar', size: 'small', theme: hechas ? 'informative' : 'neutral' })),
-                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, total + ' unidades · ' + A.ruta.zona + ' · ' + A.ruta.camion),
+                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, total + ' puntos · ' + A.ruta.zona + ' · ' + A.ruta.camion),
                 S.progress({ value: pct, size: 'small', theme: T }),
                 nxt, hint,
                 S.button({ label: hechas === 0 ? 'Iniciar ruta' : completa ? 'Cerrar ruta' : 'Continuar ruta', size: 'large', variant: 'loud', theme: T, loading: completa && st.cerrando, attrs: { 'data-m': completa ? 'cerrar' : 'ruta' } })) }) +
             S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold' }, 'Después, hoy') +
             S.card({ size: 'small', cls: 'nws-card--none', content:
               S.h('div', { class: 'nws-row' }, S.h('span', { class: 'nwt-body-font-bold nws-grow' }, e(A.programada.codigo)), S.badge({ label: A.programada.cuando, size: 'medium', theme: 'neutral' })) +
-              S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, A.programada.unidades + ' unidades · ' + A.programada.zona) +
+              S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, A.programada.unidades + ' puntos · ' + A.programada.zona) +
               S.h('div', { class: 'nws-mob__lock nwt-smalltext-font-regular', style: 'margin-top:var(--naotech-sizing-6)' }, S.icon('padlock-close'), 'Se habilita cuando cierres la ' + A.ruta.codigo.split(' ')[0]) }) +
             S.h('span', { class: 'nws-mob__sec nwt-overline-font-semibold' }, 'Completadas hoy') +
             S.card({ size: 'small', cls: 'nws-card--none', content:
               S.h('div', { class: 'nws-row' }, S.h('div', { class: 'nws-mob__avatar-icon' }, S.avatarIcon({ icon: 'positive', theme: 'positive' })),
-                S.h('div', { class: 'nws-grow nws-col' }, S.h('span', { class: 'nwt-body-font-bold' }, e(A.completada.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, A.completada.horario + ' · ' + A.completada.unidades + ' unidades · ' + A.completada.fotos + ' fotos'))) });
+                S.h('div', { class: 'nws-grow nws-col' }, S.h('span', { class: 'nwt-body-font-bold' }, e(A.completada.codigo)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, A.completada.horario + ' · ' + A.completada.unidades + ' puntos · ' + A.completada.fotos + ' fotos'))) });
         }
 
         if (st.v === 'ruta') {
@@ -352,9 +354,10 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
           var recien = st.recien; st.recien = null;
           var lista = S.h('div', { class: 'nws-stops nws-stops--flow' }, A.paradas.map(function (p, k) {
             var done = k < hechas, next = k === sigIdx && !completa;
-            var meta = done ? p.tipo.toLowerCase() + ' · marcada ' + p.hora : next ? p.tipo.toLowerCase() + ' · tocá para verificar' : p.tipo.toLowerCase() + ' · se habilita en turno';
+            var hz = done && st.hallazgoEn[k];
+            var meta = done ? (hz ? 'hallazgo · ' + hz.toLowerCase() : p.tipo.toLowerCase() + ' · verificada') : next ? p.tipo.toLowerCase() + ' · tocá para verificar' : p.tipo.toLowerCase() + ' · se habilita en turno';
             return S.h('div', { class: S.cls('nws-stop', done && 'nws-stop--hecha', next && 'nws-stop--actual', !done && !next && 'nws-stop--lk', next && 'nws-stop--click', recien !== null && (k === recien || next) && 'nws-stop--recien'), 'data-parada': next ? k : undefined },
-              S.h('div', { class: 'nws-stop__n nwt-smalltext-font-semibold' }, done ? S.icon('positive') : k + 1),
+              S.h('div', { class: S.cls('nws-stop__n nwt-smalltext-font-semibold', hz && 'nws-stop__n--hallazgo') }, done ? S.icon(hz ? 'caution' : 'positive') : k + 1),
               S.h('div', { class: 'nws-grow nws-col' }, S.h('span', { class: 'nws-stop__dir nwt-body-font-medium' }, e(p.dir)), S.h('span', { class: 'nws-stop__meta nwt-smalltext-font-regular' }, e(meta))),
               !done && S.h('div', { class: 'nws-stop__et' }, S.h('span', { class: 'nwt-caption-font-bold nws-tnum' }, km(p.m)), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, p.min + ' min')),
               !done && !next && S.icon('padlock-close', 'nws-soft'),
@@ -403,11 +406,11 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
               style: 'flex:1;min-height:100px;font:inherit;' + (st.foto ? foto(st.idx * 3) : ''), 'data-m': 'foto' },
             st.foto ? S.h('span', { class: 'nws-ev__tag' }, S.badge({ label: 'Foto capturada', size: 'large', theme: 'positive' })) : st.fotoCargando ? S.spinner({ theme: T }) : S.icon('camera'),
             st.foto ? '' : S.h('span', { class: 'nwt-smalltext-font-semibold' }, st.fotoCargando ? 'Capturando…' : 'Tu foto de verificación'),
-            st.foto ? '' : S.h('span', { class: 'nwt-smalltext-font-regular' }, st.fotoCargando ? 'guardando hora y coordenada' : 'tocá acá · opcional, refuerza tu verificación'));
+            st.foto ? '' : S.h('span', { class: 'nwt-smalltext-font-regular' }, st.fotoCargando ? 'guardando hora y coordenada' : 'tocá acá · es la evidencia de tu verificación'));
           body =
             S.h('div', { class: 'nws-col', style: 'gap:var(--naotech-sizing-4)' },
               S.h('span', { class: 'nwt-subtitle-font-bold' }, e(p.dir)),
-              S.h('div', { class: 'nws-row' }, S.badge({ label: p.tipo, size: 'large', theme: 'neutral' }), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Unidad ' + p.uid))) +
+              S.h('div', { class: 'nws-row' }, S.badge({ label: p.tipo, size: 'large', theme: 'neutral' }), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Punto ' + p.uid))) +
             truckFotos +
             caja +
             (st.foto ? S.h('div', { class: 'nwt-smalltext-font-regular nws-muted', style: 'margin-top:var(--naotech-sizing-4)', 'nwt-motion': fotoRecien ? 'fade' : undefined, 'nwt-motion-intent': fotoRecien ? 'enter' : undefined }, A.evidencia.hora + ' · ' + A.evidencia.coordenada + ' — capturado por el dispositivo') : '') +
@@ -419,7 +422,7 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
                 return S.h('div', { class: S.cls('nws-opt__c nwt-smalltext-font-semibold', on && 'nws-opt__c--on'), 'data-hallazgo': i }, e(hz), on ? S.h('span', { class: 'nws-opt__c__x' }, '×') : '');
               }))) : '') +
             S.textArea({ label: st.juicio === 'hallazgo' ? 'Observación (requerida por el hallazgo)' : 'Observación (opcional)', placeholder: 'Solo si hace falta…', rows: 2, size: 'small', value: st.nota, name: 'nota' }) +
-            S.button({ label: st.enviando ? 'Enviando…' : 'Enviar', size: 'large', variant: 'loud', theme: T, disabled: !st.juicio, loading: st.enviando, attrs: { 'data-m': 'marcar', style: 'height:52px' } });
+            S.button({ label: st.enviando ? 'Enviando…' : 'Enviar', size: 'large', variant: 'loud', theme: T, disabled: !listo(), loading: st.enviando, attrs: { 'data-m': 'marcar', style: 'height:52px' } });
         }
 
         if (st.v === 'fin') {
@@ -431,9 +434,9 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
               S.h('div', { class: 'nws-mob__fin-ic', 'nwt-motion': 'scale', 'nwt-motion-intent': 'enter', 'nwt-motion-duration': 'slow', 'nwt-motion-easing': 'deceleration' }, S.icon('positive')),
               S.h('div', { class: 'nws-col', 'nwt-motion': 'fade', 'nwt-motion-intent': 'enter', style: 'align-items:center;gap:var(--naotech-sizing-4);animation-delay:var(--naotech-duration-fast)' },
                 S.h('span', { class: 'nwt-subtitle-font-bold' }, 'Ruta ejecutada'),
-                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted', style: 'padding:0 var(--naotech-sizing-24)' }, e(A.ruta.codigo) + ' · las ' + total + ' unidades quedaron verificadas y ya viajan al operador para su cierre.'))) +
+                S.h('span', { class: 'nwt-smalltext-font-regular nws-muted', style: 'padding:0 var(--naotech-sizing-24)' }, e(A.ruta.codigo) + ' · las ' + total + ' puntos de recolección quedaron verificados y ya viajan al operador para su cierre.'))) +
             S.card({ size: 'small', cls: 'nws-card--none nws-card--flush', attrs: { 'nwt-motion': 'slide', 'nwt-motion-direction': 'up', 'nwt-motion-intent': 'enter', style: 'animation-delay:var(--naotech-duration-base)' }, content: S.h('div', { class: 'nws-row', style: 'gap:0' },
-              [['Unidades', total], ['Evidencias', total], ['Duración', '2h34']].map(function (kv, i) {
+              [['Puntos', total], ['Evidencias', total], ['Duración', '2h34']].map(function (kv, i) {
                 return S.h('div', { class: 'nws-col nws-grow', style: 'padding:var(--naotech-sizing-12) var(--naotech-sizing-14);' + (i < 2 ? 'border-right:1px solid var(--naotech-app-color-200)' : '') },
                   S.h('span', { class: 'nwt-stat-card__label' }, kv[0]), S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, kv[1]));
               })) }) +
@@ -457,7 +460,7 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
           };
           body =
             S.card({ size: 'small', cls: 'nws-card--none nws-card--flush', content: S.h('div', { class: 'nws-row', style: 'gap:0' },
-              [['Rutas', HIST.length], ['Unidades', unidades], ['Novedades', novedades]].map(function (kv, i) {
+              [['Rutas', HIST.length], ['Puntos', unidades], ['Novedades', novedades]].map(function (kv, i) {
                 return S.h('div', { class: 'nws-col nws-grow', style: 'padding:var(--naotech-sizing-12) var(--naotech-sizing-14);' + (i < 2 ? 'border-right:1px solid var(--naotech-app-color-200)' : '') },
                   S.h('span', { class: 'nwt-stat-card__label' }, kv[0]), S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, kv[1]));
               })) }) +
@@ -610,17 +613,21 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
           timer(function () { if (tokF !== seq || st.v !== 'marcar') { return; } st.fotoCargando = false; st.foto = true; st.fotoRecien = true; pintar('none'); }, Math.round(latencia() * 1.3));
           return;
         }
-        if (a === 'marcar' && st.juicio) {
+        if (a === 'marcar' && listo()) {
           st.enviando = true; pintar('none');
           var tokE = ++seq, idx = st.idx;
           timer(function () {
             if (tokE !== seq || st.v !== 'marcar') { return; }
             st.enviando = false;
             if (st.marcadas.indexOf(idx) < 0) { st.marcadas.push(idx); }
+            var hallazgo = st.juicio === 'hallazgo' ? HALLAZGOS[st.hallazgosSel[0]] : null;
+            if (hallazgo) { st.hallazgoEn[idx] = hallazgo; }
             st.recien = idx; st.foto = false; st.nota = ''; st.opt = true; st.juicio = null; st.hallazgosSel = [];
             irA('ruta', 'pop');
             var quedan = total - st.marcadas.length;
-            toastMob({ title: 'Parada ' + (idx + 1) + ' verificada', message: quedan ? 'Faltan ' + quedan + ' de ' + total : 'Ruta completa, ya podés cerrarla', theme: 'positive', icon: 'positive' });
+            toastMob(hallazgo
+              ? { title: 'Parada ' + (idx + 1) + ' · hallazgo registrado', message: hallazgo, theme: 'caution', icon: 'caution' }
+              : { title: 'Parada ' + (idx + 1) + ' verificada', message: quedan ? 'Faltan ' + quedan + ' de ' + total : 'Ruta completa, ya podés cerrarla', theme: 'positive', icon: 'positive' });
           }, Math.round(latencia() * 1.6));
           return;
         }
@@ -641,7 +648,15 @@ window.PANTALLAS['supervisor-ruta-app'] = (function () {
           return;
         }
       }
-      function onInput(ev) { if (ev.target.matches('[data-field="nota"]')) { st.nota = ev.target.value; } }
+      function onInput(ev) {
+        if (!ev.target.matches('[data-field="nota"]')) { return; }
+        st.nota = ev.target.value;
+        var b = root.querySelector('[data-m="marcar"]'); if (b && !st.enviando) { b.disabled = !listo(); }
+      }
+      /* Se envía con juicio y foto propia; un hallazgo pide además qué se encontró y la observación. */
+      function listo() {
+        return !!st.juicio && st.foto && (st.juicio !== 'hallazgo' || (st.hallazgosSel.length > 0 && st.nota.trim().length > 0));
+      }
 
       /* Zoom del teléfono: "fit" recalcula la escala contra el espacio
          disponible del escenario; +/- ajustan un múltiplo sobre esa base.
