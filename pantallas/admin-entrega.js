@@ -40,12 +40,12 @@ window.PANTALLAS['admin-entrega'] = {
              pasar, y el esqueleto ya apaga el click y el foco. */
           S.button({ skeleton: k, label: 'Entregar al operador', size: 'large', variant: 'loud', theme: T, attrs: { 'data-entregar': true } }))),
       content: S.h('div', { class: 'nws-stats nws-stats--5' },
-        S.statCard({ skeleton: k, label: 'Cobertura de la zona', value: E.cobertura.unidades, hint: 'de ' + E.cobertura.total + ' unidades · 100%', theme: T,
+        S.statCard({ skeleton: k, label: 'Cobertura de la zona', value: E.cobertura.unidades, hint: 'de ' + E.cobertura.total + ' puntos · 100%', theme: T,
           extra: S.progress({ value: 100, size: 'medium', theme: T, cls: 'nws-stat-progress' }) }),
-        S.statCard({ skeleton: k, label: 'Rutas', value: E.rutas.length, hint: 'una por sector', icon: 'shipping', theme: T }),
+        S.statCard({ skeleton: k, label: 'Rutas', value: E.rutas.length, hint: 'un solo recorrido', icon: 'shipping', theme: T }),
         S.statCard({ skeleton: k, label: 'Recorrido', value: E.recorrido, hint: 'km estimados', icon: 'gps-pin', theme: T }),
-        S.statCard({ skeleton: k, label: 'Duración', value: E.duracion, hint: 'dos jornadas parciales', icon: 'dispatch-time', theme: T }),
-        S.statCard({ skeleton: k, label: 'Modo', value: E.modo, small: true, hint: 'partida por capacidad', icon: 'settings', theme: T }))
+        S.statCard({ skeleton: k, label: 'Duración', value: E.duracion, hint: 'una jornada', icon: 'dispatch-time', theme: T }),
+        S.statCard({ skeleton: k, label: 'Modo', value: E.modo, small: true, hint: 'trazada por el algoritmo', icon: 'settings', theme: T }))
     });
 
     var trazado = S.card({
@@ -54,7 +54,12 @@ window.PANTALLAS['admin-entrega'] = {
         S.h('span', { class: 'nwt-body-font-semibold' }, 'Trazado'),
         S.h('div', { class: 'nws-grow' }),
         /* DC-354: todos los segmentores del demo en 'large' (deshace el medium de DC-312). */
-        S.tagGroup({ id: 'seg-rutas', size: 'large', theme: T, value: 0, items: E.rutas.map(function (r, i) { return { id: 'r' + i, label: r.codigo, value: i }; }) })),
+        /* Una sola ruta: el código técnico y, apenas, los sectores que toca. */
+        E.rutas.length > 1
+          ? S.tagGroup({ id: 'seg-rutas', size: 'large', theme: T, value: 0, items: E.rutas.map(function (r, i) { return { id: 'r' + i, label: r.codigo, value: i }; }) })
+          : S.h('div', { class: 'nws-row nws-row--sm', id: 'ruta-entrega' },
+              S.badge({ label: E.rutas[0].codigo, size: 'medium', theme: 'neutral' }),
+              S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Sectores ' + (E.rutas[0].sectores || []).join(' · ')))),
       content: S.h('div', { class: 'nws-map', id: 'mapa-entrega' }) +
                S.h('div', { id: 'resumen-ruta', class: 'nws-row', style: 'gap:0;justify-content:center;margin-top:var(--naotech-sizing-12);border-top:1px solid var(--naotech-app-color-200);padding-top:var(--naotech-sizing-12)' })
     });
@@ -71,8 +76,8 @@ window.PANTALLAS['admin-entrega'] = {
 
     var confirm = S.confirmation({
       id: 'confirm-entrega', theme: T, icon: 'shipping',
-      title: '¿Entregás las dos rutas a ' + op.nombre + '?',
-      message: 'Pasan a estado Trazada en la bandeja del operador. Él las asigna a sus operarios; desde ese momento ya no podés volver a trazarlas.',
+      title: '¿Entregás la ruta a ' + op.nombre + '?',
+      message: 'Pasa a estado Trazada en la bandeja del operador. Él la asigna a sus operarios; desde ese momento ya no podés volver a trazarla.',
       approvedLabel: 'Entregar al operador', rejectLabel: 'Todavía no'
     });
 
@@ -91,7 +96,7 @@ window.PANTALLAS['admin-entrega'] = {
       /* Sin título sobre el mapa: el segmentado de la cabecera ya dice qué
          ruta es y el resumen de abajo cuánto mide. Base, primera y última
          van rotuladas en el propio mapa. */
-      var ruta = M.rutas.entrega(st.r, sel.paradas);
+      var ruta = sel.sectores ? M.rutas.trazo('auto', sel.paradas) : M.rutas.entrega(st.r, sel.paradas);
       if (!mapa) {
         mapa = M.crear(root.querySelector('#mapa-entrega'), { ruta: ruta, camion: false, leyenda: ['propuesto', 'traslado'], aria: 'Trazado de ' + sel.codigo });
       } else {
@@ -109,9 +114,12 @@ window.PANTALLAS['admin-entrega'] = {
       root.querySelector('.bind-n .nwt-badge__label').textContent = sel.paradas;
       root.querySelector('[data-bind="pieParadas"]').textContent = 'Mostrando ' + E.paradas.length + ' de ' + sel.paradas + ' paradas · orden de recorrido';
       S.repintar(root.querySelector('#paradas-entrega'), E.paradas.map(function (p, i) {
-        return S.h('div', { class: 'nws-stop' },
+        /* Donde la ruta cambia de sector, una marca fina en la lista; cada parada dice el suyo, apenas. */
+        var cruza = p.sector && i > 0 && E.paradas[i - 1].sector !== p.sector;
+        return (cruza ? S.h('div', { class: 'nws-stop-cruce nwt-overline-font-semibold', 'data-cruce': p.sector }, (p.sector === E.paradas[0].sector ? 'Vuelve al sector ' : 'Entra al sector ') + p.sector) : '') +
+          S.h('div', { class: 'nws-stop', 'data-sector': p.sector || null },
           S.h('div', { class: 'nws-stop__n nwt-smalltext-font-semibold' }, i + 1),
-          S.h('div', { class: 'nws-grow nws-col' }, S.h('span', { class: 'nws-stop__dir nwt-smalltext-font-medium' }, e(p.dir)), S.h('span', { class: 'nws-stop__meta nwt-smalltext-font-regular' }, e(p.tipo + ' · ' + p.uid))),
+          S.h('div', { class: 'nws-grow nws-col' }, S.h('span', { class: 'nws-stop__dir nwt-smalltext-font-medium' }, e(p.dir)), S.h('span', { class: 'nws-stop__meta nwt-smalltext-font-regular' }, e(p.tipo + ' · ' + p.uid + (p.sector ? ' · Sector ' + p.sector : '')))),
           S.h('span', { class: 'nwt-smalltext-font-regular nws-soft nws-tnum' }, e(p.dist)));
       }).join(''));
       root.querySelectorAll('#seg-rutas [data-seg]').forEach(function (b) { var on = +b.getAttribute('data-seg') === st.r; b.classList.toggle('nwt-tag-group__tag--active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
@@ -131,7 +139,7 @@ window.PANTALLAS['admin-entrega'] = {
            prototipo que responde a una espera de verdad. */
         var btn = root.querySelector('[data-entregar]');
         if (btn) { btn.classList.add('nwt-button--loading'); btn.setAttribute('aria-busy', 'true'); btn.disabled = true; btn.insertAdjacentHTML('beforeend', S.spinner()); }
-        ctx.toast({ title: 'Rutas entregadas', message: 'R-2401 y R-2402 están en la bandeja de Triple A S.A. E.S.P. como Trazadas.', theme: 'positive', icon: 'positive' });
+        ctx.toast({ title: E.rutas.length > 1 ? 'Rutas entregadas' : 'Ruta entregada', message: E.rutas.map(function (r) { return r.codigo.split(' · ')[0]; }).join(' y ') + (E.rutas.length > 1 ? ' están' : ' está') + ' en la bandeja de ' + D.operadores.filter(function (o) { return o.id === E.operador; })[0].nombre + ' como Trazadas.', theme: 'positive', icon: 'positive' });
         setTimeout(function () { ctx.ir('#/admin'); }, 900);
       }
     }

@@ -247,6 +247,112 @@
     };
   }
 
+  /* DC-366: un solo ticket de resumen para los dos modales (admin «Resumen» y
+     operador «Qué se va a asignar»), que hasta ahora duplicaban markup con
+     tipografías distintas. Va acá y no en sdk.js: es nws-*, de la app.
+     Ninguna pieza baja de 14px: el piso manda sobre el diseño. */
+  function ticket(o) {
+    var e = S.esc;
+    /* La fecha de cabecera va en mono y en una línea: del dato largo
+       ('martes 17 de septiembre') queda '17 SEP'. */
+    var md = /(\d+)\s+de\s+(\S+)/.exec(D.entidad.fecha);
+    var fecha = o.fecha || (md ? md[1] + ' ' + md[2].slice(0, 3).toUpperCase() : D.entidad.fecha);
+
+    function lbl(t) { return S.h('div', { class: 'nws-tk-lbl' }, e(t)); }
+
+    function tramo(t) {
+      return S.h('div', { class: 'nws-tk-tramo' },
+        S.h('div', { class: 'nws-tk-tramo__pt' },
+          S.h('div', { class: 'nws-tk-tramo__n' }, e(t.desde)),
+          t.desdeSub ? S.h('div', { class: 'nws-tk-mono' }, e(t.desdeSub)) : ''),
+        S.h('div', { class: 'nws-tk-tramo__via' },
+          t.medio ? S.h('div', { class: 'nws-tk-tramo__med' }, e(t.medio)) : '',
+          S.h('div', { class: 'nws-tk-tramo__linea', 'aria-hidden': 'true' },
+            S.h('b', null, ''), S.h('i', null, ''), S.icon('shipping'), S.h('i', null, ''), S.h('s', null, ''))),
+        S.h('div', { class: 'nws-tk-tramo__pt nws-tk-tramo__pt--fin' },
+          S.h('div', { class: 'nws-tk-tramo__n' }, e(t.hasta)),
+          t.hastaSub ? S.h('div', { class: 'nws-tk-mono' }, e(t.hastaSub)) : ''));
+    }
+
+    /* DC-375: varias personas se leen como el conductor — pila de avatares y
+       el primer nombre con el resto contado, no una lista de nombres. */
+    function grupo(g, tema) {
+      var gente = g.gente || [];
+      var txt = gente.length
+        ? gente[0].nombre + (gente.length > 1 ? ' y ' + (gente.length - 1) + '+' : '')
+        : 'Sin asignar';
+      return S.h('div', { class: 'nws-tk-bloque' }, lbl(g.label),
+        S.h('div', { class: 'nws-tk-persona' },
+          S.h('div', { class: 'nws-tk-pila' }, gente.slice(0, 3).map(function (x) {
+            return S.avatar({ text: x.ini, size: 'small', variant: 'quiet', theme: tema || 'neutral' });
+          })),
+          S.h('span', { class: 'nws-tk-persona__n' }, e(txt))));
+    }
+
+    function cifras(lista) {
+      return S.h('div', { class: 'nws-tk-cifras' }, lista.map(function (c, i) {
+        return (i ? S.h('div', { class: 'nws-tk-divisor', 'aria-hidden': 'true' }, '') : '') +
+          S.h('div', { class: 'nws-tk-cifra' },
+            S.h('div', { class: 'nws-tk-cifra__v nws-tnum' },
+              e(c.valor), c.unidad ? S.h('span', { class: 'nws-tk-cifra__u' }, ' ' + e(c.unidad)) : ''),
+            lbl(c.label));
+      }));
+    }
+
+    function bloques() {
+      var b = [];
+      /* DC-378: los pares van ENCIMA de la fila de la persona. */
+      (o.pares || []).forEach(function (fila) {
+        b.push(S.h('div', { class: 'nws-tk-pares' }, fila.map(function (p) {
+          return S.h('div', { class: 'nws-tk-par' }, lbl(p[0]), S.h('div', { class: 'nws-tk-par__v' }, e(p[1])));
+        })));
+      });
+      if (o.persona) {
+        var bloque = S.h('div', { class: 'nws-tk-bloque' }, lbl(o.persona.label),
+          S.h('div', { class: 'nws-tk-persona' },
+            /* DC-367: logo y nombre, sin la línea de apoyo — decía lo que el
+               resto del ticket ya dice. */
+            S.avatar({ text: o.persona.ini, size: 'small', variant: 'quiet', theme: o.persona.tema || 'neutral' }),
+            S.h('span', { class: 'nws-tk-persona__n' }, e(o.persona.nombre))));
+        /* DC-366: lo de al lado comparte fila con la persona — el cuerpo del
+           modal topa en 510px y apilarlos sacaba el pie fuera de la caja.
+           DC-375: y usa su misma anatomía, avatares y nombre, no una lista. */
+        b.push(o.persona.grupo
+          ? S.h('div', { class: 'nws-tk-pares' }, bloque, grupo(o.persona.grupo, o.persona.tema))
+          : bloque);
+      }
+      return S.h('div', { class: 'nws-tk-bloques' }, b);
+    }
+
+    return S.h('div', { class: S.cls('nws-ticket', o.cls), style: o.style || null, role: 'group', 'aria-label': o.doc + ' ' + o.folio },
+      S.h('div', { class: 'nws-ticket__stub' },
+        S.h('div', { class: 'nws-ticket__acento', 'aria-hidden': 'true' }, ''),
+        S.h('div', { class: 'nws-tk-stub-in' },
+          S.h('div', { class: 'nws-tk-cab' },
+            S.h('div', { class: 'nws-col' },
+              S.h('span', { class: 'nws-tk-cab__marca' }, e(D.entidad.sigla)),
+              S.h('span', { class: 'nws-tk-cab__ent' }, 'Servicios públicos · Bogotá')),
+            S.h('div', { class: 'nws-tk-cab__der' },
+              S.h('span', { class: 'nws-tk-cab__doc' }, e(o.doc)),
+              S.h('span', { class: 'nws-tk-mono' }, e(fecha)))),
+          /* DC-382/DC-383: el hero es el código y nada más — sin subtítulo ni
+             badge de estado. */
+          S.h('div', { class: 'nws-tk-hero' },
+            S.h('div', { class: 'nws-tk-hero__v nws-tnum' },
+              e(o.hero), o.heroUnidad ? S.h('span', { class: 'nws-tk-hero__u' }, e(o.heroUnidad)) : '')),
+          o.tramo ? tramo(o.tramo) : '',
+          '')),
+      S.h('div', { class: 'nws-ticket__body' },
+        cifras(o.cifras || []),
+        S.h('div', { class: 'nws-tk-regla', 'aria-hidden': 'true' }, ''),
+        bloques()),
+      S.h('div', { class: 'nws-ticket__folio' },
+        S.h('div', { class: 'nws-ticket__barras', 'aria-hidden': 'true' }, ''),
+        S.h('div', { class: 'nws-tk-pie' },
+          lbl('Folio'),
+          S.h('span', { class: 'nws-ticket__codigo' }, e(o.folio)))));
+  }
+
   /* ---------- navegación ---------- */
   function navegar() {
     var hash = location.hash || '#/';
@@ -269,7 +375,7 @@
       if (rolRuta && rolRuta !== sesion.rol && rolPorId(rolRuta)) { sesion.rol = rolRuta; sesion.ultimoRol = rolRuta; guardar(); }
       var rol = rolPorId(sesion.rol);
       var pantalla = ruta ? P[ruta.pantalla] : fueraDeAlcance(rol, hash);
-      var ctx = { S: S, D: D, rol: rol, sesion: sesion, ir: ir, toast: toast, cerrarToast: cerrarToast, proximamente: proximamente, entrar: entrar, salir: salir, posicionarIndicadores: posicionarIndicadores, cargando: false };
+      var ctx = { S: S, D: D, rol: rol, sesion: sesion, ir: ir, toast: toast, cerrarToast: cerrarToast, proximamente: proximamente, entrar: entrar, salir: salir, posicionarIndicadores: posicionarIndicadores, ticket: ticket, cargando: false };
       document.title = pantalla.titulo + ' · ' + rol.rol + ' · UAESP';
       var destino = pantalla.fullscreen ? app : null;
       if (!destino) { app.innerHTML = shell(rol, hash, pantalla, ctx); destino = document.getElementById('view'); }

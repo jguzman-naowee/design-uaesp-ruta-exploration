@@ -196,23 +196,24 @@ window.UAESP_DATOS = {
 
   "entrega": {
     "operador": "a",
-    "contrato": "contrato vigente · 79 unidades asignadas · 2 rutas listas",
-    "cobertura": { "unidades": 79, "total": 79 },
-    "recorrido": "14,2", "duracion": "4h 10", "modo": "Automática",
+    "contrato": "contrato vigente · 11 unidades · 1 ruta lista",
+    "cobertura": { "unidades": 11, "total": 11 },
+    "recorrido": "14,2", "duracion": "1h 50", "modo": "Automática",
     "rutas": [
-      { "codigo": "R-2401 · Sector A", "paradas": 38, "km": "6,8", "duracion": "1h 58", "comerciales": 12 },
-      { "codigo": "R-2402 · Sector A", "paradas": 41, "km": "7,4", "duracion": "2h 12", "comerciales": 9 }
+      { "codigo": "R-2446", "sectores": ["A", "B"], "paradas": 11, "km": "14,2", "duracion": "1h 50", "comerciales": 3 }
     ],
     "paradas": [
-      { "dir": "Cra 45 #72-10", "tipo": "Residencial", "uid": "U-04818", "dist": "—" },
-      { "dir": "Cra 45 #72-24", "tipo": "Comercial",   "uid": "U-04819", "dist": "40 m" },
-      { "dir": "Cra 45 #72-38", "tipo": "Residencial", "uid": "U-04821", "dist": "35 m" },
-      { "dir": "Cra 45 #72-52", "tipo": "Residencial", "uid": "U-04824", "dist": "38 m" },
-      { "dir": "Cll 72 #45-03", "tipo": "Comercial",   "uid": "U-04831", "dist": "120 m" },
-      { "dir": "Cll 72 #45-19", "tipo": "Residencial", "uid": "U-04833", "dist": "45 m" },
-      { "dir": "Cll 72 #45-33", "tipo": "Residencial", "uid": "U-04836", "dist": "42 m" },
-      { "dir": "Cra 46 #72-08", "tipo": "Industrial",  "uid": "U-04840", "dist": "180 m" },
-      { "dir": "Cra 46 #72-22", "tipo": "Comercial",   "uid": "U-04842", "dist": "38 m" }
+      { "dir": "Cra 45 #72-10", "tipo": "Residencial", "uid": "U-04818", "dist": "—",     "sector": "A" },
+      { "dir": "Cra 46 #72-24", "tipo": "Comercial",   "uid": "U-04819", "dist": "90 m",  "sector": "A" },
+      { "dir": "Cra 47 #72-38", "tipo": "Residencial", "uid": "U-04821", "dist": "95 m",  "sector": "A" },
+      { "dir": "Cra 48 #72-15", "tipo": "Residencial", "uid": "U-05102", "dist": "110 m", "sector": "B" },
+      { "dir": "Cra 49 #72-30", "tipo": "Comercial",   "uid": "U-05107", "dist": "92 m",  "sector": "B" },
+      { "dir": "Cra 50 #72-12", "tipo": "Residencial", "uid": "U-05111", "dist": "88 m",  "sector": "B" },
+      { "dir": "Cra 50 #73-40", "tipo": "Industrial",  "uid": "U-05115", "dist": "140 m", "sector": "B" },
+      { "dir": "Cra 49 #73-22", "tipo": "Residencial", "uid": "U-05118", "dist": "90 m",  "sector": "B" },
+      { "dir": "Cra 48 #73-05", "tipo": "Residencial", "uid": "U-05120", "dist": "94 m",  "sector": "B" },
+      { "dir": "Cra 47 #73-18", "tipo": "Comercial",   "uid": "U-04845", "dist": "105 m", "sector": "A" },
+      { "dir": "Cra 46 #73-31", "tipo": "Residencial", "uid": "U-04848", "dist": "91 m",  "sector": "A" }
     ]
   },
 

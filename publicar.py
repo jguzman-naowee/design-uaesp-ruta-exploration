@@ -48,7 +48,12 @@ resto = re.sub(r'\s*<script src="[^"]+"></script>', '', body).strip()
 out = ['<meta charset="utf-8">', titulo, descr,
        '<!-- Generado por publicar.py desde dev.html. Editar la carpeta, no este archivo. -->']
 for h in hojas:
-    out.append('<style data-origen="%s">\n%s\n</style>' % (h, css_con_fuentes(h)))
+    # Google Fonts es el único origen remoto que el visor no bloquea, así que
+    # esa hoja se re-emite tal cual: no hay archivo local que leer ni embeber.
+    if h.startswith('http'):
+        out.append('<link rel="stylesheet" href="%s">' % h)
+    else:
+        out.append('<style data-origen="%s">\n%s\n</style>' % (h, css_con_fuentes(h)))
 out.append(resto)
 for s in scripts:
     js = (raiz / s).read_text(encoding='utf8')

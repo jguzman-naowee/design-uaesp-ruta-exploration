@@ -100,16 +100,13 @@ body {
 /* DC-008: el pie (organización + cambiar de perfil) quedaba pegado al menú
    de navegación sin separación. El divider va en el footer mismo, no en
    .nws-owner (que ya renuncia al suyo por DC-350). */
-.nwt-sidebar__footer { border-top: 1px solid var(--naotech-app-color-200); }
-/* DC-024: divider también ENTRE la organización y "Cambiar de perfil" —
-   solo cuando hay organización delante (si no, ya alcanza con el de arriba,
-   uno pegado al otro se vería doble). */
-/* DC-097: 4px → 16px — regla compartida (shell), aplica a todos los
-   sidepanels por igual, no por pantalla. */
-/* DC-117 (cierra DC-024/DC-097/DC-113): el divider dejó de ser un border-top
-   sobre el botón — es un NwtDivider real (sdk.js) entre .nws-owner y el
-   logout, con 16px a cada lado. El botón vuelve a su caja normal. */
-.nwt-sidebar__footer > .nws-owner__divider { margin: var(--naotech-sizing-16) 0; }
+/* DC-363: el row-gap del SDK (12px) se sumaba a los 16px de margen del
+   divider y daban 28px a cada lado. El aire lo pone solo el gap: 16px
+   exactos usuario/divider/logout. */
+.nwt-sidebar__footer { row-gap: var(--naotech-sizing-16); }
+/* DC-363 (bis): una sola línea en el pie — se va la de arriba (el border-top
+   que traía DC-008) y queda el divider, al tono más claro de la que se fue. */
+.nwt-sidebar__footer > .nws-owner__divider { margin: 0; background-color: var(--naotech-app-color-200); }
 /* OVERRIDE (DC-357): NwtDatatable separa columnas con column-gap 16px. En
    tablas de 7-8 columnas dentro de un split eso son ~100px que no muestran
    nada mientras Operador se recorta; se baja a 12px en todo el demo. */
@@ -179,6 +176,8 @@ body {
   border-top: 1px solid var(--naotech-app-color-200);
   color: var(--naotech-app-color-600);
 }
+/* DC-363: colapsado el divider se queda — sin el border-top del footer es
+   lo único que separa el logout del menú de navegación. */
 .nwt-sidebar--collapsed .nws-owner { display: none; }
 
 /* Marca en la toolbar del sidebar (pedido 21-sep): Naowee arriba como
@@ -448,21 +447,161 @@ body {
 .nws-kv__v { flex: 1; min-width: 0; color: var(--naotech-app-color-900); }
 
 /* -------------------------------------------------------------------
-   nws-ticket — resumen de asignación con look de recibo. NO EXISTE EN
-   EL SDK: borde punteado + perforación simulada entre cabecera y cuerpo.
+   DC-366: nws-ticket — recibo/boarding pass. NO EXISTE EN EL SDK.
+   Piso duro de 14px en todo el texto: por eso los labels usan
+   smalltext y no overline, y el ritmo (paddings, gaps, hero) está
+   re-proporcionado para ese piso, no escalado desde el diseño.
    ------------------------------------------------------------------- */
 .nws-ticket {
-  border: 1.5px dashed var(--naotech-app-color-300); border-radius: var(--naotech-radius-xl);
-  background: var(--naotech-app-color-050); overflow: hidden;
+  /* Space Grotesk y JetBrains Mono llegan por Google Fonts (el único origen
+     de hoja que el visor de artifacts no bloquea). Si no cargan, el fallback
+     de sistema mantiene el ticket legible. */
+  --nws-tk-display: 'Space Grotesk', var(--naotech-sdk-font-family), system-ui, sans-serif;
+  --nws-tk-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* app-color-600 (el muted del SDK) da 3,1:1 sobre el papel y no pasa AA;
+     app-color-700 da 5,1:1. Los labels del ticket van en 700 (DC-366). */
+  --nws-tk-label: var(--naotech-app-color-700);
+  --nws-tk-papel: var(--naotech-app-color-100);
+  --nws-tk-pad: var(--naotech-sizing-16);
+  --nws-tk-muesca: 11px;
+  /* Alto del contenedor, no del contenido: el ticket se estira con su columna
+     y el aire sobrante lo reparte el cuerpo (DC-366). */
+  flex: 1 0 auto; align-self: stretch; width: 100%;
+  display: flex; flex-direction: column; min-width: 0; box-sizing: border-box;
+  font-family: var(--naotech-sdk-font-family);
 }
-.nws-ticket__head {
-  display: flex; align-items: center; gap: var(--naotech-sizing-8);
-  padding: var(--naotech-sizing-12) var(--naotech-sizing-16);
-  color: var(--naotech-app-color-700);
-  border-bottom: 1.5px dashed var(--naotech-app-color-300);
+/* Las tres hojas del ticket llevan el papel y su propio recorte: así la
+   muesca se ancla al canto del panel y no a un alto fijo que se desfasa
+   cuando cambia el contenido. */
+.nws-ticket__stub, .nws-ticket__body, .nws-ticket__folio {
+  background: var(--nws-tk-papel); box-sizing: border-box; min-width: 0;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-composite: source-in; mask-composite: intersect;
 }
-.nws-ticket__body { display: flex; flex-direction: column; gap: var(--naotech-sizing-10); padding: var(--naotech-sizing-16); }
-.nws-ticket__body--mono .nws-kv__v { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.nws-ticket__stub {
+  flex: 0 0 auto; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: var(--naotech-radius-xxl) var(--naotech-radius-xxl) 0 0;
+  border-bottom: 2px dashed var(--naotech-app-color-300);
+  -webkit-mask-image:
+    radial-gradient(circle var(--nws-tk-muesca) at 0 100%, transparent 98%, #000 100%),
+    radial-gradient(circle var(--nws-tk-muesca) at 100% 100%, transparent 98%, #000 100%);
+  mask-image:
+    radial-gradient(circle var(--nws-tk-muesca) at 0 100%, transparent 98%, #000 100%),
+    radial-gradient(circle var(--nws-tk-muesca) at 100% 100%, transparent 98%, #000 100%);
+}
+.nws-ticket__body {
+  /* space-between y no gap fijo: es lo que reparte el alto sobrante entre los
+     bloques en vez de dejar un hueco muerto abajo (DC-366). */
+  /* min-content: puede ceder su holgura para que el pie entre, pero nunca
+     aplastarse por debajo de su contenido. */
+  flex: 1 1 auto; min-height: min-content; display: flex; flex-direction: column;
+  justify-content: space-between; row-gap: var(--naotech-sizing-8);
+  padding: var(--naotech-sizing-12) var(--nws-tk-pad);
+  border-bottom: 2px dashed var(--naotech-app-color-300);
+  -webkit-mask-image:
+    radial-gradient(circle var(--nws-tk-muesca) at 0 0, transparent 98%, #000 100%),
+    radial-gradient(circle var(--nws-tk-muesca) at 100% 0, transparent 98%, #000 100%),
+    radial-gradient(circle var(--nws-tk-muesca) at 0 100%, transparent 98%, #000 100%),
+    radial-gradient(circle var(--nws-tk-muesca) at 100% 100%, transparent 98%, #000 100%);
+  mask-image:
+    radial-gradient(circle var(--nws-tk-muesca) at 0 0, transparent 98%, #000 100%),
+    radial-gradient(circle var(--nws-tk-muesca) at 100% 0, transparent 98%, #000 100%),
+    radial-gradient(circle var(--nws-tk-muesca) at 0 100%, transparent 98%, #000 100%),
+    radial-gradient(circle var(--nws-tk-muesca) at 100% 100%, transparent 98%, #000 100%);
+}
+.nws-ticket__folio {
+  flex: 0 0 auto; display: flex; align-items: center; gap: var(--naotech-sizing-16);
+  padding: var(--naotech-sizing-8) var(--nws-tk-pad);
+  border-radius: 0 0 var(--naotech-radius-xxl) var(--naotech-radius-xxl);
+  -webkit-mask-image:
+    radial-gradient(circle var(--nws-tk-muesca) at 0 0, transparent 98%, #000 100%),
+    radial-gradient(circle var(--nws-tk-muesca) at 100% 0, transparent 98%, #000 100%);
+  mask-image:
+    radial-gradient(circle var(--nws-tk-muesca) at 0 0, transparent 98%, #000 100%),
+    radial-gradient(circle var(--nws-tk-muesca) at 100% 0, transparent 98%, #000 100%);
+}
+
+/* --- stub: banda, cabecera, hero, tramo/tarjetas --- */
+.nws-ticket__acento { flex: 0 0 var(--naotech-sizing-8); height: var(--naotech-sizing-8); background: var(--naotech-primary-color-700); }
+.nws-tk-stub-in { display: flex; flex-direction: column; gap: var(--naotech-sizing-10); padding: var(--naotech-sizing-12) var(--nws-tk-pad) var(--naotech-sizing-10); }
+
+.nws-tk-lbl {
+  font-size: var(--naotech-smalltext-font-size); font-weight: var(--naotech-font-weight-bold);
+  line-height: 1.2; letter-spacing: 0.09em; text-transform: uppercase; color: var(--nws-tk-label);
+}
+.nws-tk-mono { font-family: var(--nws-tk-mono); font-size: var(--naotech-smalltext-font-size); line-height: 1.35; color: var(--nws-tk-label); }
+
+.nws-tk-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--naotech-sizing-12); }
+.nws-tk-cab__marca { font-family: var(--nws-tk-display); font-size: var(--naotech-sizing-20); font-weight: var(--naotech-font-weight-bold); line-height: 1.1; letter-spacing: 0.13em; color: var(--naotech-app-color-900); }
+.nws-tk-cab__ent { font-size: var(--naotech-smalltext-font-size); line-height: 1.35; color: var(--nws-tk-label); }
+.nws-tk-cab__doc { font-size: var(--naotech-smalltext-font-size); font-weight: var(--naotech-font-weight-bold); line-height: 1.2; letter-spacing: 0.09em; text-transform: uppercase; color: var(--naotech-primary-color-800); }
+.nws-tk-cab__der { display: flex; flex-direction: column; align-items: flex-end; gap: var(--naotech-sizing-4); text-align: right; min-width: 0; }
+
+.nws-tk-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--naotech-sizing-12); }
+.nws-tk-hero__v { display: flex; align-items: baseline; gap: var(--naotech-sizing-10); font-family: var(--nws-tk-display); font-size: var(--naotech-sizing-36); font-weight: var(--naotech-font-weight-bold); line-height: 0.92; letter-spacing: -0.03em; color: var(--naotech-app-color-900); }
+.nws-tk-hero__u { font-family: var(--nws-tk-display); font-size: var(--naotech-sizing-20); font-weight: var(--naotech-font-weight-medium); letter-spacing: -0.01em; color: var(--nws-tk-label); }
+
+/* --- tramo tipo pasaje --- */
+.nws-tk-tramo { display: flex; align-items: flex-end; gap: var(--naotech-sizing-10); }
+.nws-tk-tramo__pt { display: flex; flex-direction: column; gap: var(--naotech-sizing-4); min-width: 0; }
+.nws-tk-tramo__pt--fin { align-items: flex-end; text-align: right; }
+.nws-tk-tramo__n { font-family: var(--nws-tk-display); font-size: var(--naotech-sizing-18); font-weight: var(--naotech-font-weight-bold); line-height: 1.1; letter-spacing: -0.005em; text-transform: uppercase; color: var(--naotech-app-color-900); white-space: nowrap; }
+.nws-tk-tramo__via { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-6); padding-bottom: var(--naotech-sizing-6); }
+.nws-tk-tramo__med { font-family: var(--nws-tk-mono); font-size: var(--naotech-smalltext-font-size); font-weight: var(--naotech-font-weight-bold); letter-spacing: 0.06em; line-height: 1.2; color: var(--naotech-primary-color-800); white-space: nowrap; }
+.nws-tk-tramo__linea { width: 100%; display: flex; align-items: center; gap: var(--naotech-sizing-4); }
+/* Guion de 6px cada 11px: sin token, es una medida de dibujo. */
+.nws-tk-tramo__linea i { flex: 1 1 auto; height: 2px; background: repeating-linear-gradient(90deg, var(--naotech-app-color-400) 0 6px, transparent 6px 11px); }
+.nws-tk-tramo__linea b, .nws-tk-tramo__linea s { flex: 0 0 auto; width: var(--naotech-sizing-8); height: var(--naotech-sizing-8); border-radius: var(--naotech-radius-circle); box-sizing: border-box; }
+.nws-tk-tramo__linea b { background: var(--naotech-app-color-900); }
+.nws-tk-tramo__linea s { border: 2px solid var(--naotech-app-color-900); }
+.nws-tk-tramo__linea .nwt-icon { flex: 0 0 auto; color: var(--naotech-primary-color-700); --naotech-icon-dimension: var(--naotech-sizing-20); }
+
+/* --- tarjetas de sector (el lugar del tramo en el ticket de admin) --- */
+
+/* --- cifras --- */
+.nws-tk-cifras { display: flex; align-items: stretch; }
+.nws-tk-cifra { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--naotech-sizing-6); }
+.nws-tk-cifra + .nws-tk-cifra { padding-left: var(--naotech-sizing-14); }
+.nws-tk-cifra__v { font-family: var(--nws-tk-display); font-size: var(--naotech-sizing-28); font-weight: var(--naotech-font-weight-bold); line-height: 1; letter-spacing: -0.02em; color: var(--naotech-app-color-900); white-space: nowrap; }
+.nws-tk-cifra__u { font-size: var(--naotech-smalltext-font-size); font-weight: var(--naotech-font-weight-medium); letter-spacing: 0; color: var(--nws-tk-label); }
+.nws-tk-divisor { flex: 0 0 1px; width: 1px; align-self: stretch; margin-right: var(--naotech-sizing-14); background: var(--naotech-app-color-300); }
+.nws-tk-regla { height: 1px; background: var(--naotech-app-color-300); }
+
+/* --- bloques de detalle --- */
+.nws-tk-bloques { display: flex; flex-direction: column; gap: var(--naotech-sizing-8); }
+.nws-tk-bloque { display: flex; flex-direction: column; gap: var(--naotech-sizing-6); min-width: 0; }
+.nws-tk-persona { display: flex; align-items: center; gap: var(--naotech-sizing-12); min-width: 0; }
+/* DC-375: los avatares se montan como en cualquier pila de personas; el anillo
+   del papel es lo que los separa entre sí. */
+.nws-tk-pila { display: flex; flex: 0 0 auto; }
+.nws-tk-pila > * + * { margin-left: calc(var(--naotech-sizing-10) * -1); }
+.nws-tk-pila > * { box-shadow: 0 0 0 2px var(--nws-tk-papel); border-radius: 999px; }
+.nws-tk-persona__n { font-size: var(--naotech-body-font-size); font-weight: var(--naotech-font-weight-semibold); line-height: 1.3; color: var(--naotech-app-color-900); }
+.nws-tk-pares { display: flex; gap: var(--naotech-sizing-18); }
+.nws-tk-par { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--naotech-sizing-6); }
+.nws-tk-par__v { font-size: var(--naotech-body-font-size); font-weight: var(--naotech-font-weight-medium); line-height: 1.3; color: var(--naotech-app-color-900); }
+
+/* --- pie --- */
+/* Barras de anchos irregulares: si todas miden igual se lee como trama y no
+   como código. El período (37px) no tiene token, es una medida de dibujo. */
+.nws-ticket__barras {
+  flex: 1 1 auto; min-width: var(--naotech-sizing-40); height: var(--naotech-sizing-20);
+  background-image: repeating-linear-gradient(90deg,
+    var(--naotech-app-color-900) 0 2px, transparent 2px 5px,
+    var(--naotech-app-color-900) 5px 6px, transparent 6px 9px,
+    var(--naotech-app-color-900) 9px 12px, transparent 12px 14px,
+    var(--naotech-app-color-900) 14px 15px, transparent 15px 19px,
+    var(--naotech-app-color-900) 19px 22px, transparent 22px 23px,
+    var(--naotech-app-color-900) 23px 24px, transparent 24px 27px,
+    var(--naotech-app-color-900) 27px 28px, transparent 28px 31px,
+    var(--naotech-app-color-900) 31px 34px, transparent 34px 37px);
+}
+.nws-ticket__folio .nws-tk-pie { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: var(--naotech-sizing-4); text-align: right; }
+.nws-ticket__codigo {
+  font-family: var(--nws-tk-mono); font-size: var(--naotech-body-font-size);
+  font-weight: var(--naotech-font-weight-bold); line-height: 1.2;
+  letter-spacing: 0.02em; color: var(--naotech-app-color-900); white-space: nowrap;
+}
 
 /* DC-246/DC-248: el label 'Detalle' del textarea de observación (SDK, sin
    clase propia) debe verse igual que el label a mano 'Qué encontraste'
@@ -531,6 +670,8 @@ body {
    badge — queda desproporcionado frente al número de los pasos sin hacer.
    Se lo ajusta al font-size del badge, igual que el número. */
 .nwt-stepper__item__badge .nwt-icon { font-size: var(--pvt-badge-font-size); width: 1em; height: 1em; }
+/* DC-380: variante ancha de la foto del equipo — encabeza su columna en 16:9. */
+.nws-pick__foto--16x9 { width: 100%; aspect-ratio: 16 / 9; height: auto; background-size: cover; background-position: center; }
 .nws-pick__foto--tall { width: 72px; height: 128px; aspect-ratio: 9 / 16; border-radius: var(--naotech-radius-xl); }
 /* DC-178: la card queda muy angosta con el tag del equipo encima. */
 .nws-pick__foto--wide { width: 108px; }
@@ -733,6 +874,11 @@ body {
   border-bottom: 1px solid var(--naotech-app-color-100);
 }
 .nws-stop:last-child { border-bottom: none; }
+/* Cruce de sector dentro de una misma ruta: una marca fina, no un corte. */
+.nws-stop-cruce {
+  padding: var(--naotech-sizing-6) var(--naotech-sizing-18); color: var(--naotech-app-color-600);
+  background: var(--naotech-app-color-050); border-bottom: 1px solid var(--naotech-app-color-100);
+}
 .nws-stop--click { cursor: pointer; }
 .nws-stop--click:hover { background: var(--naotech-app-color-050); }
 .nws-stop--pendiente { opacity: .58; }
@@ -743,6 +889,8 @@ body {
 }
 .nws-stop__n .nwt-icon { font-size: 12px; }
 .nws-stop--hecha .nws-stop__n { background: var(--naotech-theme-color-700); color: var(--naotech-theme-font-color); }
+/* Hallazgo del supervisor en ruta: la parada queda hecha, pero se distingue de una conforme. */
+.nws-stop--hecha .nws-stop__n--hallazgo { background: var(--naotech-caution-color-500); color: var(--naotech-app-color-900); }
 .nws-stop--actual .nws-stop__n { background: var(--naotech-theme-color-100); color: var(--naotech-theme-color-800); box-shadow: 0 0 0 2px var(--naotech-theme-color-300); }
 .nws-stop__dir  { color: var(--naotech-app-color-900); }
 .nws-stop__meta { color: var(--naotech-app-color-600); }
@@ -1013,25 +1161,20 @@ body {
 .nws-login__showroom:hover, .nws-login__showroom:focus-visible { transform: translateY(-2px); box-shadow: var(--naotech-shadow-large); }
 .nws-login__showroom .nwt-icon { font-size: var(--naotech-sizing-20); }
 @media (max-width: 520px) { .nws-login__showroom { padding: var(--naotech-sizing-8) var(--naotech-sizing-14); font-size: var(--naotech-sizing-14); } }
-/* DC-082 (corrige DC-078/064): una pastilla centrada seguía leyéndose
-   suelta — ahora es una cinta del ancho COMPLETO de la card, pegada a su
-   borde inferior con el mismo radio, a caballo hacia afuera (más adentro
-   que afuera): se lee como parte de la card, no como algo flotando sobre
-   ella. onClick (login.js) hace zoom desde la card real, no desde la
-   cinta, así que "abrir" se ve igual que cualquier otro rol. */
+/* DC-362 (cierra DC-082): el atajo corre DENTRO del párrafo de la
+   descripción, no como línea aparte — hereda su tipografía y solo cambia
+   el color. -700 y no -normal: -normal se re-mapea con el nwt-theme. */
 .nws-login__flota {
-  position: absolute; left: 0; right: 0; bottom: 0; transform: translateY(65%); z-index: 2;
-  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: var(--naotech-sizing-6);
-  width: 100%; padding: var(--naotech-sizing-8) var(--naotech-sizing-12);
-  border-radius: 0 0 var(--naotech-radius-xxl) var(--naotech-radius-xxl);
-  border: 1px solid var(--naotech-warning-color-300); border-top: none;
-  background: var(--naotech-warning-color-100); color: var(--naotech-warning-color-800, var(--naotech-app-color-900));
-  font: inherit; font-size: var(--naotech-sizing-12); font-weight: var(--naotech-font-weight-bold); cursor: pointer; white-space: nowrap;
-  box-shadow: var(--naotech-shadow-small);
-  transition: transform .18s ease, box-shadow .18s ease;
+  display: inline-flex; align-items: center; gap: var(--naotech-sizing-4);
+  margin: 0 0 0 var(--naotech-sizing-6); padding: 0; border: none;
+  background: none; color: var(--naotech-primary-color-700);
+  font: inherit; font-weight: var(--naotech-font-weight-semibold);
+  vertical-align: baseline; cursor: pointer; white-space: nowrap;
+  transition: color var(--naotech-duration-fast) var(--naotech-animation-standard);
 }
-.nws-login__flota .nwt-icon { font-size: var(--naotech-sizing-16); }
-.nws-login__flota:hover, .nws-login__flota:focus-visible { transform: translateY(65%) translateY(-2px); box-shadow: var(--naotech-shadow-medium); }
+.nws-login__flota .nwt-icon { font-size: var(--naotech-sizing-14); }
+.nws-login__flota:hover { color: var(--naotech-primary-color-800); text-decoration: underline; }
+.nws-login__flota:focus-visible { outline: none; box-shadow: var(--naotech-primary-focus-shadow); }
 .nws-login__head { display: flex; flex-direction: column; align-items: center; gap: var(--naotech-sizing-8); text-align: center; }
 /* Slider horizontal (pedido 21-sep): los perfiles ya no entran cómodos en
    una grilla de 4 —son seis y van a crecer—, así que corren en una sola

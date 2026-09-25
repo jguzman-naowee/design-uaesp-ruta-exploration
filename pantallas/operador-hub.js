@@ -39,7 +39,7 @@ window.PANTALLAS['operador-hub'] = {
   /* DC-357: anchos por contenido para las cortas, flex para las de texto. */
   columnas: [
     { label: 'Ruta', style: 'flex:1 1 0;min-width:160px' },
-    { label: 'Unidades', style: 'flex:0 0 80px', cls: 'nws-col-center' },
+    { label: 'Puntos', style: 'flex:0 0 80px', cls: 'nws-col-center' },
     { label: 'Operario sugerido', style: 'flex:1 1 0;min-width:180px' },
     { label: 'Recibida', style: 'flex:0 0 104px' },
     { label: 'Acción', actions: true, style: 'flex:0 0 96px' }
@@ -73,12 +73,12 @@ window.PANTALLAS['operador-hub'] = {
        esqueleto — un guión y un esqueleto no dicen lo mismo, el guión es un
        dato vacío y esto todavía no llegó. */
     var stats = S.h('div', { class: 'nws-stats nws-stats--hero' },
-      S.statCard({ skeleton: k, label: 'Unidades recolectadas hoy', bindValue: 'totalHechas', value: '—', bindHint: 'heroHint', cls: 'nws-stat-hero', theme: T,
+      S.statCard({ skeleton: k, label: 'Puntos recolectados hoy', bindValue: 'totalHechas', value: '—', bindHint: 'heroHint', cls: 'nws-stat-hero', theme: T,
         extra: S.progress({ value: 0, size: 'medium', theme: T, cls: 'nws-stat-progress' }).replace('class="nwt-progress-bar', 'data-bind-progress="hero" class="nwt-progress-bar') }),
       S.statCard({ skeleton: k, label: 'Rutas en curso', value: O.enCalle.length, hint: 'de 5 programadas para hoy', icon: 'shipping', theme: T }),
       S.statCard({ skeleton: k, label: 'Operarios en calle', valueHtml: S.h('span', { class: 'nws-delta' }, '3', S.h('span', { class: 'nwt-caption-font-regular nws-muted' }, 'de 8')), hint: '2 en turno de tarde · 3 libres', theme: T,
         extra: S.progress({ value: 3 / 8 * 100, size: 'medium', cls: 'nws-stat-progress' }) }),
-      S.statCard({ skeleton: k, label: 'Completadas hoy', valueHtml: S.h('span', { class: 'nws-delta' }, O.completadasHoy.length, S.badge({ label: O.metricas.variacionHoy, size: 'small', theme: 'positive' })), hint: '67 unidades · 0 pendientes de evidencia', theme: T,
+      S.statCard({ skeleton: k, label: 'Completadas hoy', valueHtml: S.h('span', { class: 'nws-delta' }, O.completadasHoy.length, S.badge({ label: O.metricas.variacionHoy, size: 'small', theme: 'positive' })), hint: '67 puntos · 0 pendientes de evidencia', theme: T,
         extra: S.h('div', { class: 'nws-spark' }, O.metricas.sparkline.map(function (v) { return '<i style="height:' + v + '%"></i>'; })) }));
 
     /* DC-347: el segmentor flota arriba, desacoplado de la card (patrón
@@ -157,7 +157,7 @@ window.PANTALLAS['operador-hub'] = {
     function pintarStats() {
       var h = 0, m = 0; st.enCalle.forEach(function (o) { h += o.hechas; m += o.total; });
       var total = O.base.hechas + h, meta = O.base.hechas + m + O.base.extraMeta, pct = Math.round(total / meta * 100);
-      bind('totalHechas', total); bind('heroHint', pct + '% de la meta del día · ' + meta + ' unidades · 3 rutas en calle');
+      bind('totalHechas', total); bind('heroHint', pct + '% de la meta del día · ' + meta + ' puntos · 3 rutas en calle');
       var bar = root.querySelector('[data-bind-progress="hero"]'); if (bar) { bar.setAttribute('aria-valuenow', pct); bar.querySelector('.nwt-progress-bar__fill').style.width = pct + '%'; }
     }
 
@@ -274,7 +274,7 @@ window.PANTALLAS['operador-hub'] = {
                   S.badge({ label: o.libre ? 'Disponible' : 'En ruta', size: 'medium', theme: o.libre ? 'positive' : 'informative' })) +
                 S.h('div', { class: 'nws-pick__stats' },
                   S.h('div', { class: 'nws-pick__stat' }, S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, o.rutas + ' rutas'), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Esta semana')),
-                  S.h('div', { class: 'nws-pick__stat' }, S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, o.ritmo), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Unidades/h')),
+                  S.h('div', { class: 'nws-pick__stat' }, S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, o.ritmo), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Puntos/h')),
                   S.h('div', { class: 'nws-pick__stat' }, S.h('span', { class: 'nwt-body-font-bold nws-tnum' }, o.conformidad), S.h('span', { class: 'nwt-smalltext-font-regular nws-muted' }, 'Conformidad'))) });
           }));
       }
@@ -293,20 +293,36 @@ window.PANTALLAS['operador-hub'] = {
       }
       if (st.paso === 3) {
         okOk = true; okLabel = 'Asignar ruta'; pista = 'La ruta pasa a estado Asignada';
+        var codigo = String(ruta.codigo).split('·')[0].trim();
+        var cap = String(eq.capacidad).split(' ');
         html = S.h('div', { class: 'nws-split', style: 'min-height:260px' },
-          S.h('div', { class: 'nws-pick__foto nws-pick__foto--tall', style: 'flex:0 0 auto;width:160px;height:auto;' + (eq.foto ? 'background-image:url(' + eq.foto + ');background-size:cover;background-position:center' : '') },
-            eq.foto ? '' : S.icon('vehicles')),
-          S.h('div', { class: 'nws-col', style: 'flex:0 0 360px;gap:var(--naotech-sizing-10)' },
+          S.h('div', { class: 'nws-col', style: 'flex:1 1 0;min-width:240px;gap:var(--naotech-sizing-10)' },
+            /* DC-380: la foto del camión encabeza esta columna en 16:9 en vez de
+               ser una franja alta a la izquierda. */
+            S.h('div', { class: 'nws-pick__foto nws-pick__foto--16x9', style: eq.foto ? 'background-image:url(' + eq.foto + ')' : '' },
+              eq.foto ? '' : S.icon('vehicles')),
             S.h('span', { class: 'nwt-overline-font-semibold nws-muted' }, 'Qué pasa después'),
             S.timeline({ items: [
               { title: 'Asignada', subtitle: 'ahora · aparece en el teléfono de ' + op.nombre, theme: T },
               { title: 'Programada', subtitle: 'cuando el operario le ponga fecha — ahí ya no podés reasignar' },
               { title: 'En ejecución', subtitle: 'vas a verla en «En calle ahora» con su avance' }] })),
-          S.h('div', { class: 'nws-col nws-grow nws-ticket' },
-            S.h('div', { class: 'nws-ticket__head' }, S.icon('shipping'), S.h('span', { class: 'nwt-caption-font-semibold' }, 'Qué se va a asignar')),
-            S.h('div', { class: 'nws-ticket__body nws-ticket__body--mono' },
-              [['Ruta', ruta.codigo], ['Trazada por', 'UAESP · ' + ruta.modo], ['Unidades', ruta.unidades + ' · ' + ruta.sector], ['Conductor', op.nombre], ['Recolectores', recolectores.map(function (r) { return r.nombre; }).join(', ')], ['Equipo', eq.nombre + ' · ' + eq.cuadrilla + ' personas'], ['Carga resultante', (op.rutas + 1) + ' rutas esta semana']]
-                .map(function (kv) { return S.h('div', { class: 'nws-kv nwt-body-font-regular' }, S.h('span', { class: 'nws-kv__k' }, kv[0]), S.h('span', { class: 'nws-kv__v nwt-body-font-medium nws-tnum' }, e(kv[1]))); }))));
+          /* DC-366: mismo ticket que el modal de nueva ruta (ctx.ticket). El
+             folio sale del código real de la ruta ('R-2401 · Sector A'). */
+          ctx.ticket({
+            doc: 'Orden de ruta', style: 'flex:0 0 436px',
+            folio: codigo.replace(/[^A-Za-z0-9]/g, '').toUpperCase() + '-2026',
+            hero: codigo,
+            /* El origen es el patio de la zona (BASES.norte en mapa.js). DC-376:
+               una sola línea — las unidades ya son una cifra del cuerpo y verlas
+               dos veces era lo que no se entendía. */
+            tramo: { desde: 'Patio Norte', hasta: ruta.sector },
+            cifras: [{ valor: String(ruta.unidades), label: 'Puntos' }, { valor: String(eq.cuadrilla), label: 'Cuadrilla' }, { valor: cap[0], unidad: cap[1], label: 'Capacidad' }],
+            persona: { label: 'Conductor', ini: op.ini, nombre: op.nombre, tema: T,
+              grupo: { label: 'Recolectores', gente: recolectores } },
+            /* DC-373: «Trazada por» no cambia ninguna decisión en este paso y
+               del equipo alcanza con el camión. */
+            pares: [[['Equipo', eq.nombre]]]
+          }));
       }
       /* DC-305: elegir una card (conductor o recolector) no cambia de paso ni
          de lista — es solo un toggle de selección, y no debería disparar el
