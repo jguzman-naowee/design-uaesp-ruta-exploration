@@ -213,7 +213,9 @@ window.SDK = (function () {
   /* NwtDivider */
   function divider(o) {
     o = o || {};
-    return h('div', { class: cls('nwt-divider', o.vertical && 'nwt-divider--vertical', o.cls), 'nwt-direction': o.vertical ? 'vertical' : undefined });
+    /* DC-363: faltaba el modificador horizontal. El alto de 1px vive solo
+       ahí, así que sin él el divider medía 0 y no se veía. */
+    return h('div', { class: cls('nwt-divider', o.vertical ? 'nwt-divider--vertical' : 'nwt-divider--horizontal', o.cls), 'nwt-direction': o.vertical ? 'vertical' : undefined });
   }
 
   /* NwtCard — default nwtVariant 'quiet', nwtSize 'medium'.
